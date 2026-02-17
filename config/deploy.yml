@@ -21,8 +21,7 @@ servers:
 # Credenciales para subir/bajar la imagen
 registry:
   username: luisomarrojasmercado
-  password:
-    - Developer2026
+  password: <%= ENV["KAMAL_REGISTRY_PASSWORD"] %>
 
 # Variables de entorno para tu aplicación Rails
 env:

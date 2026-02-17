@@ -74,3 +74,5 @@ gem 'devise_invitable'
 gem 'rails-i18n'
 
 gem "redis"
+
+gem "bootstrap", "~> 5.3.3"
