@@ -59,13 +59,13 @@ production:
     password: <%= ENV["MYSQL_ROOT_PASSWORD"] %>
     host: <%= ENV.fetch("DB_HOST") { "consilium-db" } %>
     database: consilium_production
-  #cache:
-  #  <<: *primary_production
-  #  database: consilium_production
-  #queue:
-   # <<: *primary_production
-    #database: consilium_production
+  cache:
+    <<: *primary_production
+    database: consilium_production
+  queue:
+    <<: *primary_production
+    database: consilium_production
   # ESTO ES LO QUE FALTA:
-  #cable:
-   # <<: *primary_production
-    #database: consilium_production
+  cable:
+    <<: *primary_production
+    database: consilium_production
