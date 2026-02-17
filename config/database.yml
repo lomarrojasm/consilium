@@ -56,7 +56,6 @@ production:
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   username: root
   password: <%= ENV["MYSQL_ROOT_PASSWORD"] %>
-  # ESTA LÍNEA ES LA CLAVE:
-  host: <%= ENV.fetch("DB_HOST") { "consilium-db" } %> 
-  # O usa "127.0.0.1" si mapeaste los puertos al host, 
-  # pero "consilium-db" (o el nombre de tu accesorio en deploy.yml) es lo mejor.
+  host: <%= ENV.fetch("DB_HOST") { "consilium-db" } %>
+  # ESTA LÍNEA ES LA QUE FALTA O ESTÁ MAL:
+  database: consilium_production

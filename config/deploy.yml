@@ -52,6 +52,10 @@ accessories:
       clear:
         MYSQL_ROOT_PASSWORD: '<%= ENV["MYSQL_ROOT_PASSWORD"] %>' # Lee de tu .env local
         MYSQL_DATABASE: consilium_production
+      secret:
+        - MYSQL_ROOT_PASSWORD
+    files:
+      - config/mysql/production.cnf:/etc/mysql/conf.d/production.cnf
     directories:
       - data:/var/lib/mysql # ¡Importante! Guarda los datos en el disco del servidor
 
