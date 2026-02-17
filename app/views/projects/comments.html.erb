@@ -1,0 +1,100 @@
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="<%= client_path(@client) %>"><%= @client.company_name %></a></li>
+                    <li class="breadcrumb-item"><a href="<%= client_project_path(@client, @project) %>">Proyecto</a></li>
+                    <li class="breadcrumb-item active">Bitácora</li>
+                </ol>
+            </div>
+            <h4 class="page-title">Bitácora: <%= @project.name %></h4>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-4 col-lg-5">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Nuevo Registro</h5>
+                
+                <%= form_with(model: [@client, @project, @new_comment], url: client_project_comments_path(@client, @project), local: true) do |f| %>
+                  
+                  <div class="mb-3">
+                    <%= f.text_area :body, rows: 4, class: "form-control", placeholder: "Escribe un comentario, actualización o nota..." %>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small">Destinatario (Opcional)</label>
+                     <%= f.collection_select :recipient_id, 
+                         @project.project_members.includes(:user).map(&:user), 
+                         :id, 
+                         :first_name, 
+                         { include_blank: "Todo el Equipo (General)" }, 
+                         { class: "form-select form-select-sm" } 
+                     %>
+                  </div>
+
+                  <div class="d-grid">
+                    <%= f.submit "Publicar", class: "btn btn-primary btn-sm" %>
+                  </div>
+
+                <% end %>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form action="<%= comments_client_project_path(@client, @project) %>" method="get">
+                    <div class="input-group">
+                        <input type="text" name="comment_query" class="form-control" placeholder="Buscar en bitácora..." value="<%= params[:comment_query] %>">
+                        <button class="btn btn-light" type="submit"><i class="mdi mdi-magnify"></i></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-8 col-lg-7">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="header-title mb-3">Historial de Comentarios</h5>
+
+                <div class="timeline-alt pb-0 position-relative">
+                  <% if @comments.any? %>
+                    <% @comments.each do |comment| %>
+                      <div class="timeline-item">
+                        <div class="timeline-icon">
+                           <div class="avatar-xs">
+                             <span class="avatar-title rounded-circle bg-info text-white font-10">
+                                <%= comment.user.first_name[0] %>
+                             </span>
+                           </div>
+                        </div>
+                        <div class="timeline-item-info pb-4 border-bottom border-light mb-3">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <span class="text-dark fw-bold font-14"><%= comment.user.first_name %> <%= comment.user.last_name %></span>
+                                <% if comment.recipient %>
+                                   <span class="text-muted font-12 ms-1">
+                                     <i class="mdi mdi-arrow-right"></i> @<%= comment.recipient.first_name %>
+                                     <span class="badge bg-warning text-dark font-10">Privado</span>
+                                   </span>
+                                <% end %>
+                            </div>
+                            <small class="text-muted"><%= comment.created_at.strftime("%d %b %H:%M") %></small>
+                          </div>
+                          <p class="mt-1 mb-0 text-muted font-13"><%= simple_format(comment.body) %></p>
+                        </div>
+                      </div>
+                    <% end %>
+                  <% else %>
+                    <p class="text-center text-muted py-5">No hay registros en la bitácora.</p>
+                  <% end %>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

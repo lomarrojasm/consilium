@@ -1,0 +1,261 @@
+es:
+  # 1. TRADUCCIÓN DE MODELOS Y CAMPOS (Aquí estaba el error principal)
+  activerecord:
+    models:
+      client: "Cliente / Empresa"
+      project: "Proyecto"
+      user: "Usuario"
+      activity: "Actividad"
+      stage: "Etapa"
+      message: "Mensaje"
+      project_member: "Miembro del Equipo"
+      project_comment: "Comentario"
+    
+    attributes:
+      client:
+        company_name: "Razón Social"
+        rfc: "RFC"
+        industry: "Industria"
+        tax_city: "Domicilio Fiscal"
+      project:
+        name: "Nombre del Proyecto"
+        budget: "Presupuesto"
+        start_date: "Fecha de Inicio"
+        end_date: "Fecha de Fin"
+        status: "Estatus"
+        description: "Descripción"
+      user:
+        first_name: "Nombre"
+        last_name: "Apellidos"
+        email: "Correo Electrónico"
+        password: "Contraseña"
+        password_confirmation: "Confirmar Contraseña"
+        job_title: "Puesto / Cargo"
+        role: "Rol de Permisos"
+      activity:
+        name: "Nombre de la Tarea"
+        completed: "Completada"
+        description: "Detalles"
+        deadline: "Fecha Límite"
+      stage:
+        name: "Nombre de la Etapa"
+    
+    # Errores de validación de base de datos
+    errors:
+      messages:
+        record_invalid: 'La validación falló: %{errors}'
+        restrict_dependent_destroy:
+          has_one: El registro no puede ser eliminado pues existe un %{record} dependiente
+          has_many: El registro no puede ser eliminado pues existen %{record} dependientes
+
+  # 2. FORMATOS DE FECHA
+  date:
+    abbr_day_names:
+    - dom
+    - lun
+    - mar
+    - mié
+    - jue
+    - vie
+    - sáb
+    abbr_month_names:
+    -
+    - ene
+    - feb
+    - mar
+    - abr
+    - may
+    - jun
+    - jul
+    - ago
+    - sep
+    - oct
+    - nov
+    - dic
+    day_names:
+    - domingo
+    - lunes
+    - martes
+    - miércoles
+    - jueves
+    - viernes
+    - sábado
+    formats:
+      default: "%d/%m/%Y"
+      long: "%d de %B de %Y"
+      short: "%d de %b"
+    month_names:
+    -
+    - enero
+    - febrero
+    - marzo
+    - abril
+    - mayo
+    - junio
+    - julio
+    - agosto
+    - septiembre
+    - octubre
+    - noviembre
+    - diciembre
+    order:
+    - :day
+    - :month
+    - :year
+
+  # 3. TIEMPO Y HORARIOS
+  time:
+    am: am
+    pm: pm
+    formats:
+      default: "%d/%m/%Y %H:%M"
+      long: "%A, %d de %B de %Y a las %H:%M"
+      short: "%d de %b, %H:%M"
+
+  # 4. TEXTOS DE "TIEMPO ATRÁS" (Hace x minutos...)
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: cerca de 1 hora
+        other: cerca de %{count} horas
+      about_x_months:
+        one: cerca de 1 mes
+        other: cerca de %{count} meses
+      about_x_years:
+        one: cerca de 1 año
+        other: cerca de %{count} años
+      almost_x_years:
+        one: casi 1 año
+        other: casi %{count} años
+      half_a_minute: medio minuto
+      less_than_x_seconds:
+        one: menos de 1 segundo
+        other: menos de %{count} segundos
+      less_than_x_minutes:
+        one: menos de 1 minuto
+        other: menos de %{count} minutos
+      over_x_years:
+        one: más de 1 año
+        other: más de %{count} años
+      x_seconds:
+        one: 1 segundo
+        other: "%{count} segundos"
+      x_minutes:
+        one: 1 minuto
+        other: "%{count} minutos"
+      x_days:
+        one: 1 día
+        other: "%{count} días"
+      x_months:
+        one: 1 mes
+        other: "%{count} meses"
+      x_years:
+        one: 1 año
+        other: "%{count} años"
+    prompts:
+      second: Segundo
+      minute: Minuto
+      hour: Hora
+      day: Día
+      month: Mes
+      year: Año
+
+  # 5. ERRORES GENERALES (Validaciones)
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: debe ser aceptado
+      blank: no puede estar en blanco
+      confirmation: no coincide
+      empty: no puede estar vacío
+      equal_to: debe ser igual a %{count}
+      even: debe ser un número par
+      exclusion: está reservado
+      greater_than: debe ser mayor que %{count}
+      greater_than_or_equal_to: debe ser mayor o igual que %{count}
+      in: debe estar en %{count}
+      inclusion: no está incluido en la lista
+      invalid: es inválido
+      less_than: debe ser menor que %{count}
+      less_than_or_equal_to: debe ser menor o igual que %{count}
+      model_invalid: 'La validación falló: %{errors}'
+      not_a_number: no es un número
+      not_an_integer: debe ser un entero
+      odd: debe ser un número impar
+      other_than: debe ser diferente a %{count}
+      password_too_long: es demasiado larga
+      present: debe estar en blanco
+      required: debe existir
+      taken: ya ha sido tomado
+      too_long:
+        one: es demasiado largo (máximo %{count} carácter)
+        other: es demasiado largo (máximo %{count} caracteres)
+      too_short:
+        one: es demasiado corto (mínimo %{count} carácter)
+        other: es demasiado corto (mínimo %{count} caracteres)
+      wrong_length:
+        one: longitud errónea (debe ser de %{count} carácter)
+        other: longitud errónea (debe ser de %{count} caracteres)
+
+  # 6. HELPERS DE FORMULARIO
+  helpers:
+    select:
+      prompt: Por favor selecciona
+    submit:
+      create: Crear %{model}
+      submit: Guardar %{model}
+      update: Actualizar %{model}
+
+  # 7. FORMATO DE NÚMEROS Y MONEDA
+  number:
+    currency:
+      format:
+        delimiter: ","
+        format: "%u%n"
+        negative_format: "-%u%n"
+        precision: 2
+        separator: "."
+        significant: false
+        strip_insignificant_zeros: false
+        unit: "$"
+    format:
+      delimiter: ","
+      precision: 2
+      round_mode: default
+      separator: "."
+      significant: false
+      strip_insignificant_zeros: false
+    percentage:
+      format:
+        delimiter: ","
+        format: "%n%"
+    precision:
+      format:
+        delimiter: ","
+  
+  # 8. TUS TRADUCCIONES PERSONALIZADAS DE UI
+  general:
+    actions: "Acciones"
+    edit: "Editar"
+    delete: "Eliminar"
+    show: "Ver Detalle"
+    save: "Guardar Cambios"
+    cancel: "Cancelar"
+    back: "Regresar"
+    create: "Crear Nuevo"
+    search: "Buscar"
+    filter: "Filtrar"
+    dashboard: "Panel de Control"
+    logout: "Cerrar Sesión"
+    login: "Iniciar Sesión"
+  
+  # 9. MENSAJES FLASH
+  flash:
+    actions:
+      create:
+        notice: "%{resource_name} creado exitosamente."
+      update:
+        notice: "%{resource_name} actualizado exitosamente."
+      destroy:
+        notice: "%{resource_name} eliminado exitosamente."
+        alert: "No se pudo eliminar %{resource_name}."

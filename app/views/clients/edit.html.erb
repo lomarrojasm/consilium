@@ -1,0 +1,20 @@
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="<%= root_path %>">Consilium</a></li>
+                    <li class="breadcrumb-item"><a href="<%= clients_path %>">Clientes</a></li>
+                    <li class="breadcrumb-item active"><%= link_to @client.company_name, client_path(@client) %> </li>
+                </ol>
+            </div>
+            <h4 class="page-title">Editando Cliente: <%= @client.company_name %></h4>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <%= render 'form', client: @client %>
+    </div>
+</div>

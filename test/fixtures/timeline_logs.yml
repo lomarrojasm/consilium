@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  client: one
+  user: one
+  resource: one
+  resource_type: Resource
+  action_type: MyString
+  details: MyText
+  happened_at: 2026-02-12 12:15:31
+
+two:
+  client: two
+  user: two
+  resource: two
+  resource_type: Resource
+  action_type: MyString
+  details: MyText
+  happened_at: 2026-02-12 12:15:31

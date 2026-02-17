@@ -1,0 +1,608 @@
+<%= form_with(model: client, class: "needs-validation") do |form| %>
+  
+  <% if client.errors.any? %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <strong>¡Atención!</strong> Revisa los siguientes errores:
+      <ul class="mb-0">
+        <% client.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% end %>
+
+  <div class="card">
+    <div class="card-body">
+      
+      <ul class="nav nav-pills bg-nav-pills nav-justified mb-3" role="tablist">
+        <li class="nav-item">
+          <a href="#tab-identificacion" data-bs-toggle="tab" aria-expanded="false" class="nav-link rounded-0 active">
+            <i class="mdi mdi-home-variant d-md-none d-block"></i>
+            <span class="d-none d-md-block">1.- Identificación</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#tab-dimensionamiento" data-bs-toggle="tab" aria-expanded="true" class="nav-link rounded-0">
+            <i class="mdi mdi-account-group d-md-none d-block"></i>
+            <span class="d-none d-md-block">2.- Dimensionamiento</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#tab-contactos" data-bs-toggle="tab" aria-expanded="false" class="nav-link rounded-0">
+            <i class="mdi mdi-cogs d-md-none d-block"></i>
+            <span class="d-none d-md-block">3.- Contactos clave</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#tab-sistemas" data-bs-toggle="tab" aria-expanded="false" class="nav-link rounded-0">
+            <i class="mdi mdi-clipboard-text-outline d-md-none d-block"></i>
+            <span class="d-none d-md-block">4.- Sistemas</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#tab-contexto" data-bs-toggle="tab" aria-expanded="false" class="nav-link rounded-0">
+            <i class="mdi mdi-clipboard-text-outline d-md-none d-block"></i>
+            <span class="d-none d-md-block">5.- Contexto del Proyecto</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#tab-coordinacion" data-bs-toggle="tab" aria-expanded="false" class="nav-link rounded-0">
+            <i class="mdi mdi-clipboard-text-outline d-md-none d-block"></i>
+            <span class="d-none d-md-block">6.- Coordinación</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#tab-redes" data-bs-toggle="tab" aria-expanded="false" class="nav-link rounded-0">
+            <i class="mdi mdi-clipboard-text-outline d-md-none d-block"></i>
+            <span class="d-none d-md-block">7.- Redes sociales</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+        
+        <div class="tab-pane show active" id="tab-identificacion">
+          <h5 class="mb-3 text-uppercase bg-light p-2"><i class="mdi mdi-domain me-1"></i> Datos Generales</h5>
+          <div class="row g-2 mb-3">
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.file_field :avatar, class: "form-control", id: "floatingInput", placeholder: "name@example.com", accept: "image/png,image/gif,image/jpeg" %>
+                <label for="floatingInput" class="mt-0">Foto de perfil</label>
+                <div class="form-text">Formatos permitidos: JPG, PNG.</div>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :rfc, class: "form-control", id: "floatingInputRFC", placeholder: "name@example.com", required: true %>
+                <label for="floatingInputRFC">RFC</label>
+              </div>
+            </div>
+            
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :company_name, class: "form-control", id: "floatingInputRazon", placeholder: "Compañia", required: true %>
+                <label for="floatingInputRazon">Razón Social</label>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :trade_name, class: "form-control", id: "floatingInputnc", placeholder: "Compañia", required: true %>
+                <label for="floatingInputnc">Nombre Comercial</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-2"></div>
+             <div class="col-md-4">
+              <div class="form-floating">
+                <%= form.text_field :industry, class: "form-control", id: "floatingInputindus", placeholder: "Régimen", required: true %>
+                <label for="floatingInputindus">Industria</label>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="form-floating">
+                <%= form.text_field :country, class: "form-control", id: "floatingInputpais", placeholder: "Régimen", required: true %>
+                <label for="floatingInputpais">País</label>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row g-2 mb-3">
+             <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :corporate_regime, class: "form-control", id: "floatingInputrs", placeholder: "Régimen", required: true %>
+                <label for="floatingInputrs">Régimen Societario</label>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :tax_regime, class: "form-control", id: "floatingInputrf", placeholder: "Régimen", required: true %>
+                <label for="floatingInputrf">Régimen Físcal</label>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :industry, class: "form-control", id: "floatingInputin", placeholder: "Industria", required: true %>
+                <label for="floatingInputin">Industria / Giro</label>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :type_taxpayer, class: "form-control", id: "floatingInputtipocont", placeholder: "Industria", required: true %>
+                <label for="floatingInputtipocont">Tipo de Contribuyente</label>
+              </div>
+            </div>
+          </div>
+
+          <h5 class="mb-3 text-uppercase bg-light p-2"><i class="mdi mdi-map-marker me-1"></i> Dirección Fiscal</h5>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <div class="form-floating">
+                <%= form.text_field :tax_street, class: "form-control", id: "floatingInput-calle", placeholder: "Direccion", required: true %>
+                <label for="floatingInput-calle">Calle</label>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :tax_no_ext, class: "form-control", id: "floatingInput-noext", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">No. Ext.</label>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :tax_no_int, class: "form-control", id: "floatingInput-noint", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">No. Int.</label>
+              </div>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <div class="form-floating">
+                <%= form.text_field :tax_suburb, class: "form-control", id: "floatingInput-colonia", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Colonia</label>
+              </div>
+            </div>
+
+            <div class="col-md-2">
+              <div class="form-floating">
+                <%= form.text_field :tax_cp, class: "form-control", id: "floatingInput-cp", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">C.P.</label>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :tax_city, class: "form-control", id: "floatingInput-ciudad", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Ciudad</label>
+              </div>
+            </div>
+
+             <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :tax_town_hall, class: "form-control", id: "floatingInput-alcaldia", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Alcaldía / Municipio</label>
+              </div>
+            </div>
+          </div>
+
+          <h5 class="mb-3 text-uppercase bg-light p-2">
+            <i class="mdi mdi-map-marker me-1"></i>
+            Dirección Operativa 
+            <button onclick="copiarDireccion()" type="button" class="btn btn-info btn-sm" id="copy-address">Copiar Dirección Fiscal</button>
+          </h5>
+          
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <div class="form-floating">
+                <%= form.text_field :oper_street, class: "form-control", id: "floatingInput-calle-oper", placeholder: "Direccion", required: true %>
+                <label for="floatingInput-calle-oper">Calle</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :oper_no_ext, class: "form-control", id: "floatingInput-noext-oper", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">No. Ext.</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :oper_no_int, class: "form-control", id: "floatingInput-noint-oper", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">No. Int.</label>
+              </div>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <div class="form-floating">
+                <%= form.text_field :oper_suburb, class: "form-control", id: "floatingInput-colonia-oper", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Colonia</label>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-floating">
+                <%= form.text_field :oper_cp, class: "form-control", id: "floatingInput-cp-oper", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">C.P.</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :oper_city, class: "form-control", id: "floatingInput-ciudad-oper", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Ciudad</label>
+              </div>
+            </div>
+             <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :oper_town_hall, class: "form-control", id: "floatingInput-alcaldia-oper", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Alcaldía / Municipio</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="tab-dimensionamiento">
+          <div class="row g-2 mb-3">
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.number_field :operation_year, class: "form-control", id: "floatingInput-anosoper", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Años Operando</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.number_field :total_employee, class: "form-control", id: "floatingInput-emp", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Total Empleados</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.number_field :total_location, class: "form-control", id: "floatingInput-ubi", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Ubicaciones</label>
+              </div>
+            </div>
+             <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :product_service, class: "form-control", id: "floatingInput-prodserv", placeholder: "Direccion", required: true %>
+                <label for="floatingInput">Principales Productos/Servicios</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="tab-contactos">
+          <h5 class="mb-3 text-uppercase bg-light p-2"> 1. Sponsor (Principal)</h5>
+            <div class="row g-2 mb-3">
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :sponsor_name, class: "form-control", id: "floatingInput-sponso-name", placeholder: "Direccion", required: true %>
+                  <label for="floatingInput">Nombre</label>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :sponsor_position, class: "form-control", id: "floatingInput-sponso-cargo", placeholder: "Direccion", required: true %>
+                  <label for="floatingInput">Cargo</label>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :sponsor_email, class: "form-control", id: "floatingInput-sponso-email", placeholder: "Direccion", required: true %>
+                  <label for="floatingInput">Email</label>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :sponsor_cel, class: "form-control", id: "floatingInput-sponso-cel", placeholder: "Direccion", required: true %>
+                  <label for="floatingInput">Celular</label>
+                </div>
+              </div>
+            </div>
+
+          <h5 class="mb-3 text-uppercase bg-light p-2"> 2. Representante Legal</h5>
+            <div class="row g-2 mb-3">
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :legal_representative_name, class: "form-control", id: "floatingInputlrn", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputlrn">Nombre</label>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :legal_representative_position, class: "form-control", id: "floatingInputlrc", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputlrc">Cargo</label>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :legal_representative_email, class: "form-control", id: "floatingInputlrm", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputlrm">Email</label>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :legal_representative_cel, class: "form-control", id: "floatingInputlrcel", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputlrcel">Celular</label>
+                </div>
+              </div>
+            </div>
+
+          <h5 class="mb-3 text-uppercase bg-light p-2"> 3. Encargado de Operaciones</h5>
+            <div class="row g-2 mb-3">
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :operation_name, class: "form-control", id: "floatingInputoperna", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputoperna">Nombre</label>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :operation_position, class: "form-control", id: "floatingInputoperca", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputoperca">Cargo</label>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :operation_email, class: "form-control", id: "floatingInputopermail", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputopermail">Email</label>
+                </div>
+              </div>
+              
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :operation_cel, class: "form-control", id: "floatingInputopercel", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputopercel">Celular</label>
+                </div>
+              </div>
+            </div>
+
+          <h5 class="mb-3 text-uppercase bg-light p-2"> 4. Finanzas / Pagos</h5>
+            <div class="row g-2 mb-3">
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :finance_accounting_name, class: "form-control", id: "floatingInputofinname", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputofinname">Nombre</label>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :finance_accounting_position, class: "form-control", id: "floatingInputfincar", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputfincar">Cargo</label>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :finance_accounting_email, class: "form-control", id: "floatingInputfinemail", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputfinemail">Email</label>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :finance_accounting_cel, class: "form-control", id: "floatingInputfincel", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputfincel">Celular</label>
+                </div>
+              </div>
+            </div>
+
+          <h5 class="mb-3 text-uppercase bg-light p-2"> 5. RRHH</h5>
+            <div class="row g-2 mb-3">
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :rrhh_name, class: "form-control", id: "floatingInputrhname", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputrhname">Nombre</label>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :rrhh_position, class: "form-control", id: "floatingInputrhcar", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputrhcar">Cargo</label>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :rrhh_email, class: "form-control", id: "floatingInputrhemail", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputrhemail">Email</label>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :rrhh_cel, class: "form-control", id: "floatingInputrhcel", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputrhcel">Celular</label>
+                </div>
+              </div>
+            </div>
+
+          <h5 class="mb-3 text-uppercase bg-light p-2"> 6. Comercial</h5>
+            <div class="row g-2 mb-3">
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :comercial_name, class: "form-control", id: "floatingInputcomname", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputcomname">Nombre</label>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :comercial_position, class: "form-control", id: "floatingInputcomcargo", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputcomcargo">Cargo</label>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :comercial_email, class: "form-control", id: "floatingInputcomemail", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputcomemail">Email</label>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-floating">
+                  <%= form.text_field :comercial_cel, class: "form-control", id: "floatingInputcomcel", placeholder: "Direccion", required: true %>
+                  <label for="floatingInputcomcel">Celular</label>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="tab-pane" id="tab-sistemas">
+          <div class="row g-2 mb-3">
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :erp_system, class: "form-control", id: "floatingInput-erp", placeholder: "Direccion", required: true %>
+                <label for="floatingInput-erp">Sistema ERP</label>
+              </div>
+            </div>
+
+            <div class="col-md-2">
+              <div class="form-floating">
+                <%= form.text_field :crm_system, class: "form-control", id: "floatingInput-crm", placeholder: "Direccion", required: true %>
+                <label for="floatingInput-crm">Sistema CRM</label>
+              </div>
+            </div>
+
+            <div class="col-md-2">
+              <div class="form-floating">
+                <%= form.text_field :accounting_system, class: "form-control", id: "floatingInput-cont", placeholder: "Direccion", required: true %>
+                <label for="floatingInput-cont">Sistema Contable</label>
+              </div>
+            </div>
+
+            <div class="col-md-2">
+              <div class="form-floating">
+                <%= form.text_field :rrhh_system, class: "form-control", id: "floatingInput-rh", placeholder: "Direccion", required: true %>
+                <label for="floatingInput-rh">Sistema Nómina</label>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <%= form.text_field :storage_system, class: "form-control", id: "floatingInput-alm", placeholder: "Direccion", required: true %>
+                <label for="floatingInput-alm">Almacenamiento Documental</label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="tab-pane" id="tab-contexto">
+          <div class="mb-3">
+            <div class="form-floating">
+              <%= form.text_area :main_issue, class: "form-control", id: "floatingInput-mainiss", placeholder: "Direccion", style: "height: 150px;" %>
+              <label for="floatingInput-mainiss">Problemática Principal</label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-floating">
+              <%= form.text_area :project_objective, class: "form-control", id: "floatingInput-mainobj", placeholder: "Direccion", style: "height: 150px;" %>
+              <label for="floatingInput-mainobj">Objetivo del Proyecto</label>
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-md-4">
+              <div class="form-floating">
+                <%= form.text_field :deadline, class: "form-control", id: "floatingInput-deadline", placeholder: "Direccion", required: true %>
+                <label for="floatingInput-deadline">Fecha Límite</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="tab-coordinacion">
+          <div class="row g-2">
+            <div class="col-md-2"></div>
+            <div class="col-md-4">
+              <div class="form-floating">
+              <%= form.text_field :internal_responsible_name, class: "form-control", id: "floatingInput-respname", placeholder: "Direccion", required: true %>
+              <label for="floatingInput-respname">Nombre Responsable Interno</label>
+            </div>
+          </div>
+          <div class="col-md-4">
+              <div class="form-floating">
+              <%= form.text_field :internal_responsible_contact, class: "form-control", id: "floatingInput-respcel", placeholder: "Direccion", required: true %>
+              <label for="floatingInput-respcel">Cel</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+        <div class="tab-pane" id="tab-redes">
+          <div class="row g-2 mb-3">
+             <div class="col-md-6">
+              <div class="form-floating">
+                <%= form.text_field :web_page, class: "form-control", id: "floatingInput-pweb", placeholder: "Direccion", required: true %>
+                <label for="floatingInput-pweb">Página Web</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-floating">
+                <%= form.text_area :social_network, class: "form-control", id: "floatingInput-redsoc", placeholder: "Direccion", style: "height: 150px;" %>
+                <label for="floatingInput-redsoc">Redes Sociales</label>
+              </div>
+            </div>
+          </div>
+
+
+        </div>
+
+      </div> </div> <div class="card-footer bg-light d-flex justify-content-between">
+        <%= link_to "Cancelar", clients_path, class: "btn btn-warning" %>
+        <%= form.submit "Guardar Cliente", class: "btn btn-primary" %>
+    </div>
+  </div>
+<% end %>
+
+
+
+<script>
+
+  function copiarDireccion() {
+    //Toma Valores
+
+    calleFiscal = document.getElementById('floatingInput-calle');
+    noextFiscal = document.getElementById('floatingInput-noext');
+    nointFiscal = document.getElementById('floatingInput-noint');
+    coloniaFiscal = document.getElementById('floatingInput-colonia');
+    cpFiscal= document.getElementById('floatingInput-cp');
+    ciudadFiscal = document.getElementById('floatingInput-ciudad');
+    alcaldiaFiscal = document.getElementById('floatingInput-alcaldia');
+
+    calleOper = document.getElementById('floatingInput-calle-oper');
+    noextOper = document.getElementById('floatingInput-noext-oper');
+    nointOper = document.getElementById('floatingInput-noint-oper');
+    coloniaOper = document.getElementById('floatingInput-colonia-oper');
+    cpOper = document.getElementById('floatingInput-cp-oper');
+    ciudadOper = document.getElementById('floatingInput-ciudad-oper');
+    alcaldiaOper = document.getElementById('floatingInput-alcaldia-oper');
+
+    // Asigna el valores
+
+    calleOper.value = calleFiscal.value; 
+    noextOper.value = noextFiscal.value;
+    nointOper.value = nointFiscal.value;
+    coloniaOper.value = coloniaFiscal.value;
+    cpOper.value = cpFiscal.value;
+    ciudadOper.value = ciudadFiscal.value;
+    alcaldiaOper.value = alcaldiaFiscal.value;
+  }
+
+
+
+
+
+
+</script>

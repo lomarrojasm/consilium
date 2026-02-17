@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html <%= @html_attributes || "" %> data-layout-mode="detached" data-menu-color="light" data-sidenav-user="true">
+
+<head>
+  <%= render 'layouts/partials/title-meta', title: @page_title %>
+  <%= render 'layouts/partials/head-css' %>
+</head>
+
+<body <%= @body_attributes || "" %>>
+
+<div class="wrapper">
+
+  <%= render 'layouts/partials/topbar' %>
+  <%= render 'layouts/partials/left-sidebar' %>
+
+  <div class="content-page">
+    <div class="content">
+      <div class="container-fluid">
+
+        <%= yield %>
+
+      </div>
+    </div>
+
+    <%= render 'layouts/partials/footer' %>
+
+  </div>
+</div>
+
+<%= render 'layouts/partials/right-sidebar' %>
+
+<%= render 'layouts/partials/footer-scripts' %>
+
+</body>
+
+</html>

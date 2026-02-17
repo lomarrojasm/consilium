@@ -1,0 +1,191 @@
+<div class="navbar-custom">
+    <div class="topbar container-fluid">
+        <div class="d-flex align-items-center gap-lg-2 gap-1">
+
+            <div class="logo-topbar">
+                <a href="<%= root_path %>" class="logo-light">
+                    <span class="logo-lg">
+                        <img src="<%= image_path("logo.png") %>" alt="logo">
+                    </span>
+                    <span class="logo-sm">
+                        <img src="<%= image_path("logo-sm.png") %>" alt="small logo">
+                    </span>
+                </a>
+
+                <a href="<%= root_path %>" class="logo-dark">
+                    <span class="logo-lg">
+                        <img src="<%= image_path("logo-dark.png") %>" alt="dark logo">
+                    </span>
+                    <span class="logo-sm">
+                        <img src="<%= image_path("logo-dark-sm.png") %>" alt="small logo">
+                    </span>
+                </a>
+            </div>
+
+            <button class="button-toggle-menu">
+                <i class="mdi mdi-menu"></i>
+            </button>
+
+            <button class="navbar-toggle" data-bs-toggle="collapse" data-bs-target="#topnav-menu-content">
+                <div class="lines">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </button>
+
+            
+        </div>
+
+        <ul class="topbar-menu d-flex align-items-center gap-3">
+            
+            <li class="dropdown d-lg-none">
+                <a class="nav-link dropdown-toggle arrow-none" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                    <i class="ri-search-line font-22"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-animated dropdown-lg p-0">
+                    <form class="p-3">
+                        <input type="search" class="form-control" placeholder="Search ..." aria-label="Recipient's username">
+                    </form>
+                </div>
+            </li>
+
+            <li class="dropdown notification-list">
+                <a class="nav-link dropdown-toggle arrow-none" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                    
+                    <i class="mdi mdi-bell-outline noti-icon font-22"></i>
+                    
+                    <% unread_count = current_user.notifications.unread.count %>
+                    <% if unread_count > 0 %>
+                        <span class="noti-icon-badge"><%= unread_count %></span>
+                    <% end %>
+                </a>
+                
+                <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated dropdown-lg py-0">
+                    <div class="p-2 border-top-0 border-start-0 border-end-0 border-dashed border">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h6 class="m-0 font-16 fw-semibold"> Notificaciones </h6>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-2" style="max-height: 300px; overflow-y: auto;">
+                        <% unread_notifications = current_user.notifications.unread.order(created_at: :desc) %>
+
+                        <% if unread_notifications.exists? %>
+                            <% unread_notifications.each do |notification| %>
+                                <%= link_to mark_as_read_notification_path(notification), class: "dropdown-item p-0 notify-item card read-noti shadow-none mb-2 bg-light" do %>
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0">
+                                                <div class="notify-icon bg-primary">
+                                                    <i class="mdi <%= notification.notifiable_type == 'ProjectComment' ? 'mdi-comment-text-outline' : 'mdi-message-text-outline' %>"></i>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1 text-truncate ms-2">
+                                                <h5 class="notifiable-title font-12 mb-1">
+                                                    <%= notification.actor.first_name %> 
+                                                </h5>
+                                                <small class="noti-item-subtitle text-muted">
+                                                    <%= notification.notifiable_type == 'ProjectComment' ? 'Comentó en bitácora' : 'Nuevo mensaje' %>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% end %>
+                            <% end %>
+                        <% else %>
+                            <div class="text-center py-4">
+                                <small class="text-muted">Sin notificaciones.</small>
+                            </div>
+                        <% end %>
+                    </div>
+                </div>
+            </li>
+            
+
+            <li class="d-none d-md-inline-block">
+                <a class="nav-link" href="" data-toggle="fullscreen">
+                    <i class="ri-fullscreen-line font-22"></i>
+                </a>
+            </li>
+
+            <li class="dropdown">
+                <a class="nav-link dropdown-toggle arrow-none nav-user px-2" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                    <span class="account-user-avatar">
+                        <img src="<%= image_path("users/avatar-1.jpg") %>" alt="user-image" width="32" class="rounded-circle">
+                    </span>
+                    <span class="d-lg-flex flex-column gap-1 d-none">
+                        <h5 class="my-0"><%= current_user&.full_name || 'Usuario' %></h5>
+                        <h6 class="my-0 fw-normal"><%= current_user&.job_title || 'Invitado' %></h6>
+                    </span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated profile-dropdown">
+                     <%= link_to edit_user_registration_path, class: "dropdown-item" do %>
+                        <i class="mdi mdi-account-edit me-1"></i>
+                        <span>Mi Perfil</span>
+                    <% end %>
+
+                    <%= link_to edit_user_registration_path, class: "dropdown-item" do %>
+                        <i class="mdi mdi-account-edit me-1"></i>
+                        <span>Editar mi Perfil</span>
+                    <% end %>
+
+                    <%= link_to destroy_user_session_path, data: { turbo_method: :delete }, class: "dropdown-item" do %>
+                        <i class="mdi mdi-logout me-1"></i>
+                        <span>Cerrar Sesión</span>
+                    <% end %>
+                    
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+
+
+
+<style>
+
+/* Contenedor del enlace de la campana */
+.notification-list .nav-link {
+    position: relative; /* Vital para que el badge se posicione respecto a esto */
+    padding: 0 15px;
+    display: block;
+    height: 70px; /* Ajusta a la altura de tu navbar */
+    display: flex;
+    align-items: center;
+}
+
+/* El ícono de la campana */
+.noti-icon {
+    font-size: 24px; /* Tamaño grande y legible */
+    vertical-align: middle;
+    color: #6c757d; /* Gris estándar */
+}
+
+/* El contador rojo (Badge) */
+.noti-icon-badge {
+    position: absolute;
+    top: 18px;        /* Ajusta arriba/abajo según altura navbar */
+    right: 8px;       /* Ajusta izquierda/derecha */
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    width: 18px;      /* Ancho fijo para ser círculo perfecto */
+    height: 18px;     /* Alto fijo */
+    border-radius: 50%;
+    
+    background-color: #fa5c7c; /* Rojo/Rosado */
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    
+    /* El truco visual: Un borde del mismo color del fondo del navbar */
+    border: 2px solid #fff; 
+    z-index: 10;
+}
+
+</style>

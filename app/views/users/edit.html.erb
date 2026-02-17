@@ -1,0 +1,63 @@
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="header-title mb-3">Editar Usuario</h4>
+
+        <%= form_with(model: @user, local: true) do |f| %>
+          
+          <% if @user.errors.any? %>
+            <div class="alert alert-danger">
+              <ul class="mb-0">
+                <% @user.errors.full_messages.each do |msg| %>
+                  <li><%= msg %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <%= f.label :first_name, "Nombre", class: "form-label" %>
+              <%= f.text_field :first_name, class: "form-control" %>
+            </div>
+            <div class="col-6">
+              <%= f.label :last_name, "Apellido", class: "form-label" %>
+              <%= f.text_field :last_name, class: "form-control" %>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :email, "Correo Electrónico", class: "form-label" %>
+            <%= f.email_field :email, class: "form-control", required: true %>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-6">
+              <%= f.label :job_title, "Puesto / Título", class: "form-label" %>
+              <%= f.text_field :job_title, class: "form-control" %>
+            </div>
+            <div class="col-6">
+              <%= f.label :role, "Rol de acceso", class: "form-label" %>
+              <%= f.select :role, User.roles.keys.map { |r| [r.humanize, r] }, {}, { class: "form-select" } %>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check">
+                <%= f.check_box :active, class: "form-check-input" %>
+                <%= f.label :active, "Usuario Activo", class: "form-check-label" %>
+            </div>
+          </div>
+
+          <div class="d-grid mb-0 text-center">
+            <%= f.submit "Actualizar Usuario", class: "btn btn-primary" %>
+          </div>
+
+        <% end %>
+
+        <div class="text-center mt-3">
+            <%= link_to "Cancelar y volver", client_path(@user.client_id), class: "text-muted" %>
+        </div>
+
+      </div> </div> </div> </div>

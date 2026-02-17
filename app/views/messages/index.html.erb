@@ -1,0 +1,139 @@
+<div class="row">
+    <% if current_user.role == "admin" %>
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="<%= root_path %>">Consilium</a></li>
+                        <li class="breadcrumb-item"><a href="<%= clients_path %>">Clientes</a></li>
+                        <li class="breadcrumb-item"><%= link_to @client.company_name, client_path(@client) %> </li>
+                        <li class="breadcrumb-item">Chat</li>                 
+                    </ol>
+                </div>
+                <h4 class="page-title">Conversación con:</h4>
+            </div>
+        </div>
+    <% else %>
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="<%= client_dashboard_path %>">Consilium</a></li>
+                        <li class="breadcrumb-item"><a href="<%= client_dashboard_path %>">Regresar al Dashboard</a></li>                  
+                    </ol>
+                </div>
+                <h4 class="page-title">Conversación con:</h4>
+            </div>
+        </div>
+    <% end %>
+</div>
+
+<%# Calculamos quién es la "otra persona" %>
+<% other_user = (@conversation.sender == current_user) ? @conversation.recipient : @conversation.sender %>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card h-100 overflow-hidden mb-0" 
+             data-controller="chat" 
+             data-chat-id-value="<%= @conversation.id %>">
+             
+            <div class="card-header border-bottom border-dashed">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center me-auto">
+                        <%= link_to client_path(@client), class: "btn btn-light btn-sm px-2 me-3 d-inline-flex" do %>
+                            <i class="mdi mdi-arrow-left font-18"></i>
+                        <% end %>
+
+                        <div class="d-flex align-items-center">
+                            <% if other_user.avatar.attached? %>
+                                <%= image_tag url_for(other_user.avatar), class: "me-2 rounded-circle", height: "36", width: "36", style: "object-fit: cover;" %>
+                            <% else %>
+                                <div class="avatar-sm me-2">
+                                    <span class="avatar-title rounded-circle bg-primary-light text-primary font-14">
+                                        <%= other_user.first_name[0] %>
+                                    </span>
+                                </div>
+                            <% end %>
+                        
+                            <div>
+                                <h5 class="mt-0 mb-0 font-15">
+                                    <%= link_to "#{other_user.first_name} #{other_user.last_name}", user_path(other_user), class: "text-reset" %>
+                                </h5>
+                                <p class="mt-1 lh-1 mb-0 text-muted font-12">
+                                    <small class="mdi mdi-circle text-success"></small> <%= other_user.role&.humanize %>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <%= form_with url: client_conversation_messages_path(@client, @conversation), method: :get, class: "d-flex" do |f| %>
+                            <div class="input-group input-group-sm">
+                                <%= f.text_field :q, 
+                                    value: params[:q], 
+                                    class: "form-control border-light bg-light-subtle", 
+                                    placeholder: "Buscar...", 
+                                    style: "width: 200px;" %>
+                                
+                                <% if params[:q].present? %>
+                                    <%= link_to client_conversation_messages_path(@client, @conversation), class: "btn btn-light border-light bg-light-subtle", title: "Limpiar" do %>
+                                        <i class="mdi mdi-close text-danger"></i>
+                                    <% end %>
+                                <% else %>
+                                    <button class="btn btn-light border-light bg-light-subtle" type="submit">
+                                        <i class="mdi mdi-magnify"></i>
+                                    </button>
+                                <% end %>
+                            </div>
+                        <% end %>
+                    </div>
+                </div>
+            </div>
+        
+            <div class="card-body p-0 pt-3">
+                <ul class="conversation-list px-3 chat-conversation" 
+                    data-chat-target="messages"
+                    style="max-height: 600px; overflow-y: auto;">
+                    
+                    <% @messages.each do |msg| %>
+                        <%= render "message", msg: msg, client: @client, conversation: @conversation %>
+                    <% end %>
+                </ul>
+            </div>
+
+            <% is_participant = (@conversation.sender == current_user || @conversation.recipient == current_user) %>
+            <% is_admin = current_user.role == 'admin' %>
+
+            <% if is_participant || is_admin %>
+                <div class="card-body bg-primary bg-opacity-50 mt-2">
+                    <%= form_with(model: [@client, @conversation, @message], 
+                                  local: true, 
+                                  html: { 
+                                      class: "needs-validation", 
+                                      id: "chat-form",
+                                      data: { action: "submit->chat#send" } 
+                                  }) do |f| %>
+                        <div class="d-flex align-items-start">
+                            <div class="w-100">
+                                <%= f.text_field :body, 
+                                    class: "form-control border-0", 
+                                    placeholder: "Escribe tu mensaje aquí...", 
+                                    required: true, 
+                                    autocomplete: "off",
+                                    data: { chat_target: "input" } %>
+                                <div class="invalid-feedback">Por favor escribe un mensaje</div>
+                            </div>
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-success chat-send"><i class='uil uil-message'></i></button>
+                            </div>
+                        </div>
+                    <% end %>
+                </div>
+            <% else %>
+                <div class="alert alert-warning mt-2 text-center">
+                    <i class="mdi mdi-lock"></i> Solo lectura. No participas en este chat.
+                </div>
+            <% end %>
+        </div>
+    </div>
+</div>

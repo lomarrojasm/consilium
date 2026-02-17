@@ -1,0 +1,58 @@
+<%# app/views/messages/_message.html.erb %>
+
+<%# 1. Definimos si es el remitente de forma segura %>
+<%# Usamos &. para evitar el error si current_user es nil %>
+<% is_current_user = defined?(current_user) && current_user.present? && current_user == msg.user %>
+<% is_admin = defined?(current_user) && current_user.present? && current_user.role == 'admin' %>
+
+<li class="clearfix <%= 'odd' if is_current_user %>" data-sender-id="<%= msg.user.id %>">
+    <div class="chat-avatar">
+        <% if msg.user.avatar.attached? %>
+            <%= image_tag url_for(msg.user.avatar), class: "rounded", style: "object-fit: cover;" %>
+        <% else %>
+             <div class="avatar-xs">
+                <span class="avatar-title rounded bg-primary text-white font-10">
+                    <%= msg.user.first_name[0] %>
+                </span>
+            </div>
+        <% end %>
+    </div>
+    
+    <div class="conversation-text">
+        <div class="ctext-wrap">
+            <div class="d-flex justify-content-between align-items-center mb-1" style="min-width: 180px;">
+                <i class="fw-bold"><%= msg.user.first_name %></i>
+                <small class="text-muted ms-3"><%= msg.messaged_at.strftime("%H:%M") %></small>
+            </div>
+            <p>
+                <%= defined?(params) && params[:q] ? highlight(msg.body, params[:q]) : msg.body %>
+            </p>
+        </div>
+
+        <%# CORRECCIÓN AQUÍ: Usamos la variable segura is_admin %>
+        <% if is_admin %>
+            <div class="collapse mt-2" id="edit-date-<%= msg.id %>">
+                <%= form_with(model: [client, conversation, msg], local: true, class: "d-flex align-items-center bg-light p-1 rounded") do |f| %>
+                    <%= f.datetime_field :messaged_at, class: "form-control form-control-sm border-0 me-1", style: "width:auto; font-size: 10px;" %>
+                    <button type="submit" class="btn btn-xs btn-success"><i class="mdi mdi-check"></i></button>
+                <% end %>
+            </div>
+        <% end %>
+    </div>
+
+    <div class="conversation-actions dropdown">
+        <%# CORRECCIÓN AQUÍ TAMBIÉN %>
+        <% if is_admin %>
+            <button class="btn btn-sm btn-link" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class='uil uil-ellipsis-v'></i>
+            </button>
+        <% end %>
+        <div class="dropdown-menu <%= 'dropdown-menu-end' if is_current_user %>">
+            <% if is_admin %>
+                <a class="dropdown-item" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#edit-date-<%= msg.id %>">
+                    <i class="mdi mdi-calendar-clock me-1"></i> Cambiar Fecha
+                </a>
+            <% end %>
+        </div>
+    </div>
+</li>

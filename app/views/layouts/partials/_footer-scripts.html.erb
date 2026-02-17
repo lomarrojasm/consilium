@@ -1,0 +1,8 @@
+<%= javascript_include_tag 'vendor' %>
+
+<%= yield :javascript %>
+
+<%= javascript_include_tag 'app', defer: true %>
+<%= javascript_include_tag 'layout', defer: true %>
+
+<%= javascript_include_tag 'syntax', defer: true %>

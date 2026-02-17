@@ -1,0 +1,15 @@
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><%= link_to "Proyecto", client_project_path(@client, @project) %></li>
+                    <li class="breadcrumb-item active">Nueva Actividad</li>
+                </ol>
+            </div>
+            <h4 class="page-title">Crear Nueva Tarea Manual</h4>
+        </div>
+    </div>
+</div>
+
+<%= render 'form' %>

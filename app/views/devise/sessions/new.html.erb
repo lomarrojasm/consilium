@@ -1,0 +1,86 @@
+<% @page_title = "Iniciar Sesión" %>
+<% @body_attributes = "class='authentication-bg pb-0'" %>
+
+<div class="auth-fluid">
+  <div class="auth-fluid-form-box">
+    <div class="card-body d-flex flex-column h-100 gap-3">
+
+      <div class="auth-brand text-center">
+        <a href="<%= root_path %>" class="logo-dark">
+          <span><img src="<%= image_path("consilium_rec.png") %>" alt="dark logo" height=100"></span>
+        </a>
+        <a href="<%= root_path %>" class="logo-light">
+          <span><img src="<%= image_path("consilium_rec.png") %>" alt="logo" height="100"></span>
+        </a>
+      </div>
+
+      <div class="my-auto">
+        <div class="text-center">
+          <h4 class="mt-0">¡Bienvenido de nuevo!</h4>
+          <p class="text-muted mb-4">Ingresa tu correo y contraseña para acceder.</p>
+        </div>
+
+        <% if flash[:alert] %>
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <%= flash[:alert] %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% end %>
+        <% if flash[:notice] %>
+          <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <%= flash[:notice] %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% end %>
+
+        <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+          
+          <div class="mb-3">
+            <%= f.label :email, "Correo Electrónico", class: "form-label" %>
+            <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control", placeholder: "Ingresa tu correo" %>
+          </div>
+
+          <div class="mb-3">
+            <% if devise_mapping.recoverable? && controller_name != 'passwords' && controller_name != 'registrations' %>
+              <%= link_to "Olvidaste tu contraseña?", new_password_path(resource_name), class: "text-muted float-end" %>
+            <% end %>
+            
+            <%= f.label :password, "Contraseña", class: "form-label" %>
+            
+            <div class="input-group input-group-merge" data-controller="password-visibility">
+              
+              <%= f.password_field :password, 
+                  autocomplete: "current-password", 
+                  class: "form-control", 
+                  placeholder: "Ingresa tu contraseña",
+                  data: { password_visibility_target: "input" } %>
+              
+              <div class="input-group-text" data-action="click->password-visibility#toggle" style="cursor: pointer;">
+                <span class="password-eye"></span>
+              </div>
+
+            </div>
+          </div>
+
+          <% if devise_mapping.rememberable? %>
+            <div class="mb-3">
+              <div class="form-check">
+                <%= f.check_box :remember_me, class: "form-check-input" %>
+                <%= f.label :remember_me, "Recordarme", class: "form-check-label" %>
+              </div>
+            </div>
+          <% end %>
+
+          <div class="d-grid mb-0 text-center">
+            <%= f.submit "Iniciar Sesión", class: "btn btn-primary" %>
+          </div>
+
+        <% end %>
+        </div>
+
+     
+
+    </div>
+  </div>
+  
+</div>

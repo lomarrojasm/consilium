@@ -1,0 +1,25 @@
+<div class="timeline-alt pb-0" style="max-height: 400px; overflow-y: auto;">
+  <% if comments.any? %>
+    <% comments.each do |comment| %>
+      <div class="timeline-item">
+        <i class="mdi mdi-circle bg-info-lighten text-info timeline-icon"></i>
+        <div class="timeline-item-info">
+          <a href="#" class="text-info fw-bold mb-1 d-block">
+            <%= comment.user.first_name %> <%= comment.user.last_name %>
+          </a>
+          <small class="text-muted">
+            <%= time_ago_in_words(comment.created_at) %> atrás
+          </small>
+          <p class="mb-0 pb-2 mt-1 bg-light p-2 rounded">
+            <%= comment.body %>
+          </p>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="text-center py-4">
+        <i class="mdi mdi-comment-processing-outline text-muted font-24"></i>
+        <p class="text-muted mt-2">No hay comentarios en la bitácora.</p>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,143 @@
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="<%= root_path %>">Consilium</a></li>
+                    <li class="breadcrumb-item active">Clientes</li>
+                </ol>
+            </div>
+            <h4 class="page-title">Clientes</h4>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="row mb-2">
+          <div class="col-sm-5">
+            
+          </div>
+          <div class="col-sm-7">
+            <div class="text-sm-end">
+              <%= link_to new_client_path, class: "btn btn-primary mb-2" do %>
+                <i class="mdi mdi-plus-circle me-2"></i> Agregar Cliente
+            <% end %>
+            </div>
+          </div><!-- end col-->
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-centered table-borderless table-hover dt-responsive nowrap w-100" id="clients-datatable">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-center">Logo</th>
+                    <th>Razón Social</th>
+                    <th>Nombre Comercial</th>
+                    <th class="text-center">RFC</th>
+                    <th>Industria</th>
+                    <th>Conatcto Principal</th>
+                    <th>TimeLine</th>
+                    <th style="width: 75px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+            <% @clients.each do |client| %>
+                <tr>
+                
+                    <td class="table-user text-center">
+                        <% if client.avatar.attached? %>
+                            <img src="<%= url_for(client.avatar) %>" alt="table-user" class="me-2 rounded-circle">
+                        <% else %>
+                            <img src="<%= image_path("icono_consilium.jpg") %>" alt="table-user" class="me-2 rounded-circle">
+                        <% end %>
+                    </td>
+                    <td>
+                        <%= client.company_name %>
+                    </td>
+                    <td>
+                        <%= client.trade_name %>
+                    </td>
+                    <td class="text-center">
+                        <%= client.rfc %>
+                    </td>
+                    <td>
+                       <%= client.industry %>
+                    </td>
+                    <td>
+                        <%= client.sponsor_name %>
+                    </td>
+
+                    <td>
+                        <%= link_to timeline_client_path(client), 
+                                    class: "btn btn-sm btn-soft-info", 
+                                    title: "Ver movimientos" do %>
+                        <i class="mdi mdi-history"></i>
+                        <% end %>
+                    </td>
+
+                    <td>
+                        <%= link_to client_path(client), class: "action-icon text-info" do %> 
+                            <i class="mdi mdi-eye"></i>
+                        <% end %>
+                        <%= link_to edit_client_path(client), class: "action-icon text-warning" do %> 
+                            <i class="mdi mdi-square-edit-outline"></i>
+                        <% end %>
+                        <form action="<%= client_path(client) %>" method="post" style="display:inline-block;" onsubmit="confirmarEliminacion(event, this)">
+                            <input type="hidden" name="_method" value="delete">
+                                <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+                            <button type="submit" class="action-icon border-0 bg-transparent p-0 text-danger">
+                                <i class="mdi mdi-delete"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div> <!-- end card-body-->
+    </div> <!-- end card-->
+  </div> <!-- end col -->
+</div>
+
+
+
+
+
+
+
+<% content_for :javascript do %>
+    <%= javascript_include_tag 'pages/clients/clients-table.js', defer: true %>
+
+
+    <script>
+        function confirmarEliminacion(event, formulario) {
+        // Detenemos el envío automático
+        event.preventDefault();
+
+        // Llamamos a SweetAlert
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "No podrás recuperar este registro",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#fa5c7c',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+            // Si dice que sí, enviamos el formulario manualmente
+            formulario.submit();
+            }
+        });
+        }
+
+    </script>
+
+
+<% end %>

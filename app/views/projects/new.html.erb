@@ -1,0 +1,79 @@
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="<%= root_path %>">Consilium</a></li>
+                    <li class="breadcrumb-item"><a href="<%= clients_path %>">Clientes</a></li> 
+                    <li class="breadcrumb-item"><a href="<%= client_path(@client) %>"><%= @client.company_name %></a></li>                  
+                    <li class="breadcrumb-item active">Nuevo Proyecto</li>
+                    
+                </ol>
+            </div>
+            <h4 class="page-title">Proyecto</h4>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title mb-3">Nuevo Proyecto para <%= @client.company_name %></h4>
+
+                <%= form_with(model: [@client, @project], local: true) do |f| %>
+                    
+                    <div class="mb-3">
+                        <%= f.label :name, "Nombre del Proyecto", class: "form-label" %>
+                        <%= f.text_field :name, class: "form-control", placeholder: "Ej: Implementación Metodología Consilium 2026", required: true %>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <%= f.label :start_date, "Fecha de Inicio", class: "form-label" %>
+                            <%= f.date_field :start_date, class: "form-control", required: true %>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <%= f.label :end_date, "Fecha Estimada Fin", class: "form-label" %>
+                            <%= f.date_field :end_date, class: "form-control", required: true %>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <%= f.label :budget, "Presupuesto ($)", class: "form-label" %>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <%= f.number_field :budget, class: "form-control", placeholder: "0.00" %>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <%= f.label :details, "Descripción / Objetivos", class: "form-label" %>
+                        <%= f.text_area :details, rows: 4, class: "form-control" %>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <%= f.check_box :include_template, 
+                                class: "form-check-input", 
+                                role: "switch", 
+                                checked: true, 
+                                id: "includeTemplateSwitch" %>
+                                
+                            <label class="form-check-label" for="includeTemplateSwitch">
+                                <strong>Incluir etapas predeterminadas</strong>
+                                <p class="text-muted font-13 mb-0">Si se desactiva, el proyecto iniciará vacío (sin etapas).</p>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <%= link_to "Cancelar", client_path(@client), class: "btn btn-light me-2" %>
+                        <%= f.submit "Crear Proyecto y Cargar Metodología", class: "btn btn-primary" %>
+                    </div>
+                <% end %>
+
+            </div>
+        </div>
+    </div>
+</div>

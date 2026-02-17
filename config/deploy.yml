@@ -1,0 +1,65 @@
+# Nombre de tu aplicación
+service: consilium
+
+# Tu imagen en Docker Hub (reemplaza TU_USUARIO)
+image: luisomarrojasmercado/consilium
+
+builder:
+  arch: amd64
+
+# Servidores donde se desplegará
+servers:
+  web:
+    hosts:
+      - 74.208.227.22  # <--- Pon la IP real de tu Ubuntu (ej: 143.20.50.10)
+    labels:
+      # Configuración de Traefik (el portero que recibe las visitas)
+      traefik.http.routers.consilium.rule: Host(`74.208.227.22`) # O tu dominio.com si ya tienes
+      traefik.http.routers.consilium.entrypoints: websecure
+      traefik.http.routers.consilium.tls.certresolver: letsencrypt
+
+# Credenciales para subir/bajar la imagen
+registry:
+  username: luisomarrojasmercado
+  password:
+    - Developer2026
+
+# Variables de entorno para tu aplicación Rails
+env:
+  secret:
+    - RAILS_MASTER_KEY
+    - MYSQL_ROOT_PASSWORD
+  clear:
+    # Configuración de Base de Datos
+    DB_HOST: 74.208.227.22
+    
+    # ⚠️ CRÍTICO PARA EL CHAT (Action Cable):
+    # Conecta Rails con el contenedor de Redis que definimos abajo.
+    REDIS_URL: "redis://74.208.227.22:6379/1"
+    
+    # Otros ajustes de producción
+    RAILS_SERVE_STATIC_FILES: true
+    RAILS_LOG_TO_STDOUT: true
+    SOLID_QUEUE_IN_PUMA: true  # Para los Jobs en segundo plano (futuro Gemini)
+
+# Accesorios: Servicios extra que Kamal instalará por ti en el servidor
+accessories:
+  # 1. Base de Datos MySQL
+  db:
+    image: mysql:8.0
+    host: 74.208.227.22
+    port: 3306
+    env:
+      clear:
+        MYSQL_ROOT_PASSWORD: '<%= ENV["MYSQL_ROOT_PASSWORD"] %>' # Lee de tu .env local
+        MYSQL_DATABASE: consilium_production
+    directories:
+      - data:/var/lib/mysql # ¡Importante! Guarda los datos en el disco del servidor
+
+  # 2. Redis (El motor del Chat en Tiempo Real)
+  redis:
+    image: redis:7.0
+    host: 74.208.227.22
+    port: 6379
+    directories:
+      - data:/data
