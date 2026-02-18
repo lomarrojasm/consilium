@@ -7,6 +7,13 @@ Rails.application.routes.draw do
   # Autenticación (Login, Invitaciones, Password)
   devise_for :users, skip: [:registrations], controllers: { invitations: 'users/invitations' }
 
+  # RE-DEFINIMOS MANUALMENTE SOLO LAS RUTAS DE EDICIÓN
+  as :user do
+    get 'users/edit' => 'devise/registrations#edit', :as => 'edit_user_registration'
+    put 'users' => 'devise/registrations#update', :as => 'user_registration'
+    # Nota: No agregamos 'users/sign_up', por lo tanto, nadie puede registrarse.
+  end
+
   # --- Ruta para reenviar invitación ---
   devise_scope :user do
     post 'users/:id/resend_invitation', to: 'users/invitations#resend', as: :resend_user_invitation
@@ -16,12 +23,7 @@ Rails.application.routes.draw do
   # Rutas para editar usuarios administrativamente
   resources :users, only: [:show, :edit, :update]
 
-  # RE-DEFINIMOS MANUALMENTE SOLO LAS RUTAS DE EDICIÓN
-  as :user do
-    get 'users/edit' => 'devise/registrations#edit', :as => 'edit_user_registration'
-    put 'users' => 'devise/registrations#update', :as => 'user_registration'
-    # Nota: No agregamos 'users/sign_up', por lo tanto, nadie puede registrarse.
-  end
+  
 
   # Ruta Principal (Al entrar a localhost:3000)
   root to: 'dashboards#projects'

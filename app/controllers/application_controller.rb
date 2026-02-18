@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::Base
   # 1. ESTO PROTEGE TODA LA APP POR DEFECTO
   before_action :authenticate_user!
+  before_action :configure_permitted_parameters, if: :devise_controller?
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
   
@@ -52,3 +53,67 @@ class ApplicationController < ActionController::Base
 
 
 end
+
+def configure_permitted_parameters
+    # Para la edición de cuenta, permitimos los nuevos campos
+    devise_parameter_sanitizer.permit(:account_update, keys: [:email,
+    :encrypted_password,
+    :first_name,
+    :last_name,
+    :username,
+    :job_title,
+    :role,
+    :active,
+    :client_id,
+    :reset_password_token,
+    :reset_password_sent_at,
+    :remember_created_at,
+    :sign_in_count,
+    :current_sign_in_at,
+    :last_sign_in_at,
+    :current_sign_in_ip,
+    :last_sign_in_ip,
+    :invitation_token,
+    :invitation_created_at,
+    :invitation_sent_at,
+    :invitation_accepted_at,
+    :invitation_limit,
+    :invited_by_id,
+    :invited_by_type,
+    :created_at,
+    :updated_at,
+    :avatar])
+    
+    # Si también los usas en el registro (sign up)
+    devise_parameter_sanitizer.permit(:sign_up, keys: [:email,
+    :encrypted_password,
+    :first_name,
+    :last_name,
+    :username,
+    :job_title,
+    :role,
+    :active,
+    :client_id,
+    :reset_password_token,
+    :reset_password_sent_at,
+    :remember_created_at,
+    :sign_in_count,
+    :current_sign_in_at,
+    :last_sign_in_at,
+    :current_sign_in_ip,
+    :last_sign_in_ip,
+    :invitation_token,
+    :invitation_created_at,
+    :invitation_sent_at,
+    :invitation_accepted_at,
+    :invitation_limit,
+    :invited_by_id,
+    :invited_by_type,
+    :created_at,
+    :updated_at,
+    :avatar])
+  end
+
+
+
+
