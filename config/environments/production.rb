@@ -4,6 +4,7 @@ Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
   config.hosts << "74.208.227.22"
+  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 
   # Code is not reloaded between requests.
   config.enable_reloading = false
