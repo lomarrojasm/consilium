@@ -1,39 +1,49 @@
+# Nombre de tu aplicación
 service: consilium
+
+# Tu imagen en Docker Hub
 image: luisomarrojasmercado/consilium
 
 builder:
   arch: amd64
 
+# --- AQUÍ ESTÁ EL CAMBIO ---
+# Agregamos la sección proxy explícita para configurar el tiempo, 
+# pero forzamos SSL falso y usamos la IP como host.
+proxy:
+  ssl: false
+  host: 74.208.227.22
+  healthcheck:
+    path: /up
+    interval: 20  # Revisa cada 20 segundos (da más tiempo para migraciones)
+    timeout: 5
+
+# Servidores donde se desplegará
 servers:
+  # 1. El Servidor Web
   web:
     hosts:
       - 74.208.227.22
     env:
       clear:
         SOLID_QUEUE_IN_PUMA: "false"
-  
+
+  # 2. El Servidor de Tareas
   job:
     hosts:
       - 74.208.227.22
-    cmd: bin/rails solid_queue:start
+    # Mantengo 'bundle exec' ya que confirmaste que este archivo funcionaba bien antes
+    cmd: bundle exec rails solid_queue:start
     env:
       clear:
         SOLID_QUEUE_IN_PUMA: "false"
 
-# --- AQUÍ VA EL HEALTHCHECK CORRECTO ---
-proxy:
-  ssl: true
-  host: consilium.com.mx
-  app_port: 3000
-  healthcheck:
-    path: /up
-    interval: 20  # Revisa cada 20 segundos (menos ansiedad)
-    timeout: 5    # Espera 5s la respuesta
-
+# Credenciales
 registry:
   username: luisomarrojasmercado
   password: <%= ENV["KAMAL_REGISTRY_PASSWORD"] %>
 
+# Variables de entorno
 env:
   secret:
     - RAILS_MASTER_KEY
@@ -46,6 +56,7 @@ env:
     RAILS_LOG_TO_STDOUT: true
     SOLID_QUEUE_IN_PUMA: "false"
 
+# Accesorios
 accessories:
   db:
     image: mysql:8.0
