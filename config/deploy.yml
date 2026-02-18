@@ -21,7 +21,7 @@ servers:
   job:
     hosts:
       - 74.208.227.22
-    cmd: bundle exec rake solid_queue:start # Este comando arranca SOLO Solid Queue, sin Puma
+    cmd: bin/rails solid_queue:start # Este comando arranca SOLO Solid Queue, sin Puma
     env:
       clear:
         SOLID_QUEUE_IN_PUMA: "false" # Redundante pero seguro, aquí no usamos Puma
