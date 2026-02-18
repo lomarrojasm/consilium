@@ -2,22 +2,24 @@ class ResetSolidQueueSchema < ActiveRecord::Migration[7.1]
   def change
     # 1. LIMPIEZA: Borramos las tablas viejas/rotas si existen
     # Esto evita el error "Table already exists"
-    tables = %w[
-      solid_queue_blocked_executions
-      solid_queue_claimed_executions
-      solid_queue_failed_executions
-      solid_queue_jobs
-      solid_queue_pauses
-      solid_queue_processes
-      solid_queue_ready_executions
-      solid_queue_recurring_executions
-      solid_queue_recurring_tasks
-      solid_queue_scheduled_executions
-      solid_queue_semaphores
-    ]
+    ActiveRecord::Base.connection.disable_referential_integrity do
+      tables = %w[
+        solid_queue_blocked_executions
+        solid_queue_claimed_executions
+        solid_queue_failed_executions
+        solid_queue_jobs
+        solid_queue_pauses
+        solid_queue_processes
+        solid_queue_ready_executions
+        solid_queue_recurring_executions
+        solid_queue_recurring_tasks
+        solid_queue_scheduled_executions
+        solid_queue_semaphores
+      ]
 
-    tables.each do |table|
-      drop_table table, if_exists: true, force: :cascade
+      tables.each do |table|
+        drop_table table, if_exists: true, force: :cascade
+      end
     end
 
     # 2. CREACIÓN: El código exacto que me pasaste (Versión Correcta)
