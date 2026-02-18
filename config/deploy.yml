@@ -1,75 +1,70 @@
-# Nombre de tu aplicación
+# config/deploy.yml
 service: consilium
-
-# Tu imagen en Docker Hub (reemplaza TU_USUARIO)
 image: luisomarrojasmercado/consilium
 
 builder:
   arch: amd64
 
-# Servidores donde se desplegará
 servers:
-  # 1. El Servidor Web (Tus Meseros)
+  # 1. El Servidor Web
   web:
     hosts:
       - 74.208.227.22
+    # --- AQUÍ ESTÁ EL ARREGLO ---
+    # Damos 100 segundos de paciencia (20 intentos x 5s)
+    # para que la migración pesada de Solid Queue termine sin cortar el deploy.
+    healthcheck:
+      path: /up
+      port: 3000
+      max_attempts: 20
+      interval: 5s
     env:
       clear:
-        SOLID_QUEUE_IN_PUMA: "false" # ¡IMPORTANTE! Asegura que Puma NO arranque la cola
+        SOLID_QUEUE_IN_PUMA: "false"
 
-  # 2. El Servidor de Tareas (Tus Cocineros)
+  # 2. El Servidor de Tareas (Workers)
   job:
     hosts:
       - 74.208.227.22
-    cmd: bundle exec rails solid_queue:start # Este comando arranca SOLO Solid Queue, sin Puma
+    # Usamos bin/rails que es más nativo para Rails 8
+    cmd: bin/rails solid_queue:start
     env:
       clear:
-        SOLID_QUEUE_IN_PUMA: "false" # Redundante pero seguro, aquí no usamos Puma
-    
+        SOLID_QUEUE_IN_PUMA: "false"
 
-# Credenciales para subir/bajar la imagen
 registry:
   username: luisomarrojasmercado
   password: <%= ENV["KAMAL_REGISTRY_PASSWORD"] %>
 
-# Variables de entorno para tu aplicación Rails
 env:
   secret:
     - RAILS_MASTER_KEY
     - MYSQL_ROOT_PASSWORD
   clear:
-    # Configuración de Base de Datos
     DB_HOST: 74.208.227.22
+    # Tu llave secreta actual
     SECRET_KEY_BASE: eb6b0d8459c79fd2e1f47dee27e70d22ff49989dc27d28fad0bf7876fe283d87481066101cf8406f85ebebc4c44083a3f5a9ecb50afaa1cb5761aa1e739accbc
-    
-    # ⚠️ CRÍTICO PARA EL CHAT (Action Cable):
-    # Conecta Rails con el contenedor de Redis que definimos abajo.
     REDIS_URL: "redis://74.208.227.22:6379/1"
-    
-    # Otros ajustes de producción
     RAILS_SERVE_STATIC_FILES: true
     RAILS_LOG_TO_STDOUT: true
-    SOLID_QUEUE_IN_PUMA: "false"  # Para los Jobs en segundo plano (futuro Gemini)
+    SOLID_QUEUE_IN_PUMA: "false"
 
-# Accesorios: Servicios extra que Kamal instalará por ti en el servidor
 accessories:
-  # 1. Base de Datos MySQL
   db:
     image: mysql:8.0
     host: 74.208.227.22
     port: 3306
     env:
       clear:
-        MYSQL_ROOT_PASSWORD: '<%= ENV["MYSQL_ROOT_PASSWORD"] %>' # Lee de tu .env local
+        MYSQL_ROOT_PASSWORD: '<%= ENV["MYSQL_ROOT_PASSWORD"] %>'
         MYSQL_DATABASE: consilium_production
       secret:
         - MYSQL_ROOT_PASSWORD
     files:
       - config/mysql/production.cnf:/etc/mysql/conf.d/production.cnf
     directories:
-      - data:/var/lib/mysql # ¡Importante! Guarda los datos en el disco del servidor
+      - data:/var/lib/mysql
 
-  # 2. Redis (El motor del Chat en Tiempo Real)
   redis:
     image: redis:7.0
     host: 74.208.227.22
