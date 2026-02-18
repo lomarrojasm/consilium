@@ -36,7 +36,7 @@ env:
     # Otros ajustes de producción
     RAILS_SERVE_STATIC_FILES: true
     RAILS_LOG_TO_STDOUT: true
-    SOLID_QUEUE_IN_PUMA: false  # Para los Jobs en segundo plano (futuro Gemini)
+    SOLID_QUEUE_IN_PUMA: "false"  # Para los Jobs en segundo plano (futuro Gemini)
 
 # Accesorios: Servicios extra que Kamal instalará por ti en el servidor
 accessories:
