@@ -4,7 +4,7 @@ Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
   config.hosts.clear # Limpia configuraciones prev'ias
-  config.hosts << "74.208.227.22"
+  config.hosts << "74.208.227.22" #toma esta linea
   #config.hosts << ".consilium.com" # Si ya tienes dominio
   config.hosts << /.*\.local/     # Permite hosts internos
 
