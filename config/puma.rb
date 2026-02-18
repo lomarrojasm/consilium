@@ -39,6 +39,9 @@ plugin :tmp_restart
 #   plugin :solid_queue
 # end
 
+# Permitir que Solid Queue se active SOLO si la variable de entorno lo pide
+plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"] == "true"
+
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.
 pidfile ENV["PIDFILE"] if ENV["PIDFILE"]

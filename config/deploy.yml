@@ -9,9 +9,22 @@ builder:
 
 # Servidores donde se desplegará
 servers:
+  # 1. El Servidor Web (Tus Meseros)
   web:
     hosts:
-      - 74.208.227.22  # <--- Pon la IP real de tu Ubuntu (ej: 143.20.50.10)
+      - 74.208.227.22
+    env:
+      clear:
+        SOLID_QUEUE_IN_PUMA: "false" # ¡IMPORTANTE! Asegura que Puma NO arranque la cola
+
+  # 2. El Servidor de Tareas (Tus Cocineros)
+  job:
+    hosts:
+      - 74.208.227.22
+    cmd: bin/jobs # Este comando arranca SOLO Solid Queue, sin Puma
+    env:
+      clear:
+        SOLID_QUEUE_IN_PUMA: "false" # Redundante pero seguro, aquí no usamos Puma
     
 
 # Credenciales para subir/bajar la imagen
