@@ -1,7 +1,7 @@
 class UsersController < ApplicationController
   before_action :authenticate_user! # Proteger la ruta
   before_action :set_user, only: [:show, :edit, :update]
-  before_action :authorize_admin!, only: [:new, :create, :destroy]
+  before_action :authorize_admin!, only: [:show, :edit, :update]
 
 
   # GET /users/1
