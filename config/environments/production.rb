@@ -100,9 +100,9 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.perform_deliveries = true
   config.action_mailer.smtp_settings = {
-    address:              ENV['SMTP_ADDRESS'],
-    port:                 ENV['SMTP_PORT', 465].to_i,
-    domain:               ENV['SMTP_DOMAIN'],
+    address:              ENV['SMTP_ADDRESS'] || 'localhost',
+    port:                 (ENV['SMTP_PORT'] || 465).to_i,
+    domain:               ENV['SMTP_DOMAIN'] || 'localhost',
     user_name:            ENV['SMTP_USERNAME'],
     password:             ENV['SMTP_PASSWORD'],
     authentication:       :plain,
