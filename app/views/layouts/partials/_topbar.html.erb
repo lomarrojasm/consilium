@@ -112,17 +112,22 @@
             </li>
 
             <li class="dropdown">
-                <a class="nav-link dropdown-toggle arrow-none nav-user px-2" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                <a class="nav-link dropdown-toggle arrow-none nav-user px-2 d-flex align-items-center gap-2" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
                     <span class="account-user-avatar">
-                    <%if current_user.avatar.attached?%>
-                        <%= image_tag current_user.avatar, id: "avatar-preview", class: "rounded-circle avatar-sm" %>
-                    <% else %>
-                        <img src="<%= image_path("users/avatar-1.jpg") %>" alt="user-image" width="32" class="rounded-circle">
-                    <% end %>
+                        <% if current_user.avatar.attached? %>
+                            <%= image_tag current_user.avatar, 
+                                class: "rounded-circle border-0", 
+                                style: "width: 40px; height: 40px; object-fit: cover;" %>
+                        <% else %>
+                            <%= image_tag "users/avatar-1.jpg", 
+                                class: "rounded-circle border-0", 
+                                style: "width: 40px; height: 40px; object-fit: cover;" %>
+                        <% end %>
                     </span>
-                    <span class="d-lg-flex flex-column gap-1 d-none">
-                        <h5 class="my-0"><%= current_user&.full_name || 'Usuario' %></h5>
-                        <h6 class="my-0 fw-normal"><%= current_user&.job_title || 'Invitado' %></h6>
+                    
+                    <span class="d-lg-flex flex-column align-items-start d-none">
+                        <h5 class="my-0 lh-1" style="font-size: 0.9rem; font-weight: 700;"><%= current_user&.full_name || 'Usuario' %></h5>
+                        <small class="text-muted"><%= current_user&.job_title || 'Invitado' %></small>
                     </span>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated profile-dropdown">

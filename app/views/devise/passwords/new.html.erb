@@ -1,16 +1,61 @@
-<h2>Forgot your password?</h2>
+<% @page_title = "Recuperar contraseña" %>
+<% @body_attributes = "class=authentication-bg" %>
 
-<%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post }) do |f| %>
-  <%= render "devise/shared/error_messages", resource: resource %>
+<div class="position-absolute start-0 end-0 start-0 bottom-0 w-100 h-100">
+  <svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 800 800'>
+    <g fill-opacity='0.22'>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.1);" cx='400' cy='400' r='600'/>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.2);" cx='400' cy='400' r='500'/>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.3);" cx='400' cy='400' r='300'/>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.4);" cx='400' cy='400' r='200'/>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.5);" cx='400' cy='400' r='100'/>
+    </g>
+  </svg>
+</div>
 
-  <div class="field">
-    <p><%= f.label :email %></p>
-    <p><%= f.email_field :email, autofocus: true, autocomplete: "email" %></p>
+<div class="account-pages pt-2 pt-sm-5 pb-4 pb-sm-5 position-relative">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-xxl-4 col-lg-5">
+        <div class="card">
+          <div class="card-header py-4 text-center bg-primary">
+            <a href="<%= root_path %>">
+              <span><img src="<%= image_path("consilium_blanco.png") %>" alt="logo" height="92"></span>
+            </a>
+          </div>
+
+          <div class="card-body p-4">
+            <div class="text-center w-75 m-auto">
+              <h4 class="text-dark-50 text-center mt-0 fw-bold">Restablecer contraseña</h4>
+              <p class="text-muted mb-4">Ingresa tu correo electrónico y te enviaremos las instrucciones para restablecer tu contraseña.</p>
+            </div>
+
+            <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post, class: "needs-validation" }) do |f| %>
+              <%# Renderizar errores de Devise si existen %>
+              <%= render "devise/shared/error_messages", resource: resource %>
+
+              <div class="mb-3">
+                <%= f.label :email, "Correo electrónico", class: "form-label" %>
+                <%= f.email_field :email, 
+                    autofocus: true, 
+                    autocomplete: "email", 
+                    class: "form-control", 
+                    placeholder: "Ingresa tu correo",
+                    required: true %>
+              </div>
+
+              <div class="mb-0 text-center d-grid">
+                <%= f.submit "Enviar instrucciones", class: "btn btn-primary" %>
+              </div>
+            <% end %>
+          </div> </div>
+        <div class="row mt-3">
+          <div class="col-12 text-center">
+            <p class="text-muted">Volver a <a href="<%= new_session_path(resource_name) %>" class="text-muted ms-1"><b>Iniciar sesión</b></a></p>
+          </div> </div>
+        </div> </div>
+    </div>
   </div>
-
-  <div class="actions">
-    <%= f.submit "Send me password reset instructions" %>
-  </div>
-<% end %>
-
-<%= render "devise/shared/links" %>
+<footer class="footer footer-alt">
+  2024 - <%= Time.current.year %> © Consilium
+</footer>
