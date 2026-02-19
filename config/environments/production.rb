@@ -100,11 +100,11 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.perform_deliveries = true
   config.action_mailer.smtp_settings = {
-    address:              ENV.fetch('SMTP_ADDRESS'),
-    port:                 ENV.fetch('SMTP_PORT', 465).to_i,
-    domain:               ENV.fetch('SMTP_DOMAIN'),
-    user_name:            ENV.fetch('SMTP_USERNAME'),
-    password:             ENV.fetch('SMTP_PASSWORD'),
+    address:              ENV('SMTP_ADDRESS'),
+    port:                 ENV('SMTP_PORT', 465).to_i,
+    domain:               ENV('SMTP_DOMAIN'),
+    user_name:            ENV('SMTP_USERNAME'),
+    password:             ENV('SMTP_PASSWORD'),
     authentication:       :plain,
     tls:                  true
   }
