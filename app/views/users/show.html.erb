@@ -34,6 +34,14 @@
                 <%= link_to edit_user_path(@user), class: "btn btn-success btn-sm mb-2" do %>
                     <i class="mdi mdi-square-edit-outline me-1"></i> Editar
                 <% end %>
+                <%= button_to user_path(@user), 
+                    method: :delete, 
+                    form: { data: { turbo_confirm: "¿Estás seguro de que deseas eliminar a #{@user.full_name}?" } }, 
+                    class: "btn btn-soft-danger btn-sm", 
+                    data: { bs_toggle: "tooltip", bs_placement: "top" }, 
+                    title: "Eliminar Usuario" do %>
+                    <i class="ri-delete-bin-line"></i>
+                <% end %>
 
                 <div class="text-start mt-3">
                     <h4 class="font-13 text-uppercase">Sobre el usuario:</h4>
@@ -110,8 +118,12 @@
                                         <small class="text-muted ms-2">Enviada el <%= l(@user.invitation_sent_at, format: :long) %></small>
                                         
                                         <div class="mt-2">
-                                            <%= button_to resend_user_invitation_path(@user), method: :post, class: "btn btn-xs btn-light border", form: {style: "display:inline-block;"} do %>
-                                                <i class="mdi mdi-email-sync-outline"></i> Reenviar Correo
+                                            <%= button_to resend_invitation_user_path(@user), 
+                                                method: :post, 
+                                                class: "btn btn-soft-info btn-sm", 
+                                                data: { bs_toggle: "tooltip", bs_placement: "top" }, 
+                                                title: "Reenviar Invitación" do %>
+                                                <i class="ri-mail-send-line"></i>
                                             <% end %>
                                         </div>
                                     <% else %>

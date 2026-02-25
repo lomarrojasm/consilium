@@ -1,6 +1,6 @@
-<% @page_title = "Projects" %>
+<% @page_title = "Admin Dashboard" %>
 
-<%= render 'layouts/partials/page-title', page_title: "Projects", sub_title: "Dashboards" %>
+<%= render 'layouts/partials/page-title', page_title: "Panel de Control", sub_title: "Consilium Admin" %>
 
 <div class="row">
   <div class="col-12">
@@ -10,9 +10,9 @@
           <div class="col-sm-6 col-lg-3">
             <div class="card rounded-0 shadow-none m-0">
               <div class="card-body text-center">
-                <i class="ri-briefcase-line text-muted font-24"></i>
-                <h3><span>29</span></h3>
-                <p class="text-muted font-15 mb-0">Total Projects</p>
+                <i class="ri-community-line text-primary font-24"></i>
+                <h3><span><%= @total_clients %></span></h3>
+                <p class="text-muted font-15 mb-0">Clientes Totales</p>
               </div>
             </div>
           </div>
@@ -20,9 +20,9 @@
           <div class="col-sm-6 col-lg-3">
             <div class="card rounded-0 shadow-none m-0 border-start border-light">
               <div class="card-body text-center">
-                <i class="ri-list-check-2 text-muted font-24"></i>
-                <h3><span>715</span></h3>
-                <p class="text-muted font-15 mb-0">Total Tasks</p>
+                <i class="ri-group-line text-success font-24"></i>
+                <h3><span><%= @total_users %></span></h3>
+                <p class="text-muted font-15 mb-0">Usuarios Totales</p>
               </div>
             </div>
           </div>
@@ -30,9 +30,9 @@
           <div class="col-sm-6 col-lg-3">
             <div class="card rounded-0 shadow-none m-0 border-start border-light">
               <div class="card-body text-center">
-                <i class="ri-group-line text-muted font-24"></i>
-                <h3><span>31</span></h3>
-                <p class="text-muted font-15 mb-0">Members</p>
+                <i class="ri-mail-send-line text-warning font-24"></i>
+                <h3><span><%= @pending_invites %></span></h3>
+                <p class="text-muted font-15 mb-0">Por Aceptar</p>
               </div>
             </div>
           </div>
@@ -40,492 +40,208 @@
           <div class="col-sm-6 col-lg-3">
             <div class="card rounded-0 shadow-none m-0 border-start border-light">
               <div class="card-body text-center">
-                <i class="ri-line-chart-line text-muted font-24"></i>
-                <h3><span>93%</span> <i class="mdi mdi-arrow-up text-success"></i></h3>
-                <p class="text-muted font-15 mb-0">Productivity</p>
+                <i class="ri-todo-line text-info font-24"></i>
+                <h3><span><%= @total_activities %></span></h3>
+                <p class="text-muted font-15 mb-0">Actividades</p>
               </div>
             </div>
           </div>
-
-        </div> <!-- end row -->
+        </div> 
       </div>
-    </div> <!-- end card-box-->
-  </div> <!-- end col-->
+    </div>
+  </div>
 </div>
-<!-- end row-->
-
-<div class="row">
-  <div class="col-lg-4">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Project Status</h4>
-        <div class="dropdown">
-          <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="mdi mdi-dots-vertical"></i>
-          </a>
-          <div class="dropdown-menu dropdown-menu-end">
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Weekly Report</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Monthly Report</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Action</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Settings</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="card-body pt-0">
-        <div class="mt-3 mb-4 chartjs-chart" style="height: 204px;">
-          <canvas id="project-status-chart" data-colors="#0acf97,#727cf5,#fa5c7c"></canvas>
-        </div>
-
-        <div class="row text-center mt-2 py-2">
-          <div class="col-sm-4">
-            <div class="my-2 my-sm-0">
-              <i class="mdi mdi-trending-up text-success mt-3 h3"></i>
-              <h3 class="fw-normal">
-                <span>64%</span>
-              </h3>
-              <p class="text-muted mb-0">Completed</p>
-            </div>
-
-          </div>
-          <div class="col-sm-4">
-            <div class="my-2 my-sm-0">
-              <i class="mdi mdi-trending-down text-primary mt-3 h3"></i>
-              <h3 class="fw-normal">
-                <span>26%</span>
-              </h3>
-              <p class="text-muted mb-0"> In-progress</p>
-            </div>
-
-          </div>
-          <div class="col-sm-4">
-            <div class="my-2 my-sm-0">
-              <i class="mdi mdi-trending-down text-danger mt-3 h3"></i>
-              <h3 class="fw-normal">
-                <span>10%</span>
-              </h3>
-              <p class="text-muted mb-0"> Behind</p>
-            </div>
-          </div>
-        </div>
-        <!-- end row-->
-
-      </div> <!-- end card body-->
-    </div> <!-- end card -->
-  </div><!-- end col-->
-
-  <div class="col-lg-8">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Tasks</h4>
-        <div class="dropdown">
-          <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="mdi mdi-dots-vertical"></i>
-          </a>
-          <div class="dropdown-menu dropdown-menu-end">
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Weekly Report</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Monthly Report</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Action</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Settings</a>
-          </div>
-        </div>
-      </div>
-      <div class="card-header bg-light-lighten border-top border-bottom border-light py-1 text-center">
-        <p class="m-0"><b>107</b> Tasks completed out of 195</p>
-      </div>
-      <div class="card-body pt-2">
-        <div class="table-responsive">
-          <table class="table table-centered table-nowrap table-hover mb-0">
-            <tbody>
-            <tr>
-              <td>
-                <h5 class="font-14 my-1">
-                  <a href="javascript:void(0);" class="text-body">Coffee detail page - Main Page</a></h5>
-                <span class="text-muted font-13">Due in 3 days</span>
-              </td>
-              <td>
-                <span class="text-muted font-13">Status</span> <br/>
-                <span class="badge badge-warning-lighten">In-progress</span>
-              </td>
-              <td>
-                <span class="text-muted font-13">Assigned to</span>
-                <h5 class="font-14 mt-1 fw-normal">Logan R. Cohn</h5>
-              </td>
-              <td>
-                <span class="text-muted font-13">Total time spend</span>
-                <h5 class="font-14 mt-1 fw-normal">3h 20min</h5>
-              </td>
-              <td class="table-action" style="width: 90px;">
-                <a href="javascript: void(0);" class="action-icon"> <i class="mdi mdi-pencil"></i></a>
-                <a href="javascript: void(0);" class="action-icon"> <i class="mdi mdi-delete"></i></a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <h5 class="font-14 my-1"><a href="javascript:void(0);" class="text-body">Drinking bottle graphics</a>
-                </h5>
-                <span class="text-muted font-13">Due in 27 days</span>
-              </td>
-              <td>
-                <span class="text-muted font-13">Status</span> <br/>
-                <span class="badge badge-danger-lighten">Outdated</span>
-              </td>
-              <td>
-                <span class="text-muted font-13">Assigned to</span>
-                <h5 class="font-14 mt-1 fw-normal">Jerry F. Powell</h5>
-              </td>
-              <td>
-                <span class="text-muted font-13">Total time spend</span>
-                <h5 class="font-14 mt-1 fw-normal">12h 21min</h5>
-              </td>
-              <td class="table-action" style="width: 90px;">
-                <a href="javascript: void(0);" class="action-icon"> <i class="mdi mdi-pencil"></i></a>
-                <a href="javascript: void(0);" class="action-icon"> <i class="mdi mdi-delete"></i></a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <h5 class="font-14 my-1"><a href="javascript:void(0);" class="text-body">App design and development</a>
-                </h5>
-                <span class="text-muted font-13">Due in 7 days</span>
-              </td>
-              <td>
-                <span class="text-muted font-13">Status</span> <br/>
-                <span class="badge badge-success-lighten">Completed</span>
-              </td>
-              <td>
-                <span class="text-muted font-13">Assigned to</span>
-                <h5 class="font-14 mt-1 fw-normal">Scot M. Smith</h5>
-              </td>
-              <td>
-                <span class="text-muted font-13">Total time spend</span>
-                <h5 class="font-14 mt-1 fw-normal">78h 05min</h5>
-              </td>
-              <td class="table-action" style="width: 90px;">
-                <a href="javascript: void(0);" class="action-icon"> <i class="mdi mdi-pencil"></i></a>
-                <a href="javascript: void(0);" class="action-icon"> <i class="mdi mdi-delete"></i></a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <h5 class="font-14 my-1"><a href="javascript:void(0);" class="text-body">Poster illustation design</a>
-                </h5>
-                <span class="text-muted font-13">Due in 5 days</span>
-              </td>
-              <td>
-                <span class="text-muted font-13">Status</span> <br/>
-                <span class="badge badge-warning-lighten">In-progress</span>
-              </td>
-              <td>
-                <span class="text-muted font-13">Assigned to</span>
-                <h5 class="font-14 mt-1 fw-normal">John P. Ritter</h5>
-              </td>
-              <td>
-                <span class="text-muted font-13">Total time spend</span>
-                <h5 class="font-14 mt-1 fw-normal">26h 58min</h5>
-              </td>
-              <td class="table-action" style="width: 90px;">
-                <a href="javascript: void(0);" class="action-icon"> <i class="mdi mdi-pencil"></i></a>
-                <a href="javascript: void(0);" class="action-icon"> <i class="mdi mdi-delete"></i></a>
-              </td>
-            </tr>
-
-            </tbody>
-          </table>
-        </div> <!-- end table-responsive-->
-
-      </div> <!-- end card body-->
-    </div> <!-- end card -->
-  </div><!-- end col-->
-</div>
-<!-- end row-->
 
 <div class="row">
   <div class="col-12">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Tasks Overview</h4>
-        <div>
-          <button type="button" class="btn btn-soft-secondary btn-sm">
-            ALL
-          </button>
-          <button type="button" class="btn btn-soft-primary btn-sm">
-            1M
-          </button>
-          <button type="button" class="btn btn-soft-secondary btn-sm">
-            6M
-          </button>
-          <button type="button" class="btn btn-soft-secondary btn-sm">
-            1Y
-          </button>
+        <h4 class="header-title">Proyectos por Cliente</h4>
+      </div>
+      <div class="card-body">
+        <div class="chartjs-chart" style="height: 320px;">
+          <canvas id="client-projects-chart" 
+                  data-labels="<%= @client_names.to_json %>" 
+                  data-values="<%= @project_counts.to_json %>">
+          </canvas>
         </div>
       </div>
-
-      <div class="card-body">
-        <div dir="ltr">
-          <div class="chartjs-chart" style="height: 320px;">
-            <canvas id="task-area-chart" data-bgColor="#727cf5" data-borderColor="#727cf5"></canvas>
-          </div>
-        </div>
-
-      </div> <!-- end card body-->
-    </div> <!-- end card -->
-  </div><!-- end col-->
+    </div>
+  </div>
 </div>
-<!-- end row-->
 
 <div class="row">
-  <div class="col-xl-5">
+  <div class="col-xl-4">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Recent Activities</h4>
-        <div class="dropdown">
-          <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="mdi mdi-dots-vertical"></i>
-          </a>
-          <div class="dropdown-menu dropdown-menu-end">
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Weekly Report</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Monthly Report</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Action</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Settings</a>
+        <h4 class="header-title">Estado de Actividades</h4>
+      </div>
+      <div class="card-body pt-0">
+        <div class="mt-3 mb-4 chartjs-chart" style="height: 204px;">
+          <canvas id="project-status-chart" 
+                  data-colors="#0acf97,#3e60d5"
+                  data-values="<%= [@completed_count, @pending_count].join(',') %>">
+          </canvas>
+        </div>
+        <div class="row text-center mt-2 py-2">
+          <div class="col-6">
+            <i class="ri-checkbox-circle-fill text-success h3"></i>
+            <h3 class="fw-normal"><span><%= @completed_count %></span></h3>
+            <p class="text-muted mb-0">Completadas</p>
+          </div>
+          <div class="col-6">
+            <i class="ri-time-fill text-primary h3"></i>
+            <h3 class="fw-normal"><span><%= @pending_count %></span></h3>
+            <p class="text-muted mb-0">Pendientes</p>
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="card-body pt-0">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="header-title">Usuarios Recientes</h4>
+        <%= link_to "Ver Todos", users_path, class: "btn btn-sm btn-soft-primary" %>
+      </div>
+      <div class="card-body pt-2">
         <div class="table-responsive">
           <table class="table table-centered table-nowrap table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Estado</th>
+                <th>Cargo</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
             <tbody>
-            <tr>
-              <td>
-                <div class="d-flex align-items-start">
-                  <img class="me-2 rounded-circle" src="<%= image_path("users/avatar-2.jpg") %>" width="40" alt="Generic placeholder image">
-                  <div>
-                    <h5 class="mt-0 mb-1">Soren Drouin<small class="fw-normal ms-3">18 Jan 2019 11:28 pm</small></h5>
-                    <span class="font-13">Completed "Design new idea"...</span>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="text-muted font-13">Project</span> <br/>
-                <p class="mb-0">Hyper Mockup</p>
-              </td>
-              <td class="table-action" style="width: 50px;">
-                <div class="dropdown">
-                  <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="mdi mdi-dots-horizontal"></i>
-                  </a>
-                  <div class="dropdown-menu dropdown-menu-end">
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Settings</a>
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Action</a>
-                  </div>
-                </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td>
-                <div class="d-flex align-items-start">
-                  <img class="me-2 rounded-circle" src="<%= image_path("users/avatar-6.jpg") %>" width="40" alt="Generic placeholder image">
-                  <div>
-                    <h5 class="mt-0 mb-1">Anne Simard<small class="fw-normal ms-3">18 Jan 2019 11:09 pm</small></h5>
-                    <span class="font-13">Assigned task "Poster illustation design"...</span>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="text-muted font-13">Project</span> <br/>
-                <p class="mb-0">Hyper Mockup</p>
-              </td>
-              <td class="table-action" style="width: 50px;">
-                <div class="dropdown">
-                  <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="mdi mdi-dots-horizontal"></i>
-                  </a>
-                  <div class="dropdown-menu dropdown-menu-end">
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Settings</a>
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Action</a>
-                  </div>
-                </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td>
-                <div class="d-flex align-items-start">
-                  <img class="me-2 rounded-circle" src="<%= image_path("users/avatar-3.jpg") %>" width="40" alt="Generic placeholder image">
-                  <div>
-                    <h5 class="mt-0 mb-1">Nicolas Chartier<small class="fw-normal ms-3">15 Jan 2019 09:29 pm</small>
-                    </h5>
-                    <span class="font-13">Completed "Drinking bottle graphics"...</span>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="text-muted font-13">Project</span> <br/>
-                <p class="mb-0">Web UI Design</p>
-              </td>
-              <td class="table-action" style="width: 50px;">
-                <div class="dropdown">
-                  <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="mdi mdi-dots-horizontal"></i>
-                  </a>
-                  <div class="dropdown-menu dropdown-menu-end">
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Settings</a>
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Action</a>
-                  </div>
-                </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td>
-                <div class="d-flex align-items-start">
-                  <img class="me-2 rounded-circle" src="<%= image_path("users/avatar-4.jpg") %>" width="40" alt="Generic placeholder image">
-                  <div>
-                    <h5 class="mt-0 mb-1">Gano Cloutier<small class="fw-normal ms-3">10 Jan 2019 08:36 pm</small></h5>
-                    <span class="font-13">Completed "Design new idea"...</span>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="text-muted font-13">Project</span> <br/>
-                <p class="mb-0">UBold Admin</p>
-              </td>
-              <td class="table-action" style="width: 50px;">
-                <div class="dropdown">
-                  <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="mdi mdi-dots-horizontal"></i>
-                  </a>
-                  <div class="dropdown-menu dropdown-menu-end">
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Settings</a>
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Action</a>
-                  </div>
-                </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td>
-                <div class="d-flex align-items-start">
-                  <img class="me-2 rounded-circle" src="<%= image_path("users/avatar-5.jpg") %>" width="40" alt="Generic placeholder image">
-                  <div>
-                    <h5 class="mt-0 mb-1">Francis Achin<small class="fw-normal ms-3">08 Jan 2019 12:28 pm</small></h5>
-                    <span class="font-13">Assigned task "Hyper app design"...</span>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="text-muted font-13">Project</span> <br/>
-                <p class="mb-0">Website Mockup</p>
-              </td>
-              <td class="table-action" style="width: 50px;">
-                <div class="dropdown">
-                  <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="mdi mdi-dots-horizontal"></i>
-                  </a>
-                  <div class="dropdown-menu dropdown-menu-end">
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Settings</a>
-                    <!-- item-->
-                    <a href="javascript:void(0);" class="dropdown-item">Action</a>
-                  </div>
-                </div>
-              </td>
-            </tr>
-
+              <% @recent_users.each do |user| %>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <% if user.avatar.attached? %>
+                        <%= image_tag user.avatar, class: "me-2 rounded-circle", style: "width: 32px; height: 32px; object-fit: cover;" %>
+                      <% else %>
+                        <img src="<%= image_path("users/avatar-1.jpg") %>" class="me-2 rounded-circle" width="32">
+                      <% end %>
+                      <div>
+                        <h5 class="font-14 my-1"><%= user.full_name %></h5>
+                        <span class="text-muted font-13"><%= user.email %></span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <% if user.invitation_accepted_at.present? %>
+                      <span class="badge badge-success-lighten">Activo</span>
+                    <% elsif user.invitation_sent_at.present? %>
+                      <span class="badge badge-warning-lighten">Pendiente</span>
+                    <% else %>
+                      <span class="badge badge-info-lighten">Registrado</span>
+                    <% end %>
+                  </td>
+                  <td><%= user.job_title %></td>
+                  <td class="text-end">
+                    <%= link_to user_path(user), class: "action-icon" do %> <i class="ri-eye-line"></i><% end %>
+                    <%= link_to edit_user_path(user), class: "action-icon" do %> <i class="ri-edit-2-line"></i><% end %>
+                  </td>
+                </tr>
+              <% end %>
             </tbody>
           </table>
-        </div> <!-- end table-responsive-->
-
-      </div> <!-- end card body-->
-    </div> <!-- end card -->
-  </div><!-- end col-->
-
-  <div class="col-xl-7">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Your Calendar</h4>
-        <div class="dropdown">
-          <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="mdi mdi-dots-vertical"></i>
-          </a>
-          <div class="dropdown-menu dropdown-menu-end">
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Weekly Report</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Monthly Report</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Action</a>
-            <!-- item-->
-            <a href="javascript:void(0);" class="dropdown-item">Settings</a>
-          </div>
         </div>
       </div>
-
-      <div class="card-body pt-0">
-        <div class="row">
-          <div class="col-md-7">
-            <div data-provide="datepicker-inline" data-date-today-highlight="true" class="calendar-widget"></div>
-          </div> <!-- end col-->
-          <div class="col-md-5">
-            <ul class="list-unstyled mt-1">
-              <li class="mb-4">
-                <p class="text-muted mb-1 font-13">
-                  <i class="mdi mdi-calendar"></i> 7:30 AM - 10:00 AM
-                </p>
-                <h5>Meeting with BD Team</h5>
-              </li>
-              <li class="mb-4">
-                <p class="text-muted mb-1 font-13">
-                  <i class="mdi mdi-calendar"></i> 10:30 AM - 11:45 AM
-                </p>
-                <h5>Design Review - Hyper Admin</h5>
-              </li>
-              <li class="mb-4">
-                <p class="text-muted mb-1 font-13">
-                  <i class="mdi mdi-calendar"></i> 12:15 PM - 02:00 PM
-                </p>
-                <h5>Setup Github Repository</h5>
-              </li>
-              <li>
-                <p class="text-muted mb-1 font-13">
-                  <i class="mdi mdi-calendar"></i> 5:30 PM - 07:00 PM
-                </p>
-                <h5>Meeting with Design Studio</h5>
-              </li>
-            </ul>
-          </div> <!-- end col -->
-        </div>
-        <!-- end row -->
-
-      </div> <!-- end card body-->
-    </div> <!-- end card -->
-  </div><!-- end col-->
-
+    </div>
+  </div>
 </div>
-<!-- end row-->
+
+<div class="row">
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="header-title">Registros Recientes</h4>
+      </div>
+      <div class="card-body pt-0">
+        <div class="timeline-alt pb-0">
+          <% @new_registrations.each do |user| %>
+            <div class="timeline-item">
+              <i class="ri-user-add-line bg-info-lighten text-info timeline-icon"></i>
+              <div class="timeline-item-info">
+                <a href="<%= user_path(user) %>" class="text-info fw-bold mb-1 d-block"><%= user.full_name %></a>
+                <small><%= user.job_title %> - <%= user.email %></small>
+                <p class="mb-0 pb-2">
+                  <small class="text-muted"><%= time_ago_in_words(user.created_at) %> atrás</small>
+                </p>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <% content_for :javascript do %>
-  <%= javascript_include_tag 'pages/demo.dashboard-projects.js', defer: true %>
+<script>
+  document.addEventListener('turbo:load', function() {
+    
+    // --- 1. GRÁFICA DE PASTEL (DOUGHNUT) ---
+    var pieElem = document.getElementById('project-status-chart');
+    if (pieElem) {
+      var ctxPie = pieElem.getContext('2d');
+      var colorsPie = pieElem.getAttribute('data-colors').split(',');
+      var valuesPie = pieElem.getAttribute('data-values').split(',').map(Number);
+
+      if (window.myPieChart) { window.myPieChart.destroy(); }
+
+      window.myPieChart = new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+          labels: ["Completadas", "Pendientes"],
+          datasets: [{
+            data: valuesPie,
+            backgroundColor: colorsPie,
+            borderColor: "transparent",
+            borderWidth: "3",
+          }]
+        },
+        options: { maintainAspectRatio: false, cutoutPercentage: 80, legend: { display: false } }
+      });
+    }
+
+    // --- 2. GRÁFICA DE BARRAS (PROYECTOS POR CLIENTE) ---
+    var barElem = document.getElementById('client-projects-chart');
+    if (barElem) {
+      var ctxBar = barElem.getContext('2d');
+      var labelsBar = JSON.parse(barElem.getAttribute('data-labels'));
+      var valuesBar = JSON.parse(barElem.getAttribute('data-values'));
+
+      if (window.myBarChart) { window.myBarChart.destroy(); }
+
+      window.myBarChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: labelsBar,
+          datasets: [{
+            label: "Proyectos",
+            backgroundColor: "#3e60d5",
+            borderColor: "#3e60d5",
+            data: valuesBar,
+            barPercentage: 0.6,
+            categoryPercentage: 0.5
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          legend: { display: false },
+          scales: {
+            yAxes: [{ ticks: { beginAtZero: true, stepSize: 1 }, gridLines: { display: false } }],
+            xAxes: [{ gridLines: { color: "rgba(225,225,225,0.05)" } }]
+          }
+        }
+      });
+    }
+  });
+</script>
 <% end %>

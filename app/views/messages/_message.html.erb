@@ -8,11 +8,11 @@
 <li class="clearfix <%= 'odd' if is_current_user %>" data-sender-id="<%= msg.user.id %>">
     <div class="chat-avatar">
         <% if msg.user.avatar.attached? %>
-            <%= image_tag url_for(msg.user.avatar), class: "rounded", style: "object-fit: cover;" %>
+            <%= image_tag url_for(msg.user.avatar), class: "rounded-circle border-0", style: "width: 40px; height: 40px; object-fit: cover;" %>
         <% else %>
              <div class="avatar-xs">
-                <span class="avatar-title rounded bg-primary text-white font-10">
-                    <%= msg.user.first_name[0] %>
+                <span class="avatar-title rounded-circle bg-primary text-white font-10" style="width: 40px; height: 40px; object-fit: cover;" >
+                    <%= msg.user.first_name[0] %> <%= msg.user.last_name[0] %>
                 </span>
             </div>
         <% end %>

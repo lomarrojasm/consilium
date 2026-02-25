@@ -1,0 +1,54 @@
+<% @page_title = "Configurar tu cuenta" %>
+<% @body_attributes = "class=authentication-bg" %>
+
+<div class="position-absolute start-0 end-0 start-0 bottom-0 w-100 h-100">
+  <svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 800 800'>
+    <g fill-opacity='0.22'>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.1);" cx='400' cy='400' r='600'/>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.2);" cx='400' cy='400' r='500'/>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.3);" cx='400' cy='400' r='300'/>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.4);" cx='400' cy='400' r='200'/>
+      <circle style="fill: rgba(var(--ct-primary-rgb), 0.5);" cx='400' cy='400' r='100'/>
+    </g>
+  </svg>
+</div>
+
+<div class="account-pages pt-2 pt-sm-5 pb-4 pb-sm-5 position-relative">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-xxl-4 col-lg-5">
+        <div class="card">
+          <div class="card-header py-4 text-center bg-primary">
+            <span><img src="<%= image_path("consilium_blanco.png") %>" alt="logo" height="92"></span>
+          </div>
+
+          <div class="card-body p-4">
+            <div class="text-center w-75 m-auto">
+              <h4 class="text-dark-50 text-center mt-0 fw-bold">Crea tu contraseña</h4>
+              <p class="text-muted mb-4">Hola <%= resource.email %>, estás a un paso de unirte. Elige una contraseña segura.</p>
+            </div>
+
+            <%= form_for(resource, as: resource_name, url: invitation_path(resource_name), html: { method: :put, class: "needs-validation" }) do |f| %>
+              <%= render "devise/shared/error_messages", resource: resource %>
+              <%= f.hidden_field :invitation_token %>
+
+              <div class="mb-3">
+                <%= f.label :password, "Contraseña", class: "form-label" %>
+                <%= f.password_field :password, class: "form-control", placeholder: "Mínimo 6 caracteres", required: true %>
+              </div>
+
+              <div class="mb-3">
+                <%= f.label :password_confirmation, "Confirmar contraseña", class: "form-label" %>
+                <%= f.password_field :password_confirmation, class: "form-control", placeholder: "Repite tu contraseña", required: true %>
+              </div>
+
+              <div class="mb-0 text-center d-grid">
+                <%= f.submit "Activar mi cuenta", class: "btn btn-primary" %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

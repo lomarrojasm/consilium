@@ -1,0 +1,46 @@
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f6f9fc; padding: 40px 0;">
+  <tr>
+    <td align="center">
+      <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+        
+        <tr>
+          <td align="center" style="background-color: #3e60d5; padding: 30px;">
+            <h2 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px;">Consilium</h2>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding: 40px 30px;">
+            <h1 style="color: #333333; font-size: 22px; font-weight: 700; margin-top: 0;">¡Has sido invitado!</h1>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6;">
+              Alguien te ha invitado a unirte a **Consilium**, nuestra plataforma de consultoría inteligente.
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+              Para aceptar la invitación y configurar tu cuenta, simplemente haz clic en el botón de abajo:
+            </p>
+            
+            <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+              <tr>
+                <td align="center" style="background-color: #3e60d5; border-radius: 5px;">
+                  <%= link_to 'Aceptar Invitación', 
+                      accept_invitation_url(@resource, invitation_token: @token), 
+                      style: "display: inline-block; padding: 15px 35px; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 16px;" %>
+                </td>
+              </tr>
+            </table>
+
+            <p style="color: #999999; font-size: 14px; line-height: 1.6; margin-top: 40px; border-top: 1px solid #eeeeee; padding-top: 20px;">
+              Si no esperabas esta invitación, puedes ignorar este correo. Tu cuenta no se activará hasta que establezcas una contraseña.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding: 20px; background-color: #f9fafb; color: #999999; font-size: 12px;">
+            © <%= Time.current.year %> Consilium. Gestión Profesional de Consultoría.
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

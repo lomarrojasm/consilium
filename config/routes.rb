@@ -15,8 +15,10 @@ Rails.application.routes.draw do
   end
 
   # --- Ruta para reenviar invitación ---
-  devise_scope :user do
-    post 'users/:id/resend_invitation', to: 'users/invitations#resend', as: :resend_user_invitation
+  resources :users do
+    member do
+      post :resend_invitation
+    end
   end
   # -------------------
 
