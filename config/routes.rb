@@ -50,6 +50,7 @@ Rails.application.routes.draw do
     end
 
     resources :conversations do
+      get :start_chat, on: :collection
       resources :messages
     end
     # Anidamos projects DENTRO de clients

@@ -11,10 +11,12 @@ RUN echo "Construccion_Final_V3" && apt-get update -y && \
     nodejs npm && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
+# --- COMPLEMENTO: Activamos jemalloc para optimizar memoria ---
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development"
+    BUNDLE_WITHOUT="development" \
+    LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libjemalloc.so.2"
 
 FROM base AS build
 
@@ -28,8 +30,7 @@ COPY Gemfile Gemfile.lock ./
 RUN bundle install && \
     bundle exec bootsnap precompile --gemfile
 
-# 2. INSTALAR LIBRERÍAS DE NODE (Aquí estaba el fallo)
-# Copiamos los archivos de configuración de Node si existen
+# 2. INSTALAR LIBRERÍAS DE NODE
 COPY package.json package-lock.json* ./
 RUN npm install
 
@@ -45,9 +46,15 @@ FROM base
 COPY --from=build /usr/local/bundle /usr/local/bundle
 COPY --from=build /rails /rails
 
+# --- COMPLEMENTO: Aseguramos permisos en carpetas críticas de producción ---
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
-    chown -R rails:rails db log storage tmp
+    # Se añade 'public' para evitar fallos en assets y 'storage' para Active Storage
+    chown -R rails:rails db log storage tmp public
+
+# --- COMPLEMENTO: Aseguramos que los ejecutables tengan permiso ---
+RUN chmod +x bin/thrust bin/rails bin/docker-entrypoint
+
 USER 1000:1000
 
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]

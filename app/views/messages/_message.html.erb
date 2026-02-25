@@ -1,15 +1,20 @@
 <%# app/views/messages/_message.html.erb %>
 
+<%# Variables de control para permisos %>
 <% is_current_user = defined?(current_user) && current_user.present? && current_user == msg.user %>
 <% is_admin = defined?(current_user) && current_user.present? && current_user.role == 'admin' %>
 
-<li class="clearfix <%= 'odd' if is_current_user %>" data-sender-id="<%= msg.user.id %>">
+<%# ID único en el <li> para que ActionCable pueda borrarlo en tiempo real si se elimina %>
+<li class="clearfix <%= 'odd' if is_current_user %>" 
+    id="message-<%= msg.id %>" 
+    data-sender-id="<%= msg.user.id %>">
+    
     <div class="chat-avatar">
         <% if msg.user.avatar.attached? %>
-            <%= image_tag url_for(msg.user.avatar), class: "rounded-circle border-0", style: "width: 40px; height: 40px; object-fit: cover;" %>
+            <%= image_tag url_for(msg.user.avatar), class: "rounded-circle border-0 shadow-sm", style: "width: 40px; height: 40px; object-fit: cover;" %>
         <% else %>
              <div class="avatar-xs">
-                <span class="avatar-title rounded-circle bg-primary text-white font-10" style="width: 40px; height: 40px;">
+                <span class="avatar-title rounded-circle bg-soft-primary text-primary font-12 fw-bold" style="width: 40px; height: 40px;">
                     <%= msg.user.first_name[0] %><%= msg.user.last_name[0] %>
                 </span>
             </div>
@@ -19,9 +24,8 @@
     <div class="conversation-text">
         <div class="ctext-wrap">
             <div class="d-flex justify-content-between align-items-start mb-1" style="min-width: 180px;">
-                <i class="fw-bold"><%= msg.user.first_name %></i>
+                <i class="fw-bold font-13 text-primary"><%= msg.user.first_name %></i>
                 
-                <%# BLOQUE DE FECHA Y HORA %>
                 <div class="text-end ms-3">
                     <small class="text-muted d-block font-10" style="line-height: 1.2;">
                         <%= msg.messaged_at.strftime("%d/%m/%Y") %>
@@ -32,9 +36,11 @@
                 </div>
             </div>
             
-            <%# Cuerpo del Texto %>
+            <%# Cuerpo del Texto con resaltado de búsqueda %>
             <% if msg.body.present? %>
-              <p><%= defined?(params) && params[:q] ? highlight(msg.body, params[:q]) : msg.body %></p>
+              <p class="mb-0">
+                <%= defined?(params) && params[:q].present? ? highlight(msg.body, params[:q]) : msg.body %>
+              </p>
             <% end %>
 
             <%# --- SECCIÓN DE ADJUNTOS --- %>
@@ -43,7 +49,7 @@
                 <% msg.attachments.each do |attachment| %>
                   <div class="col-12">
                     <% if attachment.image? %>
-                      <div class="message-img">
+                      <div class="message-img position-relative">
                         <%= link_to url_for(attachment), target: "_blank", class: "d-block" do %>
                           <%= image_tag attachment.variant(resize_to_limit: [400, 400]), class: "img-fluid rounded border shadow-sm" %>
                         <% end %>
@@ -58,7 +64,7 @@
                                      else 'ri-file-3-fill text-secondary'
                                      end
                       %>
-                      <div class="card mb-1 shadow-none border border-light bg-light bg-opacity-25">
+                      <div class="card mb-1 shadow-none border border-light bg-light bg-opacity-50">
                         <div class="p-2">
                           <div class="row align-items-center">
                             <div class="col-auto">
@@ -69,14 +75,14 @@
                               </div>
                             </div>
                             <div class="col ps-0">
-                              <span class="text-muted fw-bold font-12 d-block text-truncate" style="max-width: 150px;">
+                              <span class="text-dark fw-bold font-12 d-block text-truncate" title="<%= attachment.filename %>" style="max-width: 160px;">
                                 <%= attachment.filename %>
                               </span>
                               <p class="mb-0 font-11 text-muted"><%= number_to_human_size(attachment.byte_size) %></p>
                             </div>
                             <div class="col-auto">
                               <%= link_to rails_blob_path(attachment, disposition: "attachment"), class: "btn btn-link btn-lg text-muted p-0" do %>
-                                <i class="ri-download-2-line"></i>
+                                <i class="ri-download-2-line font-18"></i>
                               <% end %>
                             </div>
                           </div>
@@ -89,28 +95,46 @@
             <% end %>
         </div>
 
-        <%# Formulario de fecha para Admin %>
+        <%# Formulario de fecha colapsable (Solo Admin) %>
         <% if is_admin %>
             <div class="collapse mt-2" id="edit-date-<%= msg.id %>">
-                <%= form_with(model: [client, conversation, msg], local: true, class: "d-flex align-items-center bg-light p-1 rounded") do |f| %>
-                    <%= f.datetime_field :messaged_at, id: "message_messaged_at_#{msg.id}", class: "form-control form-control-sm border-0 me-1", style: "width:auto; font-size: 10px;" %>
-                    <button type="submit" class="btn btn-xs btn-success"><i class="mdi mdi-check"></i></button>
+                <%= form_with(model: [client, conversation, msg], local: true, class: "d-flex align-items-center bg-light p-1 rounded border") do |f| %>
+                    <%# ID único para evitar advertencias del DOM %>
+                    <%= f.datetime_field :messaged_at, 
+                        id: "message_messaged_at_#{msg.id}", 
+                        class: "form-control form-control-sm border-0 me-1", 
+                        style: "width:auto; font-size: 10px;" %>
+                    <button type="submit" class="btn btn-xs btn-success shadow-none">
+                        <i class="ri-check-line"></i>
+                    </button>
                 <% end %>
             </div>
         <% end %>
     </div>
 
-    <%# Menú de acciones %>
+    <%# MENÚ DE ACCIONES (Eliminar y Editar Fecha) %>
     <div class="conversation-actions dropdown">
-        <% if is_admin %>
-            <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class='ri-more-2-fill'></i>
-            </button>
-            <div class="dropdown-menu <%= 'dropdown-menu-end' if is_current_user %>">
-                <a class="dropdown-item" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#edit-date-<%= msg.id %>">
-                    <i class="ri-calendar-event-line me-1"></i> Cambiar Fecha
+        <button class="btn btn-sm btn-link text-muted shadow-none" data-bs-toggle="dropdown">
+            <i class='ri-more-2-fill'></i>
+        </button>
+        <div class="dropdown-menu <%= 'dropdown-menu-end' if is_current_user %> shadow border-0">
+            <% if is_admin %>
+                <a class="dropdown-item py-2" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#edit-date-<%= msg.id %>">
+                    <i class="ri-calendar-event-line me-2 text-primary"></i> Cambiar Fecha
                 </a>
-            </div>
-        <% end %>
+            <% end %>
+
+            <%# Opción de Borrar: Solo autor o admin %>
+            <% if is_current_user || is_admin %>
+                <%= link_to client_conversation_message_path(client, conversation, msg), 
+                            class: "dropdown-item py-2 text-danger",
+                            data: { 
+                                action: "click->chat#deleteMessage",
+                                message_id: msg.id 
+                            } do %>
+                    <i class="ri-delete-bin-line me-2"></i> Eliminar Mensaje
+                <% end %>
+            <% end %>
+        </div>
     </div>
 </li>

@@ -1,109 +1,155 @@
 <%# app/views/messages/index.html.erb %>
 
-<div class="row">
-    <% if current_user.role == "admin" %>
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="<%= root_path %>">Consilium</a></li>
-                        <li class="breadcrumb-item"><a href="<%= clients_path %>">Clientes</a></li>
-                        <li class="breadcrumb-item"><%= link_to @client.company_name, client_path(@client) %> </li>
-                        <li class="breadcrumb-item">Chat</li>                 
-                    </ol>
-                </div>
-                <h4 class="page-title">Conversación con:</h4>
-            </div>
-        </div>
-    <% else %>
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="<%= client_dashboard_path %>">Consilium</a></li>
-                        <li class="breadcrumb-item"><a href="<%= client_dashboard_path %>">Regresar al Dashboard</a></li>                  
-                    </ol>
-                </div>
-                <h4 class="page-title">Conversación con:</h4>
-            </div>
-        </div>
-    <% end %>
-</div>
-
-<%# Calculamos quién es la "otra persona" %>
-<% other_user = (@conversation.sender == current_user) ? @conversation.recipient : @conversation.sender %>
-
+<%# 1. ENCABEZADO Y BREADCRUMBS %>
 <div class="row">
     <div class="col-12">
-        <div class="card h-100 overflow-hidden mb-0" 
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <% if current_user.role == "admin" %>
+                        <li class="breadcrumb-item"><%= link_to "Consilium", root_path %></li>
+                        <li class="breadcrumb-item"><%= link_to "Clientes", clients_path %></li>
+                        <li class="breadcrumb-item"><%= link_to @client.company_name, client_path(@client) %></li>
+                    <% else %>
+                        <li class="breadcrumb-item"><%= link_to "Consilium", client_dashboard_path %></li>
+                    <% end %>
+                    <li class="breadcrumb-item active">Chat Corporativo</li>
+                </ol>
+            </div>
+            <h4 class="page-title">Mensajería</h4>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <%# --- COLUMNA IZQUIERDA: PANEL DE CONTACTOS --- %>
+    <div class="col-xxl-3 col-xl-4">
+        <div class="card shadow-sm border-0">
+            <%# El controlador 'presence' maneja los puntos de conexión vía ActionCable %>
+            <div class="card-body" data-controller="presence">
+                <h4 class="header-title mb-1 text-primary">
+                    <i class="ri-community-line me-1"></i> 
+                    <%= @client.company_name %>
+                </h4>
+                <% if current_user.role == 'admin' %>
+                    <span class="badge badge-outline-secondary font-10 mb-3">Vista de Administrador</span>
+                <% end %>
+                
+                <%# Buscador de contactos (Frontend only) %>
+                <div class="mb-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-light text-muted">
+                            <i class="ri-search-line"></i>
+                        </span>
+                        <input type="text" class="form-control border-light bg-light" 
+                            placeholder="Buscar compañero..." 
+                            id="contact-search" 
+                            onkeyup="filterContacts()"
+                            autocomplete="off"
+                            data-ms-editor="false">
+                    </div>
+                </div>
+
+                <%# Lista de Usuarios %>
+                <div class="p-0" style="max-height: 600px; overflow-y: auto;" data-simplebar>
+                    <div id="contacts-list">
+                        <% if @company_users.any? %>
+                            <% @company_users.each do |user| %>
+                                <%# Determinamos si ya hay un chat abierto para mostrar el icono %>
+                                <% existing_conv = @active_conversations.find { |c| c.sender_id == user.id || c.recipient_id == user.id } %>
+                                
+                                <%# Usamos la ruta start_chat para manejar el 'Find or Create' %>
+                                <% chat_path = start_chat_client_conversations_path(@client, recipient_id: user.id) %>
+
+                                <a href="<%= chat_path %>" 
+                                   class="contact-item text-body d-block p-2 rounded mb-1 transition-all <%= 'active-chat border-start border-2 border-primary' if user == @chat_partner %>"
+                                   data-name="<%= user.first_name.downcase %> <%= user.last_name.downcase %>"
+                                   id="user-contact-<%= user.id %>">
+                                    
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0 position-relative">
+                                            <% if user.avatar.attached? %>
+                                                <%= image_tag url_for(user.avatar), class: "rounded-circle", height: "38", width: "38", style: "object-fit: cover;" %>
+                                            <% else %>
+                                                <div class="avatar-sm">
+                                                    <span class="avatar-title rounded-circle bg-soft-primary text-primary font-13 fw-bold">
+                                                        <%= user.first_name[0] %><%= user.last_name[0] %>
+                                                    </span>
+                                                </div>
+                                            <% end %>
+                                            <%# PUNTO DE PRESENCIA (Controlado por presence_controller.js) %>
+                                            <span class="user-presence-dot bg-secondary border border-white rounded-circle" 
+                                                  id="presence-dot-<%= user.id %>"></span>
+                                        </div>
+                                        <div class="flex-grow-1 ms-2 overflow-hidden">
+                                            <h5 class="mt-0 mb-0 font-14 fw-semibold text-truncate">
+                                                <%= user.first_name %> <%= user.last_name %>
+                                                <% if existing_conv %>
+                                                    <small class="ri-message-3-line text-success ms-1"></small>
+                                                <% end %>
+                                            </h5>
+                                            <p class="mt-0 mb-0 text-muted font-11 text-truncate presence-text">
+                                                Desconectado
+                                            </p>
+                                        </div>
+                                    </div>
+                                </a>
+                            <% end %>
+                        <% else %>
+                            <div class="text-center p-3 text-muted font-13">No se encontraron compañeros.</div>
+                        <% end %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%# --- COLUMNA DERECHA: VENTANA DE CHAT --- %>
+    <div class="col-xxl-9 col-xl-8">
+        <div class="card shadow-sm border-0 h-100 mb-0" 
              data-controller="chat" 
              data-chat-id-value="<%= @conversation.id %>">
-             
-            <div class="card-header border-bottom border-dashed">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="d-flex align-items-center me-auto">
-                        <%= link_to client_path(@client), class: "btn btn-light btn-sm px-2 me-3 d-inline-flex" do %>
-                            <i class="mdi mdi-arrow-left font-18"></i>
-                        <% end %>
+            
+            <% other_user = (@conversation.sender == current_user) ? @conversation.recipient : @conversation.sender %>
 
-                        <div class="d-flex align-items-center">
+            <div class="card-header border-bottom border-dashed py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <%# Info del Partner %>
+                    <div class="d-flex align-items-center me-auto">
+                        <div class="avatar-sm me-2">
                             <% if other_user.avatar.attached? %>
-                                <%= image_tag url_for(other_user.avatar), class: "me-2 rounded-circle", height: "36", width: "36", style: "object-fit: cover;" %>
+                                <%= image_tag url_for(other_user.avatar), class: "rounded-circle", height: "36", width: "36", style: "object-fit: cover;" %>
                             <% else %>
-                                <div class="avatar-sm me-2">
-                                    <span class="avatar-title rounded-circle bg-primary text-white font-14">
-                                        <%= other_user.first_name[0] %>
-                                    </span>
-                                </div>
+                                <span class="avatar-title rounded-circle bg-info text-white font-14"><%= other_user.first_name[0] %></span>
                             <% end %>
-                        
-                            <div>
-                                <h5 class="mt-0 mb-0 font-15">
-                                    <%= link_to "#{other_user.first_name} #{other_user.last_name}", user_path(other_user), class: "text-reset" %>
-                                </h5>
-                                <p class="mt-1 lh-1 mb-0 text-muted font-12">
-                                    <small class="mdi mdi-circle text-success"></small> <%= other_user.role&.humanize %>
-                                </p>
-                            </div>
+                        </div>
+                        <div>
+                            <h5 class="mt-0 mb-0 font-15 fw-bold"><%= other_user.full_name %></h5>
+                            <p class="mt-1 lh-1 mb-0 text-muted font-12"><%= other_user.role&.humanize %></p>
                         </div>
                     </div>
 
-                    <div class="d-flex align-items-center gap-2">
-                        
+                    <%# BUSCADOR UNIVERSAL (En tiempo real) %>
+                    <div class="d-flex align-items-center">
+                        <%# Honeypot invisible para engañar a gestores de password %>
+                        <div style="display:none;"><input type="text"><input type="password"></div>
 
                         <%= form_with url: client_conversation_messages_path(@client, @conversation), 
-                                    method: :get, 
-                                    html: { 
-                                        data: { chat_target: "searchForm" }, 
-                                        class: "d-flex",
-                                        autocomplete: "off" # Desactiva el autocompletado a nivel formulario
-                                    } do |f| %>
-                            
+                                      method: :get, 
+                                      html: { data: { chat_target: "searchForm" }, autocomplete: "off" } do |f| %>
                             <div class="input-group input-group-sm">
                                 <%= f.search_field :q, 
                                     value: params[:q], 
                                     class: "form-control border-light bg-light-subtle", 
-                                    placeholder: "Buscar mensaje, archivo, fecha o usuario...", 
-                                    style: "width: 350px;",
-                                    id: "query_field_#{SecureRandom.hex(4)}",
-                                    # --- TRUCO MAESTRO PARA ELIMINAR SUGERENCIAS ---
-                                    # Usar 'new-password' suena contradictorio, pero es lo que Chrome respeta mejor 
-                                    # para decir "no me sugieras nada de lo que ya tienes guardado".
+                                    placeholder: "Buscar mensaje o archivo...", 
+                                    style: "width: 280px;",
+                                    id: "q_#{SecureRandom.hex(4)}",
                                     autocomplete: "new-password", 
-                                    
                                     data: { 
                                         chat_target: "searchInput",
                                         action: "input->chat#search",
-                                        "ms-editor": "false",       # Bloquea Microsoft Editor (Causa de tus errores)
-                                        "lpignore": "true",         # Bloquea LastPass
-                                        "form-type": "other"        # Indica que no es un campo de datos personales
-                                    },
-
-                                    # --- OTROS BLOQUEOS ---
-                                    spellcheck: "false",
-                                    autocorrect: "off",
-                                    autocapitalize: "none" %>
-
+                                        "ms-editor": "false" 
+                                    } %>
                                 <div class="input-group-text bg-light border-light text-muted">
                                     <i class="ri-search-line font-16"></i>
                                 </div>
@@ -113,78 +159,95 @@
                 </div>
             </div>
         
-            <div class="card-body p-0 pt-3">
-                <%# Agregamos data-chat-target="messages" %>
-                <ul class="conversation-list px-3 chat-conversation" 
+            <%# LISTA DE MENSAJES %>
+            <div class="card-body p-0">
+                <ul class="conversation-list px-3 py-3 chat-conversation" 
                     data-chat-target="messages"
-                    style="max-height: 600px; overflow-y: auto;">
-                    
-                    <% @messages.each do |msg| %>
-                        <%= render "message", msg: msg, client: @client, conversation: @conversation %>
-                    <% end %>
+                    style="height: 550px; overflow-y: auto;"
+                    data-simplebar>
+                    <%= render partial: "message", collection: @messages, as: :msg, locals: { client: @client, conversation: @conversation } %>
                 </ul>
             </div>
 
-            <% is_participant = (@conversation.sender == current_user || @conversation.recipient == current_user) %>
-            <% is_admin = current_user.role == 'admin' %>
-
-            <% if is_participant || is_admin %>
-                <div class="card-body bg-light bg-opacity-50 border-top">
-                    <%# Target para mostrar las etiquetas de archivos seleccionados %>
-                    <div id="attachment-preview" 
-                         data-chat-target="preview" 
-                         class="d-flex flex-wrap gap-2 mb-2"></div>
+            <%# FORMULARIO DE ENVÍO %>
+            <div class="card-body bg-light bg-opacity-50 border-top">
+                <% is_participant = (@conversation.sender == current_user || @conversation.recipient == current_user) %>
+                <% if is_participant || current_user.role == 'admin' %>
+                    
+                    <%# Preview de Adjuntos %>
+                    <div id="attachment-preview" data-chat-target="preview" class="d-flex flex-wrap gap-2 mb-2"></div>
 
                     <%= form_with(model: [@client, @conversation, @message], 
-                                  local: true, 
-                                  html: { 
-                                      class: "needs-validation", 
-                                      id: "chat-form",
-                                      data: { 
-                                        action: "submit->chat#send",
-                                        chat_target: "form" 
-                                      } 
-                                  }) do |f| %>
+                                 data: { chat_target: "form", action: "turbo:submit-end->chat#resetForm" }, 
+                                 class: "chat-form-container") do |f| %>
                         <div class="d-flex align-items-center">
-                            <%# Área de Adjuntos %>
                             <div class="me-2">
-                                <label for="chat-attachment" class="btn btn-light mb-0 cursor-pointer text-muted shadow-none border-0" title="Adjuntar archivos">
+                                <label for="chat-attachment" class="btn btn-light mb-0 cursor-pointer text-muted shadow-none border-0">
                                     <i class="ri-attachment-2 font-20"></i>
                                 </label>
-                                <%# File field con targets y acciones para el controlador %>
-                                <%= f.file_field :attachments, 
-                                                multiple: true, 
-                                                class: "d-none", 
-                                                id: "chat-attachment",
-                                                data: { 
-                                                    chat_target: "fileInput",
-                                                    action: "change->chat#previewFiles" 
-                                                } %>
+                                <%= f.file_field :attachments, multiple: true, class: "d-none", id: "chat-attachment",
+                                    data: { chat_target: "fileInput", action: "change->chat#previewFiles" } %>
                             </div>
 
-                            <%# Input de Texto %>
-                            <div class="w-100 me-2">
+                            <div class="flex-grow-1 me-2">
                                 <%= f.text_field :body, 
-                                    class: "form-control border-0 bg-white", 
-                                    placeholder: "Escribe tu mensaje aquí...", 
+                                    class: "form-control border-0 bg-white shadow-none", 
+                                    placeholder: "Escribe un mensaje...", 
                                     autocomplete: "off",
                                     data: { chat_target: "input" } %>
                             </div>
 
-                            <%# Botón Enviar %>
-                            <div class="btn-group">
-                                <button type="submit" class="btn btn-success chat-send">
-                                    <i class='ri-send-plane-2-line'></i>
-                                </button>
-                            </div>
+                            <button type="submit" class="btn btn-primary px-3 shadow-none">
+                                <i class='ri-send-plane-2-fill'></i>
+                            </button>
                         </div>
                     <% end %>
-                </div>
-            <% else %>
-                <div class="alert alert-warning mt-2 text-center mx-3 mb-3">
-                    <i class="mdi mdi-lock"></i> Solo lectura. No participas en este chat.
-                </div>
-            <% end %>
+                <% else %>
+                    <div class="alert alert-soft-warning mb-0 text-center font-13">
+                        <i class="ri-lock-line me-1"></i> Estás viendo este chat en modo de solo lectura.
+                    </div>
+                <% end %>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Estilos del Panel Lateral */
+    .contact-item { transition: all 0.2s ease; border-left: 3px solid transparent; }
+    .contact-item:hover { background-color: #f8f9fa; }
+    .active-chat { background-color: rgba(62, 96, 213, 0.1) !important; }
+    
+    /* Punto de Presencia */
+    .user-presence-dot {
+        position: absolute; bottom: 0; right: 0;
+        width: 10px; height: 10px;
+        transition: background-color 0.3s ease;
+    }
+    .user-presence-dot.bg-success {
+        box-shadow: 0 0 0 2px rgba(10, 207, 151, 0.2);
+        animation: pulse-green 2s infinite;
+    }
+    @keyframes pulse-green {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+    
+    /* Scroll */
+    .chat-conversation .simplebar-content { display: flex; flex-direction: column; }
+</style>
+
+<script>
+    /** Filtra la lista de contactos localmente */
+    function filterContacts() {
+        const input = document.getElementById('contact-search');
+        const filter = input.value.toLowerCase();
+        const contacts = document.querySelectorAll('.contact-item');
+
+        contacts.forEach(contact => {
+            const name = contact.getAttribute('data-name');
+            contact.style.display = name.includes(filter) ? "" : "none";
+        });
+    }
+</script>

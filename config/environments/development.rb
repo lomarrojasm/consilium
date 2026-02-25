@@ -72,6 +72,9 @@ Rails.application.configure do
 
   #development mode
 
+  # Asegúrate de tener una de estas líneas (vips es la preferida):
+  config.active_storage.variant_processor = :vips
+
   config.action_mailer.default_url_options = { host: 'localhost', port: 3000 }
 
   # Usar el mismo servidor SMTP para probar que las credenciales funcionan

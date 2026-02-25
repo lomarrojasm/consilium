@@ -49,6 +49,29 @@ class ConversationsController < ApplicationController
     end
   end
 
+  def start_chat
+    @client = Client.find(params[:client_id])
+    recipient_id = params[:recipient_id]
+
+    # 1. Buscamos si ya existe una conversación entre ambos DENTRO de este cliente
+    @conversation = Conversation.where(client_id: @client.id)
+                                .where("(sender_id = :current AND recipient_id = :recipient) OR (sender_id = :recipient AND recipient_id = :current)", 
+                                      current: current_user.id, recipient: recipient_id)
+                                .first
+
+    # 2. Si no existe, la creamos incluyendo el client_id
+    if @conversation.nil?
+      @conversation = Conversation.create!(
+        client_id: @client.id, # <--- ESTO ES LO QUE FALTABA
+        sender_id: current_user.id, 
+        recipient_id: recipient_id
+      )
+    end
+
+    # 3. Redirigimos al chat
+    redirect_to client_conversation_messages_path(@client, @conversation)
+  end
+
   private
   def set_client
     @client = Client.find(params[:client_id])

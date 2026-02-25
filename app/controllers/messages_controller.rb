@@ -4,6 +4,10 @@ class MessagesController < ApplicationController
   before_action :check_participation!
 
   def index
+    # 1. Filtro de seguridad: Usuarios de la misma empresa
+    @company_users = User.where(client_id: @client.id)
+                       .where.not(id: current_user.id)
+                       .order(first_name: :asc)
     # 1. Cargamos relaciones y unimos tablas para la búsqueda
     @messages = @conversation.messages
                             .includes(:user, attachments_attachments: :blob)
@@ -11,7 +15,7 @@ class MessagesController < ApplicationController
                             .left_outer_joins(attachments_attachments: :blob)
                             .order(messaged_at: :asc)
 
-    # 2. Filtro de búsqueda universal
+    # 2. Conversación actual
     if params[:q].present?
       query = "%#{params[:q]}%"
       @messages = @messages.where(
@@ -26,7 +30,8 @@ class MessagesController < ApplicationController
 
     # 3. Datos para el formulario y sidebar
     @message = @conversation.messages.new
-    @conversations = @client.conversations.where("sender_id = ? OR recipient_id = ?", current_user.id, current_user.id)
+    #@conversations = @client.conversations.where("sender_id = ? OR recipient_id = ?", current_user.id, current_user.id)
+    @active_conversations = Conversation.where(client_id: @client.id).where("sender_id = ? OR recipient_id = ?", current_user.id, current_user.id)
     @chat_partner = (@conversation.sender == current_user) ? @conversation.recipient : @conversation.sender
 
     # 4. Respuesta Dual (HTML para carga inicial, JSON para búsqueda rápida)
@@ -87,6 +92,23 @@ class MessagesController < ApplicationController
         redirect_to client_conversation_messages_path(@client, @conversation), notice: "Actualizado."
       end
     end
+  end
+
+  def destroy
+    @message = @conversation.messages.find(params[:id])
+    
+    # Solo el autor o un admin pueden borrar
+    if @message.user == current_user || current_user.role == 'admin'
+      @message.destroy
+      
+      # Avisamos al canal que el mensaje con ID X debe morir
+      ChatChannel.broadcast_to(@conversation, { 
+        action: "delete", 
+        message_id: params[:id] 
+      })
+    end
+
+    head :no_content # No necesitamos renderizar nada
   end
 
   private
