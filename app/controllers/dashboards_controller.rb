@@ -23,37 +23,36 @@ class DashboardsController < ApplicationController
   end
 
   def projects
-    # Métricas principales
-    @total_clients = Client.count
-    @total_users = User.count
-    @pending_invites = User.where(invitation_accepted_at: nil).where.not(invitation_token: nil).count
-    @active_projects = 12 # Aquí podrías poner Project.where(active: true).count si tienes el modelo
+  # 1. Métricas principales
+  @total_clients = Client.count
+  @total_users = User.count
+  @pending_invites = User.where(invitation_accepted_at: nil).where.not(invitation_token: nil).count
+  @active_projects = Project.where(status: 'activo').count # Basado en tus estados reales
 
-    # Datos para las tablas y el timeline
-    @recent_users = User.order(created_at: :desc).limit(5)
-    @new_registrations = User.order(created_at: :desc).limit(6) # Para el timeline de actividad
+  # 2. Datos para las tablas y el timeline
+  @recent_users = User.order(created_at: :desc).limit(5)
+  @new_registrations = User.order(created_at: :desc).limit(6) 
 
-    # Contamos usando el campo booleano 'completed'
+  # 3. Datos para la gráfica de Pastel (Activities)
   @completed_count = Activity.where(completed: true).count
   @pending_count   = Activity.where(completed: false).count
-  
   @total_activities = @completed_count + @pending_count
+
+  # 4. Datos para la gráfica de Barras Apiladas (Proyectos por Cliente)
+  # Usamos group("clients.id") para evitar el error de MySQL con DISTINCT
+  @clients = Client.joins(:projects)
+                   .group("clients.id", "clients.company_name")
+                   .order("clients.company_name ASC")
   
-  # Si quieres mantener una tercera categoría como "Sin asignar", 
-  # podrías contar las que no tienen user_id, por ejemplo:
-  # @unassigned_count = Activity.where(user_id: nil).count
+  @client_names = @clients.pluck(:company_name)
 
-  # Agrupamos los proyectos por el nombre del cliente
-  # Nota: Asume que Client tiene una relación has_many :projects
-  @projects_per_client = Client.joins(:projects)
-                               .group('clients.company_name')
-                               .count
-  
-  @client_names = @projects_per_client.keys
-  @project_counts = @projects_per_client.values
-
-
-  end
+  # Mapeo de datos por estado para cada cliente
+  # Nota: Esto genera varias consultas, funciona bien para volúmenes moderados
+  @data_borrador   = @clients.map { |c| c.projects.where(status: 'borrador').count }
+  @data_activo     = @clients.map { |c| c.projects.where(status: 'activo').count }
+  @data_pausado    = @clients.map { |c| c.projects.where(status: 'pausado').count }
+  @data_finalizado = @clients.map { |c| c.projects.where(status: 'finalizado').count }
+end
 
   def wallet
   end

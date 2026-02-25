@@ -56,13 +56,17 @@
   <div class="col-12">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Proyectos por Cliente</h4>
+        <h4 class="header-title">Detalle de Proyectos por Cliente</h4>
+        <span class="badge badge-soft-primary"><%= @client_names.size %> Clientes</span>
       </div>
       <div class="card-body">
-        <div class="chartjs-chart" style="height: 320px;">
-          <canvas id="client-projects-chart" 
+        <div style="position: relative; height: 450px; overflow-y: auto;">
+          <canvas id="client-projects-stacked-chart" 
                   data-labels="<%= @client_names.to_json %>" 
-                  data-values="<%= @project_counts.to_json %>">
+                  data-borrador="<%= @data_borrador.to_json %>"
+                  data-activo="<%= @data_activo.to_json %>"
+                  data-pausado="<%= @data_pausado.to_json %>"
+                  data-finalizado="<%= @data_finalizado.to_json %>">
           </canvas>
         </div>
       </div>
@@ -186,14 +190,14 @@
 <script>
   document.addEventListener('turbo:load', function() {
     
-    // --- 1. GRÁFICA DE PASTEL (DOUGHNUT) ---
-    var pieElem = document.getElementById('project-status-chart');
+    // --- 1. GRÁFICA DE PASTEL (ACTIVIDADES) ---
+    const pieElem = document.getElementById('project-status-chart');
     if (pieElem) {
-      var ctxPie = pieElem.getContext('2d');
-      var colorsPie = pieElem.getAttribute('data-colors').split(',');
-      var valuesPie = pieElem.getAttribute('data-values').split(',').map(Number);
+      const ctxPie = pieElem.getContext('2d');
+      const colorsPie = pieElem.getAttribute('data-colors').split(',');
+      const valuesPie = pieElem.getAttribute('data-values').split(',').map(Number);
 
-      if (window.myPieChart) { window.myPieChart.destroy(); }
+      if (window.myPieChart instanceof Chart) { window.myPieChart.destroy(); }
 
       window.myPieChart = new Chart(ctxPie, {
         type: 'doughnut',
@@ -203,45 +207,82 @@
             data: valuesPie,
             backgroundColor: colorsPie,
             borderColor: "transparent",
-            borderWidth: "3",
-          }]
-        },
-        options: { maintainAspectRatio: false, cutoutPercentage: 80, legend: { display: false } }
-      });
-    }
-
-    // --- 2. GRÁFICA DE BARRAS (PROYECTOS POR CLIENTE) ---
-    var barElem = document.getElementById('client-projects-chart');
-    if (barElem) {
-      var ctxBar = barElem.getContext('2d');
-      var labelsBar = JSON.parse(barElem.getAttribute('data-labels'));
-      var valuesBar = JSON.parse(barElem.getAttribute('data-values'));
-
-      if (window.myBarChart) { window.myBarChart.destroy(); }
-
-      window.myBarChart = new Chart(ctxBar, {
-        type: 'bar',
-        data: {
-          labels: labelsBar,
-          datasets: [{
-            label: "Proyectos",
-            backgroundColor: "#3e60d5",
-            borderColor: "#3e60d5",
-            data: valuesBar,
-            barPercentage: 0.6,
-            categoryPercentage: 0.5
+            borderWidth: 3
           }]
         },
         options: {
           maintainAspectRatio: false,
-          legend: { display: false },
-          scales: {
-            yAxes: [{ ticks: { beginAtZero: true, stepSize: 1 }, gridLines: { display: false } }],
-            xAxes: [{ gridLines: { color: "rgba(225,225,225,0.05)" } }]
+          cutout: '80%', // Sintaxis moderna para el grosor del anillo
+          plugins: {
+            legend: { display: false }
           }
         }
       });
     }
+
+    // --- 2. GRÁFICA DE BARRAS HORIZONTALES (PROYECTOS POR CLIENTE) ---
+    const barElem = document.getElementById('client-projects-stacked-chart');
+    if (!barElem) return;
+
+    const ctx = barElem.getContext('2d');
+    const labels = JSON.parse(barElem.getAttribute('data-labels'));
+
+    // Altura dinámica: 45px por cliente para que no se amontonen
+    const dynamicHeight = Math.max(400, labels.length * 45);
+    barElem.height = dynamicHeight;
+    barElem.style.height = dynamicHeight + 'px';
+
+    if (window.myStackedBarChart instanceof Chart) { window.myStackedBarChart.destroy(); }
+
+    window.myStackedBarChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Borrador',
+            backgroundColor: '#adb5bd', // Gris
+            data: JSON.parse(barElem.getAttribute('data-borrador'))
+          },
+          {
+            label: 'Activo',
+            backgroundColor: '#3e60d5', // Azul Consilium
+            data: JSON.parse(barElem.getAttribute('data-activo'))
+          },
+          {
+            label: 'Pausado',
+            backgroundColor: '#ffd43b', // Amarillo/Pausado
+            data: JSON.parse(barElem.getAttribute('data-pausado'))
+          },
+          {
+            label: 'Finalizado',
+            backgroundColor: '#0acf97', // Verde/Éxito
+            data: JSON.parse(barElem.getAttribute('data-finalizado'))
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y', // Horizontal
+        maintainAspectRatio: false,
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+          x: { 
+            stacked: true, // APILADO
+            beginAtZero: true,
+            ticks: { stepSize: 1 },
+            title: { display: true, text: 'Cantidad de Proyectos' }
+          },
+          y: { 
+            stacked: true, // APILADO
+            grid: { display: false }
+          }
+        }
+      }
+    });
   });
 </script>
 <% end %>
