@@ -3,9 +3,12 @@ class Message < ApplicationRecord
   belongs_to :conversation
   belongs_to :user
 
+  # Relación con ActiveStorage
+  has_many_attached :attachments
+
   after_create :notify_recipient
   
-  validates :body, presence: true
+  validates :body, presence: true, unless: -> { attachments.attached? }
   
   # Usamos messaged_at para ordenar, así el admin puede cambiar la fecha y el orden cambia
   scope :chronological, -> { order(messaged_at: :asc) }

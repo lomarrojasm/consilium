@@ -4,18 +4,46 @@ class MessagesController < ApplicationController
   before_action :check_participation!
 
   def index
-    @messages = @conversation.messages.order(created_at: :asc)
-    
-    if params[:q].present?
-        @messages = @messages.where("body LIKE ?", "%#{params[:q]}%")
-    end
-    
-    @message = @conversation.messages.new
+    # 1. Cargamos relaciones y unimos tablas para la búsqueda
+    @messages = @conversation.messages
+                            .includes(:user, attachments_attachments: :blob)
+                            .joins(:user)
+                            .left_outer_joins(attachments_attachments: :blob)
+                            .order(messaged_at: :asc)
 
-    # Sidebar: otras conversaciones
+    # 2. Filtro de búsqueda universal
+    if params[:q].present?
+      query = "%#{params[:q]}%"
+      @messages = @messages.where(
+        "messages.body LIKE :q OR 
+        users.first_name LIKE :q OR 
+        users.last_name LIKE :q OR 
+        active_storage_blobs.filename LIKE :q OR 
+        DATE_FORMAT(messages.messaged_at, '%d/%m/%Y %H:%i') LIKE :q", 
+        q: query
+      ).distinct
+    end
+
+    # 3. Datos para el formulario y sidebar
+    @message = @conversation.messages.new
     @conversations = @client.conversations.where("sender_id = ? OR recipient_id = ?", current_user.id, current_user.id)
-    
     @chat_partner = (@conversation.sender == current_user) ? @conversation.recipient : @conversation.sender
+
+    # 4. Respuesta Dual (HTML para carga inicial, JSON para búsqueda rápida)
+    respond_to do |format|
+      format.html # Carga normal
+      format.json do
+        # Forzamos a Rails a buscar el partial .html.erb aunque la petición sea JSON
+        html_content = render_to_string(
+          partial: 'messages/message', 
+          collection: @messages, 
+          as: :msg, 
+          formats: [:html], # <--- ESTA ES LA CLAVE
+          locals: { client: @client, conversation: @conversation }
+        )
+        render json: { html: html_content }
+      end
+    end
   end
 
   def create
@@ -69,7 +97,7 @@ class MessagesController < ApplicationController
   end
 
   def message_params
-    params.require(:message).permit(:body, :messaged_at)
+    params.require(:message).permit(:body, :messaged_at, attachments: [])
   end
 
   def check_participation!

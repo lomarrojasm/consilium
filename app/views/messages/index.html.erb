@@ -1,3 +1,5 @@
+<%# app/views/messages/index.html.erb %>
+
 <div class="row">
     <% if current_user.role == "admin" %>
         <div class="col-12">
@@ -49,7 +51,7 @@
                                 <%= image_tag url_for(other_user.avatar), class: "me-2 rounded-circle", height: "36", width: "36", style: "object-fit: cover;" %>
                             <% else %>
                                 <div class="avatar-sm me-2">
-                                    <span class="avatar-title rounded-circle bg-primary-light text-primary font-14">
+                                    <span class="avatar-title rounded-circle bg-primary text-white font-14">
                                         <%= other_user.first_name[0] %>
                                     </span>
                                 </div>
@@ -67,23 +69,44 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-2">
-                        <%= form_with url: client_conversation_messages_path(@client, @conversation), method: :get, class: "d-flex" do |f| %>
+                        
+
+                        <%= form_with url: client_conversation_messages_path(@client, @conversation), 
+                                    method: :get, 
+                                    html: { 
+                                        data: { chat_target: "searchForm" }, 
+                                        class: "d-flex",
+                                        autocomplete: "off" # Desactiva el autocompletado a nivel formulario
+                                    } do |f| %>
+                            
                             <div class="input-group input-group-sm">
-                                <%= f.text_field :q, 
+                                <%= f.search_field :q, 
                                     value: params[:q], 
                                     class: "form-control border-light bg-light-subtle", 
-                                    placeholder: "Buscar...", 
-                                    style: "width: 200px;" %>
-                                
-                                <% if params[:q].present? %>
-                                    <%= link_to client_conversation_messages_path(@client, @conversation), class: "btn btn-light border-light bg-light-subtle", title: "Limpiar" do %>
-                                        <i class="mdi mdi-close text-danger"></i>
-                                    <% end %>
-                                <% else %>
-                                    <button class="btn btn-light border-light bg-light-subtle" type="submit">
-                                        <i class="mdi mdi-magnify"></i>
-                                    </button>
-                                <% end %>
+                                    placeholder: "Buscar mensaje, archivo, fecha o usuario...", 
+                                    style: "width: 350px;",
+                                    id: "query_field_#{SecureRandom.hex(4)}",
+                                    # --- TRUCO MAESTRO PARA ELIMINAR SUGERENCIAS ---
+                                    # Usar 'new-password' suena contradictorio, pero es lo que Chrome respeta mejor 
+                                    # para decir "no me sugieras nada de lo que ya tienes guardado".
+                                    autocomplete: "new-password", 
+                                    
+                                    data: { 
+                                        chat_target: "searchInput",
+                                        action: "input->chat#search",
+                                        "ms-editor": "false",       # Bloquea Microsoft Editor (Causa de tus errores)
+                                        "lpignore": "true",         # Bloquea LastPass
+                                        "form-type": "other"        # Indica que no es un campo de datos personales
+                                    },
+
+                                    # --- OTROS BLOQUEOS ---
+                                    spellcheck: "false",
+                                    autocorrect: "off",
+                                    autocapitalize: "none" %>
+
+                                <div class="input-group-text bg-light border-light text-muted">
+                                    <i class="ri-search-line font-16"></i>
+                                </div>
                             </div>
                         <% end %>
                     </div>
@@ -91,6 +114,7 @@
             </div>
         
             <div class="card-body p-0 pt-3">
+                <%# Agregamos data-chat-target="messages" %>
                 <ul class="conversation-list px-3 chat-conversation" 
                     data-chat-target="messages"
                     style="max-height: 600px; overflow-y: auto;">
@@ -105,32 +129,59 @@
             <% is_admin = current_user.role == 'admin' %>
 
             <% if is_participant || is_admin %>
-                <div class="card-body bg-primary bg-opacity-50 mt-2">
+                <div class="card-body bg-light bg-opacity-50 border-top">
+                    <%# Target para mostrar las etiquetas de archivos seleccionados %>
+                    <div id="attachment-preview" 
+                         data-chat-target="preview" 
+                         class="d-flex flex-wrap gap-2 mb-2"></div>
+
                     <%= form_with(model: [@client, @conversation, @message], 
                                   local: true, 
                                   html: { 
                                       class: "needs-validation", 
                                       id: "chat-form",
-                                      data: { action: "submit->chat#send" } 
+                                      data: { 
+                                        action: "submit->chat#send",
+                                        chat_target: "form" 
+                                      } 
                                   }) do |f| %>
-                        <div class="d-flex align-items-start">
-                            <div class="w-100">
+                        <div class="d-flex align-items-center">
+                            <%# Área de Adjuntos %>
+                            <div class="me-2">
+                                <label for="chat-attachment" class="btn btn-light mb-0 cursor-pointer text-muted shadow-none border-0" title="Adjuntar archivos">
+                                    <i class="ri-attachment-2 font-20"></i>
+                                </label>
+                                <%# File field con targets y acciones para el controlador %>
+                                <%= f.file_field :attachments, 
+                                                multiple: true, 
+                                                class: "d-none", 
+                                                id: "chat-attachment",
+                                                data: { 
+                                                    chat_target: "fileInput",
+                                                    action: "change->chat#previewFiles" 
+                                                } %>
+                            </div>
+
+                            <%# Input de Texto %>
+                            <div class="w-100 me-2">
                                 <%= f.text_field :body, 
-                                    class: "form-control border-0", 
+                                    class: "form-control border-0 bg-white", 
                                     placeholder: "Escribe tu mensaje aquí...", 
-                                    required: true, 
                                     autocomplete: "off",
                                     data: { chat_target: "input" } %>
-                                <div class="invalid-feedback">Por favor escribe un mensaje</div>
                             </div>
+
+                            <%# Botón Enviar %>
                             <div class="btn-group">
-                                <button type="submit" class="btn btn-success chat-send"><i class='uil uil-message'></i></button>
+                                <button type="submit" class="btn btn-success chat-send">
+                                    <i class='ri-send-plane-2-line'></i>
+                                </button>
                             </div>
                         </div>
                     <% end %>
                 </div>
             <% else %>
-                <div class="alert alert-warning mt-2 text-center">
+                <div class="alert alert-warning mt-2 text-center mx-3 mb-3">
                     <i class="mdi mdi-lock"></i> Solo lectura. No participas en este chat.
                 </div>
             <% end %>

@@ -222,67 +222,86 @@
 
     // --- 2. GRÁFICA DE BARRAS HORIZONTALES (PROYECTOS POR CLIENTE) ---
     const barElem = document.getElementById('client-projects-stacked-chart');
-    if (!barElem) return;
+    if (barElem) {
+      const ctx = barElem.getContext('2d');
+      const labels = JSON.parse(barElem.getAttribute('data-labels'));
 
-    const ctx = barElem.getContext('2d');
-    const labels = JSON.parse(barElem.getAttribute('data-labels'));
+      // AJUSTE: Con barras de 17px, un multiplicador de 40px por cliente 
+      // deja un "aire" perfecto entre cada barra.
+      const dynamicHeight = Math.max(350, labels.length * 40); 
+      barElem.height = dynamicHeight;
+      barElem.style.height = dynamicHeight + 'px';
 
-    // Altura dinámica: 45px por cliente para que no se amontonen
-    const dynamicHeight = Math.max(400, labels.length * 45);
-    barElem.height = dynamicHeight;
-    barElem.style.height = dynamicHeight + 'px';
+      if (window.myStackedBarChart instanceof Chart) { window.myStackedBarChart.destroy(); }
 
-    if (window.myStackedBarChart instanceof Chart) { window.myStackedBarChart.destroy(); }
-
-    window.myStackedBarChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Borrador',
-            backgroundColor: '#adb5bd', // Gris
-            data: JSON.parse(barElem.getAttribute('data-borrador'))
-          },
-          {
-            label: 'Activo',
-            backgroundColor: '#3e60d5', // Azul Consilium
-            data: JSON.parse(barElem.getAttribute('data-activo'))
-          },
-          {
-            label: 'Pausado',
-            backgroundColor: '#ffd43b', // Amarillo/Pausado
-            data: JSON.parse(barElem.getAttribute('data-pausado'))
-          },
-          {
-            label: 'Finalizado',
-            backgroundColor: '#0acf97', // Verde/Éxito
-            data: JSON.parse(barElem.getAttribute('data-finalizado'))
-          }
-        ]
-      },
-      options: {
-        indexAxis: 'y', // Horizontal
-        maintainAspectRatio: false,
-        responsive: true,
-        plugins: {
-          legend: { position: 'top' },
-          tooltip: { mode: 'index', intersect: false }
+      window.myStackedBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Borrador',
+              backgroundColor: '#adb5bd',
+              data: JSON.parse(barElem.getAttribute('data-borrador')),
+              barThickness: 17, // AJUSTE SOLICITADO
+              maxBarThickness: 17
+            },
+            {
+              label: 'Activo',
+              backgroundColor: '#3e60d5',
+              data: JSON.parse(barElem.getAttribute('data-activo')),
+              barThickness: 17,
+              maxBarThickness: 17
+            },
+            {
+              label: 'Pausado',
+              backgroundColor: '#ffd43b',
+              data: JSON.parse(barElem.getAttribute('data-pausado')),
+              barThickness: 17,
+              maxBarThickness: 17
+            },
+            {
+              label: 'Finalizado',
+              backgroundColor: '#0acf97',
+              data: JSON.parse(barElem.getAttribute('data-finalizado')),
+              barThickness: 17,
+              maxBarThickness: 17
+            }
+          ]
         },
-        scales: {
-          x: { 
-            stacked: true, // APILADO
-            beginAtZero: true,
-            ticks: { stepSize: 1 },
-            title: { display: true, text: 'Cantidad de Proyectos' }
+        options: {
+          indexAxis: 'y',
+          maintainAspectRatio: false,
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { 
+              mode: 'index', 
+              intersect: false,
+              backgroundColor: '#313a46',
+              titleFontColor: '#fff',
+              bodyFontColor: '#fff'
+            }
           },
-          y: { 
-            stacked: true, // APILADO
-            grid: { display: false }
+          scales: {
+            x: { 
+              stacked: true, 
+              beginAtZero: true, 
+              ticks: { stepSize: 1, color: '#98a6ad' },
+              grid: { color: 'rgba(152, 166, 173, 0.1)' }
+            },
+            y: { 
+              stacked: true, 
+              grid: { display: false },
+              ticks: {
+                color: '#98a6ad',
+                font: { size: 12 } 
+              }
+            }
           }
         }
-      }
-    });
+      });
+    }
   });
 </script>
 <% end %>

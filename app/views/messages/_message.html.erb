@@ -1,7 +1,5 @@
 <%# app/views/messages/_message.html.erb %>
 
-<%# 1. Definimos si es el remitente de forma segura %>
-<%# Usamos &. para evitar el error si current_user es nil %>
 <% is_current_user = defined?(current_user) && current_user.present? && current_user == msg.user %>
 <% is_admin = defined?(current_user) && current_user.present? && current_user.role == 'admin' %>
 
@@ -11,8 +9,8 @@
             <%= image_tag url_for(msg.user.avatar), class: "rounded-circle border-0", style: "width: 40px; height: 40px; object-fit: cover;" %>
         <% else %>
              <div class="avatar-xs">
-                <span class="avatar-title rounded-circle bg-primary text-white font-10" style="width: 40px; height: 40px; object-fit: cover;" >
-                    <%= msg.user.first_name[0] %> <%= msg.user.last_name[0] %>
+                <span class="avatar-title rounded-circle bg-primary text-white font-10" style="width: 40px; height: 40px;">
+                    <%= msg.user.first_name[0] %><%= msg.user.last_name[0] %>
                 </span>
             </div>
         <% end %>
@@ -20,39 +18,99 @@
     
     <div class="conversation-text">
         <div class="ctext-wrap">
-            <div class="d-flex justify-content-between align-items-center mb-1" style="min-width: 180px;">
+            <div class="d-flex justify-content-between align-items-start mb-1" style="min-width: 180px;">
                 <i class="fw-bold"><%= msg.user.first_name %></i>
-                <small class="text-muted ms-3"><%= msg.messaged_at.strftime("%H:%M") %></small>
+                
+                <%# BLOQUE DE FECHA Y HORA %>
+                <div class="text-end ms-3">
+                    <small class="text-muted d-block font-10" style="line-height: 1.2;">
+                        <%= msg.messaged_at.strftime("%d/%m/%Y") %>
+                    </small>
+                    <small class="text-muted d-block font-11 fw-semibold">
+                        <%= msg.messaged_at.strftime("%H:%M") %>
+                    </small>
+                </div>
             </div>
-            <p>
-                <%= defined?(params) && params[:q] ? highlight(msg.body, params[:q]) : msg.body %>
-            </p>
+            
+            <%# Cuerpo del Texto %>
+            <% if msg.body.present? %>
+              <p><%= defined?(params) && params[:q] ? highlight(msg.body, params[:q]) : msg.body %></p>
+            <% end %>
+
+            <%# --- SECCIÓN DE ADJUNTOS --- %>
+            <% if msg.attachments.attached? %>
+              <div class="row mt-2 g-2">
+                <% msg.attachments.each do |attachment| %>
+                  <div class="col-12">
+                    <% if attachment.image? %>
+                      <div class="message-img">
+                        <%= link_to url_for(attachment), target: "_blank", class: "d-block" do %>
+                          <%= image_tag attachment.variant(resize_to_limit: [400, 400]), class: "img-fluid rounded border shadow-sm" %>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <% 
+                        icon_class = case attachment.content_type
+                                     when /pdf/ then 'ri-file-pdf-fill text-danger'
+                                     when /msword|wordprocessing/ then 'ri-file-word-fill text-primary'
+                                     when /excel|spreadsheet|csv/ then 'ri-file-excel-fill text-success'
+                                     when /zip|compressed/ then 'ri-file-zip-fill text-warning'
+                                     else 'ri-file-3-fill text-secondary'
+                                     end
+                      %>
+                      <div class="card mb-1 shadow-none border border-light bg-light bg-opacity-25">
+                        <div class="p-2">
+                          <div class="row align-items-center">
+                            <div class="col-auto">
+                              <div class="avatar-sm">
+                                <span class="avatar-title bg-white rounded border border-light">
+                                  <i class="<%= icon_class %> font-20"></i>
+                                </span>
+                              </div>
+                            </div>
+                            <div class="col ps-0">
+                              <span class="text-muted fw-bold font-12 d-block text-truncate" style="max-width: 150px;">
+                                <%= attachment.filename %>
+                              </span>
+                              <p class="mb-0 font-11 text-muted"><%= number_to_human_size(attachment.byte_size) %></p>
+                            </div>
+                            <div class="col-auto">
+                              <%= link_to rails_blob_path(attachment, disposition: "attachment"), class: "btn btn-link btn-lg text-muted p-0" do %>
+                                <i class="ri-download-2-line"></i>
+                              <% end %>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
         </div>
 
-        <%# CORRECCIÓN AQUÍ: Usamos la variable segura is_admin %>
+        <%# Formulario de fecha para Admin %>
         <% if is_admin %>
             <div class="collapse mt-2" id="edit-date-<%= msg.id %>">
                 <%= form_with(model: [client, conversation, msg], local: true, class: "d-flex align-items-center bg-light p-1 rounded") do |f| %>
-                    <%= f.datetime_field :messaged_at, class: "form-control form-control-sm border-0 me-1", style: "width:auto; font-size: 10px;" %>
+                    <%= f.datetime_field :messaged_at, id: "message_messaged_at_#{msg.id}", class: "form-control form-control-sm border-0 me-1", style: "width:auto; font-size: 10px;" %>
                     <button type="submit" class="btn btn-xs btn-success"><i class="mdi mdi-check"></i></button>
                 <% end %>
             </div>
         <% end %>
     </div>
 
+    <%# Menú de acciones %>
     <div class="conversation-actions dropdown">
-        <%# CORRECCIÓN AQUÍ TAMBIÉN %>
         <% if is_admin %>
-            <button class="btn btn-sm btn-link" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class='uil uil-ellipsis-v'></i>
+            <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class='ri-more-2-fill'></i>
             </button>
-        <% end %>
-        <div class="dropdown-menu <%= 'dropdown-menu-end' if is_current_user %>">
-            <% if is_admin %>
+            <div class="dropdown-menu <%= 'dropdown-menu-end' if is_current_user %>">
                 <a class="dropdown-item" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#edit-date-<%= msg.id %>">
-                    <i class="mdi mdi-calendar-clock me-1"></i> Cambiar Fecha
+                    <i class="ri-calendar-event-line me-1"></i> Cambiar Fecha
                 </a>
-            <% end %>
-        </div>
+            </div>
+        <% end %>
     </div>
 </li>
