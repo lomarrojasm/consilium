@@ -92,4 +92,10 @@ Rails.application.configure do
 
 
 
+  # Resetear status online al iniciar el servidor para evitar falsos positivos
+  config.after_initialize do
+    User.update_all(online: false) rescue nil
+  end
+
+
 end

@@ -1,3 +1,4 @@
+// app/javascript/controllers/presence_controller.js
 import { Controller } from "@hotwired/stimulus"
 import consumer from "../channels/consumer"
 
@@ -8,25 +9,32 @@ export default class extends Controller {
         this.updateStatus(data.user_id, data.status)
       }
     })
+
+    // Detectar cuando el usuario cierra la pestaña o navega fuera
+    window.addEventListener("beforeunload", () => {
+      this.disconnect()
+    })
   }
 
   disconnect() {
-    this.subscription.unsubscribe()
+    if (this.subscription) {
+      // Al llamar a unsubscribe, se dispara el método 'unsubscribed' en Ruby
+      this.subscription.unsubscribe()
+    }
   }
 
   updateStatus(userId, status) {
-    // Buscamos el punto de presencia por el ID que definimos en la vista
     const dot = document.getElementById(`presence-dot-${userId}`)
-    const text = document.querySelector(`#user-contact-${userId} .text-muted`)
+    const text = document.getElementById(`presence-text-${userId}`)
 
     if (dot) {
       if (status === "online") {
-        dot.classList.remove('bg-secondary')
         dot.classList.add('bg-success')
+        dot.classList.remove('bg-secondary')
         if (text) text.innerText = 'En línea'
       } else {
-        dot.classList.remove('bg-success')
         dot.classList.add('bg-secondary')
+        dot.classList.remove('bg-success')
         if (text) text.innerText = 'Desconectado'
       }
     }

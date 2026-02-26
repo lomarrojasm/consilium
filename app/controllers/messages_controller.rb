@@ -5,8 +5,10 @@ class MessagesController < ApplicationController
 
   def index
     @company_users = User.where(client_id: @client.id)
+                       .or(User.where(role: 'admin'))
                        .where.not(id: current_user.id)
-                       .order(first_name: :asc)
+                       .distinct
+                       .order(:first_name)
 
     @messages = @conversation.messages
                             .includes(:user, attachments_attachments: :blob)

@@ -54,19 +54,20 @@
 
                 <%# Lista de Usuarios %>
                 <div class="p-0" style="max-height: 600px; overflow-y: auto;" data-simplebar>
-                    <div id="contacts-list">
+                    <div id="contacts-list" data-controller="presence">
                         <% if @company_users.any? %>
                             <% @company_users.each do |user| %>
-                                <%# Determinamos si ya hay un chat abierto para mostrar el icono %>
+                                <%# --- DEFINICIÓN DE VARIABLES NECESARIAS --- %>
+                                <%# Buscamos si ya existe conversación para mostrar el icono %>
                                 <% existing_conv = @active_conversations.find { |c| c.sender_id == user.id || c.recipient_id == user.id } %>
                                 
-                                <%# Usamos la ruta start_chat para manejar el 'Find or Create' %>
+                                <%# ESTA ES LA LÍNEA QUE FALTABA: Definir el path del chat %>
                                 <% chat_path = start_chat_client_conversations_path(@client, recipient_id: user.id) %>
 
                                 <a href="<%= chat_path %>" 
-                                   class="contact-item text-body d-block p-2 rounded mb-1 transition-all <%= 'active-chat border-start border-2 border-primary' if user == @chat_partner %>"
-                                   data-name="<%= user.first_name.downcase %> <%= user.last_name.downcase %>"
-                                   id="user-contact-<%= user.id %>">
+                                class="contact-item text-body d-block p-2 rounded mb-1 transition-all <%= 'active-chat border-start border-2 border-primary' if user == @chat_partner %>"
+                                data-name="<%= user.first_name.downcase %> <%= user.last_name.downcase %>"
+                                id="user-contact-<%= user.id %>">
                                     
                                     <div class="d-flex align-items-center">
                                         <div class="flex-shrink-0 position-relative">
@@ -79,10 +80,12 @@
                                                     </span>
                                                 </div>
                                             <% end %>
-                                            <%# PUNTO DE PRESENCIA (Controlado por presence_controller.js) %>
-                                            <span class="user-presence-dot bg-secondary border border-white rounded-circle" 
-                                                  id="presence-dot-<%= user.id %>"></span>
+
+                                            <%# PUNTO DE PRESENCIA: Clases iniciales según DB %>
+                                            <span class="user-presence-dot <%= user.online ? 'bg-success' : 'bg-secondary' %> border border-white rounded-circle" 
+                                                id="presence-dot-<%= user.id %>"></span>
                                         </div>
+
                                         <div class="flex-grow-1 ms-2 overflow-hidden">
                                             <h5 class="mt-0 mb-0 font-14 fw-semibold text-truncate">
                                                 <%= user.first_name %> <%= user.last_name %>
@@ -90,8 +93,9 @@
                                                     <small class="ri-message-3-line text-success ms-1"></small>
                                                 <% end %>
                                             </h5>
-                                            <p class="mt-0 mb-0 text-muted font-11 text-truncate presence-text">
-                                                Desconectado
+                                            <%# TEXTO DE PRESENCIA CON ID ÚNICO %>
+                                            <p class="mt-0 mb-0 text-muted font-11 text-truncate" id="presence-text-<%= user.id %>">
+                                                <%= user.online ? 'En línea' : 'Desconectado' %>
                                             </p>
                                         </div>
                                     </div>
