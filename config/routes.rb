@@ -51,7 +51,7 @@ Rails.application.routes.draw do
 
     resources :conversations do
       get :start_chat, on: :collection
-      resources :messages
+      resources :messages, only: [:index, :create, :update, :destroy]
     end
     # Anidamos projects DENTRO de clients
     resources :projects do

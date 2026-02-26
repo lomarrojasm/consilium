@@ -1,4 +1,6 @@
 <%# app/views/messages/index.html.erb %>
+<meta name="current-user-id" content="<%= current_user.id %>">
+<meta name="user-role" content="<%= current_user.role %>">
 
 <%# 1. ENCABEZADO Y BREADCRUMBS %>
 <div class="row">
@@ -178,7 +180,7 @@
                     <div id="attachment-preview" data-chat-target="preview" class="d-flex flex-wrap gap-2 mb-2"></div>
 
                     <%= form_with(model: [@client, @conversation, @message], 
-                                 data: { chat_target: "form", action: "turbo:submit-end->chat#resetForm" }, 
+                                 data: { chat_target: "form", action: "submit->chat#send" }, 
                                  class: "chat-form-container") do |f| %>
                         <div class="d-flex align-items-center">
                             <div class="me-2">
