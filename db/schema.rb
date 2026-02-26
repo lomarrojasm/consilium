@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_18_190044) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_26_204935) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -62,7 +62,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_190044) do
     t.float "senior_hours"
     t.float "analyst_hours"
     t.bigint "user_id", null: false
+    t.bigint "responsible_id"
     t.index ["area"], name: "index_activities_on_area"
+    t.index ["responsible_id"], name: "index_activities_on_responsible_id"
     t.index ["stage_id"], name: "index_activities_on_stage_id"
     t.index ["user_id"], name: "index_activities_on_user_id"
   end
@@ -207,7 +209,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_190044) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.bigint "responsible_id"
     t.index ["client_id"], name: "index_projects_on_client_id"
+    t.index ["responsible_id"], name: "index_projects_on_responsible_id"
     t.index ["user_id"], name: "index_projects_on_user_id"
   end
 
@@ -371,6 +375,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_190044) do
     t.datetime "happened_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "resource_name"
     t.index ["client_id"], name: "index_timeline_logs_on_client_id"
     t.index ["resource_type", "resource_id"], name: "index_timeline_logs_on_resource"
     t.index ["user_id"], name: "index_timeline_logs_on_user_id"
@@ -414,6 +419,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_190044) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "activities", "stages"
   add_foreign_key "activities", "users"
+  add_foreign_key "activities", "users", column: "responsible_id"
   add_foreign_key "conversations", "clients"
   add_foreign_key "conversations", "users", column: "recipient_id"
   add_foreign_key "conversations", "users", column: "sender_id"
@@ -427,6 +433,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_18_190044) do
   add_foreign_key "project_members", "users", column: "added_by_id"
   add_foreign_key "projects", "clients"
   add_foreign_key "projects", "users"
+  add_foreign_key "projects", "users", column: "responsible_id"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

@@ -84,9 +84,9 @@ end
     @activity.completed_day = Time.current.day
 
     if @activity.save
-      redirect_back fallback_location: root_path, notice: "Evidencia subida y actividad completada."
+      redirect_to client_project_path(@client, @project), notice: "Evidencia cargada y actividad finalizada."
     else
-      redirect_back fallback_location: root_path, alert: "Error: #{@activity.errors.full_messages.join(', ')}"
+      redirect_to client_project_path(@client, @project), alert: "Error: #{@activity.errors.full_messages.join(', ')}"
     end
   end
 
@@ -104,7 +104,8 @@ end
       :leader_hours, :leader_rate, :leader_cost,
       :senior_hours, :senior_rate, :senior_cost,
       :analyst_hours, :analyst_rate, :analyst_cost,
-      :activity_cost
+      :activity_cost,
+      :responsible_id
     )
   end
 end

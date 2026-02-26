@@ -1,100 +1,179 @@
+<%# app/views/projects/comments.html.erb %>
+
+<%# --- ENCABEZADO --- %>
 <div class="row">
     <div class="col-12">
         <div class="page-title-box">
             <div class="page-title-right">
-                <ol class="breadcrumb m-0">
-                    <li class="breadcrumb-item"><a href="<%= client_path(@client) %>"><%= @client.company_name %></a></li>
-                    <li class="breadcrumb-item"><a href="<%= client_project_path(@client, @project) %>">Proyecto</a></li>
-                    <li class="breadcrumb-item active">Bitácora</li>
-                </ol>
+                <div class="d-flex gap-2">
+                    <%= link_to client_project_path(@client, @project), class: "btn btn-light shadow-sm" do %>
+                        <i class="ri-arrow-go-back-line me-1"></i> Volver al Proyecto
+                    <% end %>
+                </div>
             </div>
-            <h4 class="page-title">Bitácora: <%= @project.name %></h4>
+            <h4 class="page-title">Bitácora de Seguimiento</h4>
+            <ol class="breadcrumb m-0 font-12">
+                <li class="breadcrumb-item"><%= link_to @client.company_name, client_path(@client) %></li>
+                <li class="breadcrumb-item"><%= link_to @project.name, client_project_path(@client, @project) %></li>
+                <li class="breadcrumb-item active">Bitácora</li>
+            </ol>
         </div>
     </div>
 </div>
 
 <div class="row">
+    <%# --- COLUMNA IZQUIERDA: FORMULARIO Y BÚSQUEDA --- %>
     <div class="col-xl-4 col-lg-5">
-        <div class="card">
+        
+        <%# Card de Nuevo Registro %>
+        <div class="card shadow-sm border-0 mb-3">
             <div class="card-body">
-                <h5 class="card-title mb-3">Nuevo Registro</h5>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-sm bg-soft-primary rounded p-1 me-2">
+                        <i class="ri-chat-new-line font-20 text-primary"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Nuevo Registro</h5>
+                </div>
                 
-                <%= form_with(model: [@client, @project, @new_comment], url: client_project_comments_path(@client, @project), local: true) do |f| %>
+                <%= form_with(model: [@client, @project, @new_comment], url: client_project_comments_path(@client, @project), local: true, class: "needs-validation") do |f| %>
                   
-                  <div class="mb-3">
-                    <%= f.text_area :body, rows: 4, class: "form-control", placeholder: "Escribe un comentario, actualización o nota..." %>
+                  <div class="form-floating mb-3">
+                    <%= f.text_area :body, class: "form-control shadow-none", id: "commentBody", placeholder: "Escribe algo...", style: "height: 120px", required: true %>
+                    <label for="commentBody">Comentario o actualización...</label>
                   </div>
 
-                  <div class="mb-3">
-                    <label class="form-label small">Destinatario (Opcional)</label>
+                  <div class="form-floating mb-3">
                      <%= f.collection_select :recipient_id, 
-                         @project.project_members.includes(:user).map(&:user), 
+                         @project.users.order(:first_name), 
                          :id, 
-                         :first_name, 
-                         { include_blank: "Todo el Equipo (General)" }, 
-                         { class: "form-select form-select-sm" } 
+                         :full_name, 
+                         { include_blank: "Todo el equipo (Grupal)" }, 
+                         { class: "form-select shadow-none", id: "recipientSelect" } 
                      %>
+                     <label for="recipientSelect">Destinatario / Privacidad</label>
                   </div>
 
                   <div class="d-grid">
-                    <%= f.submit "Publicar", class: "btn btn-primary btn-sm" %>
+                    <%= f.submit "Publicar en Bitácora", class: "btn btn-primary shadow-sm" %>
                   </div>
-
                 <% end %>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-body">
+        <%# Card de Búsqueda %>
+        <div class="card shadow-sm border-0">
+            <div class="card-body py-3">
                 <form action="<%= comments_client_project_path(@client, @project) %>" method="get">
                     <div class="input-group">
-                        <input type="text" name="comment_query" class="form-control" placeholder="Buscar en bitácora..." value="<%= params[:comment_query] %>">
-                        <button class="btn btn-light" type="submit"><i class="mdi mdi-magnify"></i></button>
+                        <span class="input-group-text bg-light border-0"><i class="ri-search-line"></i></span>
+                        <input type="text" name="comment_query" class="form-control bg-light border-0 shadow-none" placeholder="Filtrar historial..." value="<%= params[:comment_query] %>">
+                        <button class="btn btn-primary" type="submit">Buscar</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <%# --- COLUMNA DERECHA: HISTORIAL CON TIMELINE CORREGIDO --- %>
     <div class="col-xl-8 col-lg-7">
-        <div class="card">
+        <div class="card shadow-sm border-0">
             <div class="card-body">
-                <h5 class="header-title mb-3">Historial de Comentarios</h5>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="header-title mb-0 text-primary">Historial del Proyecto</h5>
+                    <span class="badge bg-soft-secondary text-secondary fw-bold"><%= @comments.count %> REGISTROS</span>
+                </div>
 
-                <div class="timeline-alt pb-0 position-relative">
+                <div class="timeline-alt pb-0">
                   <% if @comments.any? %>
                     <% @comments.each do |comment| %>
                       <div class="timeline-item">
+                        <%# ICONO/AVATAR: Con margen fijo para evitar que se encime %>
                         <div class="timeline-icon">
-                           <div class="avatar-xs">
-                             <span class="avatar-title rounded-circle bg-info text-white font-10">
-                                <%= comment.user.first_name[0] %>
-                             </span>
-                           </div>
+                            <% if comment.user.avatar.attached? %>
+                                <%= image_tag url_for(comment.user.avatar), class: "rounded-circle border shadow-sm", style: "width: 32px; height: 32px; object-fit: cover;" %>
+                            <% else %>
+                                <div class="avatar-xs">
+                                    <span class="avatar-title rounded-circle bg-soft-info text-info font-10 fw-bold border border-info border-opacity-25">
+                                        <%= comment.user.first_name[0] %><%= comment.user.last_name[0] %>
+                                    </span>
+                                </div>
+                            <% end %>
                         </div>
-                        <div class="timeline-item-info pb-4 border-bottom border-light mb-3">
-                          <div class="d-flex justify-content-between align-items-center mb-1">
+
+                        <%# CONTENIDO: Con margen izquierdo suficiente para el icono %>
+                        <div class="timeline-item-info pb-3 mb-3 border-bottom ms-4 ps-2">
+                          <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <span class="text-dark fw-bold font-14"><%= comment.user.first_name %> <%= comment.user.last_name %></span>
+                                <span class="text-dark fw-bold font-14"><%= comment.user.full_name %></span>
+                                
+                                <%# INDICADOR DE PRIVACIDAD CORREGIDO %>
                                 <% if comment.recipient %>
-                                   <span class="text-muted font-12 ms-1">
-                                     <i class="mdi mdi-arrow-right"></i> @<%= comment.recipient.first_name %>
-                                     <span class="badge bg-warning text-dark font-10">Privado</span>
+                                   <span class="ms-2 badge badge-soft-warning font-11">
+                                     <i class="ri-lock-fill me-1"></i>Privado para <%= comment.recipient.first_name %>
+                                   </span>
+                                <% else %>
+                                   <span class="ms-2 badge badge-soft-info font-11">
+                                     <i class="ri-group-line me-1"></i>Grupal
                                    </span>
                                 <% end %>
+
+                                <p class="text-muted font-11 mb-0"><%= comment.user.role&.humanize %></p>
                             </div>
-                            <small class="text-muted"><%= comment.created_at.strftime("%d %b %H:%M") %></small>
+                            <div class="text-end">
+                                <small class="text-muted d-block font-11"><%= comment.created_at.strftime("%d %b %Y") %></small>
+                                <small class="text-primary fw-bold" style="font-size: 10px;"><%= comment.created_at.strftime("%H:%M") %></small>
+                            </div>
                           </div>
-                          <p class="mt-1 mb-0 text-muted font-13"><%= simple_format(comment.body) %></p>
+                          
+                          <div class="mt-2 bg-light bg-opacity-50 p-2 rounded border-start border-3 border-primary-subtle shadow-none">
+                            <div class="text-dark font-13" style="white-space: pre-wrap; line-height: 1.4;"><%= comment.body %></div>
+                          </div>
                         </div>
                       </div>
                     <% end %>
                   <% else %>
-                    <p class="text-center text-muted py-5">No hay registros en la bitácora.</p>
+                    <div class="text-center py-5">
+                        <i class="ri-chat-off-line font-40 text-muted opacity-25"></i>
+                        <p class="text-muted mt-2">No hay registros en la bitácora aún.</p>
+                    </div>
                   <% end %>
                 </div>
-
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Corrección definitiva del solapamiento y líneas del Timeline */
+    .timeline-alt {
+        padding-left: 5px;
+    }
+    .timeline-alt .timeline-item {
+        position: relative;
+    }
+    .timeline-alt .timeline-item:before {
+        content: "";
+        position: absolute;
+        left: 15px;
+        top: 32px; /* Empieza debajo del avatar */
+        bottom: 0;
+        width: 2px;
+        background: #f1f3fa;
+        z-index: 0;
+    }
+    .timeline-alt .timeline-item:last-child:before {
+        display: none;
+    }
+    .timeline-alt .timeline-icon {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 1;
+        background: #fff;
+        padding: 2px;
+    }
+    .timeline-alt .timeline-item-info {
+        margin-left: 48px !important; /* Espacio garantizado para el avatar */
+        padding-left: 0;
+    }
+</style>

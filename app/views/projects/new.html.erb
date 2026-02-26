@@ -1,58 +1,107 @@
+<%# app/views/projects/new.html.erb %>
 <div class="row">
     <div class="col-12">
         <div class="page-title-box">
             <div class="page-title-right">
-                <ol class="breadcrumb m-0">
-                    <li class="breadcrumb-item"><a href="<%= root_path %>">Consilium</a></li>
-                    <li class="breadcrumb-item"><a href="<%= clients_path %>">Clientes</a></li> 
-                    <li class="breadcrumb-item"><a href="<%= client_path(@client) %>"><%= @client.company_name %></a></li>                  
+                <ol class="breadcrumb m-0 font-12">
+                    <li class="breadcrumb-item"><%= link_to "Consilium", root_path %></li>
+                    <li class="breadcrumb-item"><%= link_to "Clientes", clients_path %></li> 
+                    <li class="breadcrumb-item"><%= link_to @client.company_name, client_path(@client) %></li>                  
                     <li class="breadcrumb-item active">Nuevo Proyecto</li>
-                    
                 </ol>
             </div>
-            <h4 class="page-title">Proyecto</h4>
+            <h4 class="page-title">Apertura de Proyecto</h4>
         </div>
     </div>
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="header-title mb-3">Nuevo Proyecto para <%= @client.company_name %></h4>
+    <div class="col-lg-9">
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="avatar-sm bg-soft-success rounded p-1 me-2">
+                        <i class="ri-add-circle-line font-24 text-success"></i>
+                    </div>
+                    <div>
+                        <h4 class="header-title mb-0">Registrar Nueva Consultoría</h4>
+                        <p class="text-muted font-13 mb-0">Configura los parámetros iniciales para <strong><%= @client.company_name %></strong></p>
+                    </div>
+                </div>
 
-                <%= form_with(model: [@client, @project], local: true) do |f| %>
+                <%= form_with(model: [@client, @project], local: true, class: "needs-validation") do |f| %>
                     
-                    <div class="mb-3">
-                        <%= f.label :name, "Nombre del Proyecto", class: "form-label" %>
-                        <%= f.text_field :name, class: "form-control", placeholder: "Ej: Implementación Metodología Consilium 2026", required: true %>
+                    <% if @project.errors.any? %>
+                        <div class="alert alert-danger border-0 mb-4 shadow-sm">
+                            <ul class="mb-0">
+                                <% @project.errors.full_messages.each do |msg| %>
+                                    <li><%= msg %></li>
+                                <% end %>
+                            </ul>
+                        </div>
+                    <% end %>
+
+                    <%# Fila 1: Nombre y Responsable (Filtrado por empresa) %>
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <div class="form-floating mb-3">
+                                <%= f.text_field :name, class: "form-control shadow-none", id: "newProjectName", placeholder: "Ej: Implementación 2026", required: true %>
+                                <label for="newProjectName">Nombre del Proyecto</label>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="form-floating mb-3">
+                                <%# FILTRO: Solo usuarios que pertenecen a esta empresa %>
+                                <%= f.collection_select :responsible_id, 
+                                    User.where(client_id: @client.id).order(:first_name), 
+                                    :id, :full_name, 
+                                    { prompt: "" }, 
+                                    { class: "form-select shadow-none", id: "newProjectResponsible", required: true } %>
+                                <label for="newProjectResponsible">Responsable del Proyecto</label>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <%= f.label :start_date, "Fecha de Inicio", class: "form-label" %>
-                            <%= f.date_field :start_date, class: "form-control", required: true %>
+                    <%# Fila 2: Fechas %>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <%= f.date_field :start_date, class: "form-control shadow-none", id: "newStartDate", required: true %>
+                                <label for="newStartDate">Fecha de Inicio</label>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <%= f.label :end_date, "Fecha Estimada Fin", class: "form-label" %>
-                            <%= f.date_field :end_date, class: "form-control", required: true %>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <%= f.date_field :end_date, class: "form-control shadow-none", id: "newEndDate", required: true %>
+                                <label for="newEndDate">Fecha Estimada de Fin</label>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <%= f.label :budget, "Presupuesto ($)", class: "form-label" %>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <%= f.number_field :budget, class: "form-control", placeholder: "0.00" %>
+                    <%# Fila 3: Presupuesto y Estatus (Informativo) %>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <%= f.number_field :budget, class: "form-control shadow-none", id: "newBudget", step: "0.01", placeholder: "0.00" %>
+                                <label for="newBudget">Presupuesto Inicial ($)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                             <div class="form-floating mb-3">
+                                <input type="text" class="form-control bg-light text-muted" value="EN ESPERA" readonly disabled>
+                                <label>Estatus Inicial</label>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <%= f.label :details, "Descripción / Objetivos", class: "form-label" %>
-                        <%= f.text_area :details, rows: 4, class: "form-control" %>
+                    <%# Fila 4: Detalles %>
+                    <div class="form-floating mb-4">
+                        <%= f.text_area :details, class: "form-control shadow-none", id: "newDetails", style: "height: 120px", placeholder: "Objetivos..." %>
+                        <label for="newDetails">Descripción y Objetivos</label>
                     </div>
 
-                    <div class="mb-4">
+                    <%# Sección de Metodología %>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-3 mb-4 border border-primary border-opacity-25">
                         <div class="form-check form-switch">
                             <%= f.check_box :include_template, 
                                 class: "form-check-input", 
@@ -60,16 +109,16 @@
                                 checked: true, 
                                 id: "includeTemplateSwitch" %>
                                 
-                            <label class="form-check-label" for="includeTemplateSwitch">
-                                <strong>Incluir etapas predeterminadas</strong>
-                                <p class="text-muted font-13 mb-0">Si se desactiva, el proyecto iniciará vacío (sin etapas).</p>
+                            <label class="form-check-label ms-2" for="includeTemplateSwitch">
+                                <strong class="text-primary">Cargar Metodología Consilium</strong>
+                                <p class="text-muted font-12 mb-0">Al activar, se generarán automáticamente las 6 etapas y actividades estándar.</p>
                             </label>
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-end">
-                        <%= link_to "Cancelar", client_path(@client), class: "btn btn-light me-2" %>
-                        <%= f.submit "Crear Proyecto y Cargar Metodología", class: "btn btn-primary" %>
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <%= link_to "Cancelar", client_path(@client), class: "btn btn-light px-4" %>
+                        <%= f.submit "Crear Proyecto y Cargar Etapas", class: "btn btn-primary px-4 shadow" %>
                     </div>
                 <% end %>
 

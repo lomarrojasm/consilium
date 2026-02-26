@@ -3,11 +3,20 @@ class Activity < ApplicationRecord
   belongs_to :stage
   belongs_to :user, optional: true # optional por si permites que el sistema complete tareas automáticamente
 
+
+  # El responsable de la ejecución
+  belongs_to :responsible, class_name: "User", optional: true
+
+  # Esta línea soluciona el error de forma elegante
+  delegate :project, to: :stage, allow_nil: true
+
+
   # Habilitar adjunto
   has_one_attached :evidence
   
   # Validaciones
   validates :name, presence: true
+
   
   # Opcional: Validar que el área sea una de las permitidas
   validates :area, inclusion: { 

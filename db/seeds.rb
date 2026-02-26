@@ -1,269 +1,199 @@
 # ==============================================================================
-# SEED DE DATOS - CONSILIUM
-# Genera un entorno de pruebas completo con historial cronológico.
+# SEED DE DATOS - CONSILIUM PRO (ENTORNO DE PRUEBAS COMPLETO)
 # ==============================================================================
 
 puts "🧹 Limpiando base de datos..."
+# El orden es vital para no romper llaves foráneas
+[TimelineLog, Message, Conversation, ProjectComment, Activity, Stage, ProjectMember, Project, User, Client].each do |model|
+  model.delete_all
+end
 
-# El orden es IMPORTANTE para evitar errores de llave foránea (Foreign Keys)
-TimelineLog.delete_all
-Message.delete_all
-Conversation.delete_all
-ProjectComment.delete_all # <--- AGREGADO: Limpiar comentarios
-Activity.delete_all
-Stage.delete_all
-ProjectMember.delete_all
-Project.delete_all
-User.delete_all
-Client.delete_all
+puts "🏗️ Creando Consultores de Consilium (Admins)..."
 
-puts "🏗 Creando estructura base..."
-
-# 1. Crear el Cliente
-empresa = Client.create!(
-  company_name: "Tech Solutions Mexico S.A. de C.V.",
-  rfc: "TSM230101XYZ",
-  industry: "Tecnología",
-  country: "México",
-  tax_city: "Guadalajara"
-)
-
-# 2. Crear Usuarios
-# Admin (El consultor principal)
 admin = User.create!(
-  first_name: "Carlos",
-  last_name: "Consultor",
-  email: "admin@consilium.com",
-  password: "password123",
-  password_confirmation: "password123",
-  role: 1, # Admin
-  active: true,
-  job_title: "Socio Director"
+  first_name: "Omar", last_name: "Rojas",
+  email: "admin@consilium.com", password: "password123",
+  role: 1, active: true, job_title: "Socio Director"
 )
 
-# Usuario Cliente (El contacto principal)
-cliente_admin = User.create!(
-  first_name: "Luis",
-  last_name: "Mercado",
-  email: "user@cliente.com",
-  password: "password123",
-  password_confirmation: "password123",
-  role: 0, # User
-  client: empresa,
-  active: true,
-  job_title: "Gerente General"
+admin2 = User.create!(
+  first_name: "Daniel", last_name: "Burgos",
+  email: "admin2@consilium.com", password: "password123",
+  role: 1, active: true, job_title: "Socio Director"
 )
 
-# Otro Usuario Cliente (Para probar asignaciones de equipo)
-cliente_staff = User.create!(
-  first_name: "Ana",
-  last_name: "López",
-  email: "ana@cliente.com",
-  password: "password123",
-  password_confirmation: "password123",
-  role: 0,
-  client: empresa,
-  active: true,
-  job_title: "Contadora"
+consultor_senior = User.create!(
+  first_name: "Beatriz", last_name: "Estratega",
+  email: "beatriz@consilium.com", password: "password123",
+  role: 1, active: true, job_title: "Consultor Senior"
 )
 
-puts "📚 Generando Historia (Proyectos y Actividades)..."
+# --- DETECCIÓN AUTOMÁTICA DE STATUS (Para evitar ArgumentError) ---
+# Esto toma las llaves que tú tengas definidas en Project.status
+STATUS_KEYS = Project.statuses.keys
+STATUS_IN_PROGRESS = STATUS_KEYS.include?("in_progress") ? "in_progress" : STATUS_KEYS[1] || STATUS_KEYS[0]
+STATUS_WAITING = STATUS_KEYS.include?("waiting") ? "waiting" : STATUS_KEYS[0]
 
-# --- PROYECTO 1: Hace 2 meses (Ya avanzado) ---
-fecha_inicio_p1 = 2.months.ago
+# --- DATOS DE EMPRESAS ---
+empresas_data = [
+  { name: "Tech Solutions Mexico", rfc: "TSM230101XYZ", ind: "Tecnología", city: "Guadalajara" },
+  { name: "Alimentos del Valle", rfc: "ADV880512ABC", ind: "Manufactura", city: "Querétaro" },
+  { name: "Constructora Delta", rfc: "CDL950921HJK", ind: "Construcción", city: "Monterrey" },
+  { name: "Inmobiliaria Horizonte", rfc: "IHO100203LMN", ind: "Bienes Raíces", city: "CDMX" }
+]
 
-p1 = Project.create!(
-  name: "Implementación ISO 9001",
-  status: 1,
-  start_date: fecha_inicio_p1,
-  end_date: 1.month.from_now,
-  budget: 120000.00,
-  client: empresa,
-  user: admin, # Creado por admin
-  created_at: fecha_inicio_p1,
-  updated_at: fecha_inicio_p1
-)
+puts "🏢 Generando 4 Empresas y sus ecosistemas..."
 
-# Comentario en Proyecto 1 (Hace 1 mes)
-ProjectComment.create!(
-  project: p1,
-  user: cliente_admin,
-  body: "Adjunto la revisión preliminar del manual de calidad para su visto bueno.",
-  created_at: 1.month.ago,
-  updated_at: 1.month.ago
-)
+empresas_data.each_with_index do |data, i|
+  # 1. Crear Cliente
+  cliente = Client.create!(
+    company_name: data[:name],
+    trade_name: "#{data[:name]} Comercial",
+    rfc: data[:rfc],
+    industry: data[:ind],
+    country: "México",
+    tax_city: data[:city],
+    tax_street: "Av. Reforma #{100 + i}",
+    operation_year: 5 + (i * 2),
+    total_employee: 20 * (i + 1),
+    web_page: "www.#{data[:name].parameterize}.com",
+    main_issue: "Optimización de procesos operativos en el área de #{data[:ind]}.",
+    project_objective: "Implementar la metodología Consilium para escalar la operación."
+  )
 
-# Etapas P1
-s1 = p1.stages.create!(name: "Diagnóstico Inicial", position: 1, status: 1)
-s2 = p1.stages.create!(name: "Documentación", position: 2, status: 1)
+  # 2. Crear Usuarios de la empresa
+  gerente = User.create!(
+    first_name: "Gerente", last_name: data[:name].split.first,
+    email: "gerente@#{data[:name].parameterize}.com", password: "password123",
+    role: 0, client: cliente, active: true, job_title: "Director General"
+  )
 
-# Actividades P1
-Activity.create!(
-  name: "Revisión de procesos actuales",
-  completed: true,
-  stage: s1,
-  user: cliente_admin,
-  description: "Se levantó el mapa de procesos del área de ventas.",
-  created_at: fecha_inicio_p1 + 2.days,
-  updated_at: fecha_inicio_p1 + 5.days
-)
+  staff = User.create!(
+    first_name: "Staff", last_name: "Operativo",
+    email: "staff@#{data[:name].parameterize}.com", password: "password123",
+    role: 0, client: cliente, active: true, job_title: "Coordinador"
+  )
 
-Activity.create!(
-  name: "Capacitación al personal",
-  completed: true,
-  stage: s1,
-  user: cliente_staff,
-  description: "Sesión de 4 horas con el equipo operativo.",
-  created_at: fecha_inicio_p1 + 1.week,
-  updated_at: fecha_inicio_p1 + 1.week
-)
+  # 3. Proyecto con Metodología Consilium (Solo para la primera empresa)
+  if i == 0
+    puts "  -> Cargando Metodología Consilium para #{data[:name]}..."
+    p_metodologia = Project.create!(
+      name: "Transformación Organizacional 2026",
+      status: STATUS_IN_PROGRESS,
+      start_date: 2.months.ago,
+      end_date: 4.months.from_now,
+      budget: 250000,
+      client: cliente,
+      user: admin,
+      responsible: gerente,
+      details: "Proyecto piloto utilizando las 6 etapas de la metodología Consilium."
+    )
+    
+    # CARGAR ETAPAS REALES DESDE TU SERVICE
+    ConsiliumTemplateService.generate_structure(p_metodologia, admin)
+    
+    # Marcar algunas tareas como completadas para ver progreso
+    p_metodologia.stages.first.activities.limit(8).update_all(completed: true, completed_day: 10)
+  end
 
-# Asignar miembro al equipo
-pm1 = ProjectMember.create!(
-  project: p1,
-  user: cliente_staff,
-  added_by: admin,
-  created_at: 1.month.ago,
-  updated_at: 1.month.ago
-)
+  # 4. Proyecto Estándar para todas las empresas
+  puts "  -> Creando proyecto estándar para #{data[:name]}..."
+  p_std = Project.create!(
+    name: "Auditoría de Procesos #{data[:ind]}",
+    status: i.even? ? STATUS_IN_PROGRESS : STATUS_WAITING,
+    start_date: 2.weeks.ago,
+    end_date: 3.months.from_now,
+    budget: 95000,
+    client: cliente,
+    user: consultor_senior,
+    responsible: gerente,
+    details: "Análisis profundo de la cadena de valor de #{data[:name]}."
+  )
 
-# --- PROYECTO 2: Hace 1 semana (Reciente) ---
-fecha_inicio_p2 = 1.week.ago
+  # Etapa y Actividades manuales
+  fase1 = p_std.stages.create!(name: "Levantamiento de Información", position: 1)
+  
+  fase1.activities.create!(
+    name: "Entrevista con responsables de área",
+    completed: true,
+    user: admin,
+    responsible: gerente,
+    month: 1, week: 1,
+    activity_cost: 2500,
+    description: "Sesión inicial para entender el flujo de trabajo."
+  )
 
-p2 = Project.create!(
-  name: "Auditoría Fiscal 2026",
-  status: 1,
-  start_date: fecha_inicio_p2,
-  end_date: 2.months.from_now,
-  budget: 50000.00,
-  client: empresa,
-  user: admin,
-  created_at: fecha_inicio_p2,
-  updated_at: fecha_inicio_p2
-)
+  fase1.activities.create!(
+    name: "Recopilación de manuales existentes",
+    completed: false,
+    user: gerente,
+    responsible: staff,
+    month: 1, week: 2,
+    document_ref: "REF-PRO-001"
+  )
 
-# Comentario en Proyecto 2 (Hoy)
-ProjectComment.create!(
-  project: p2,
-  user: admin,
-  body: "URGENTE: Necesitamos los estados de cuenta bancarios antes del viernes.",
-  created_at: 2.hours.ago,
-  updated_at: 2.hours.ago
-)
+  # 5. Equipo del Proyecto
+  ProjectMember.create!(project: p_std, user: staff, role: "analista", added_by: admin)
 
-s_p2 = p2.stages.create!(name: "Requerimientos", position: 1)
+  # 6. Bitácora y Comunicación
+  ProjectComment.create!(
+    project: p_std, user: gerente,
+    body: "Ya tenemos listos los accesos para el consultor senior.",
+    created_at: 3.days.ago
+  )
 
-Activity.create!(
-  name: "Entrega de Balanza de Comprobación",
-  completed: true,
-  stage: s_p2,
-  user: cliente_admin,
-  created_at: 3.days.ago,
-  updated_at: 2.days.ago
-)
-
-puts "💬 Generando Chats..."
-
-conv = Conversation.create!(
-  client: empresa,
-  sender: admin,
-  recipient: cliente_admin
-)
-
-Message.create!(
-  conversation: conv,
-  user: admin,
-  body: "Hola Luis, bienvenidos a la plataforma Consilium.",
-  messaged_at: 2.months.ago,
-  created_at: 2.months.ago
-)
-
-Message.create!(
-  conversation: conv,
-  user: cliente_admin,
-  body: "Gracias Carlos, ya subimos la información del primer proyecto.",
-  messaged_at: 1.month.ago,
-  created_at: 1.month.ago
-)
-
-Message.create!(
-  conversation: conv,
-  user: admin,
-  body: "Perfecto, revisaré la auditoría esta semana.",
-  messaged_at: 1.hour.ago,
-  created_at: 1.hour.ago
-)
+  conv = Conversation.create!(client: cliente, sender: admin, recipient: gerente)
+  Message.create!(
+    conversation: conv, user: admin, 
+    body: "Hola, ¿podrían confirmar la reunión de seguimiento?",
+    created_at: 1.day.ago
+  )
+end
 
 # ==============================================================================
-# GENERACIÓN FORZADA DE TIMELINE LOGS (BACKFILL)
+# SINCRONIZACIÓN DE LÍNEA DE TIEMPO (CON SNAPSHOTS)
 # ==============================================================================
-puts "⏱ Sincronizando Timeline Logs con fechas históricas..."
+puts "⏱️ Sincronizando Timeline con Snapshots (Auditoría permanente)..."
 
-TimelineLog.delete_all # Borramos logs automáticos para regenerarlos con fechas correctas
-
-# 1. Logs de Proyectos
+# Logs de Proyectos
 Project.all.each do |p|
   TimelineLog.create!(
-    client: p.client,
-    user: p.user,
-    resource: p,
+    client: p.client, user: p.user, resource: p,
+    resource_name: p.name, # Snapshot para evitar errores si se borra
     action_type: 'create',
-    details: "Creó el proyecto: #{p.name}",
+    details: "Se inició el proyecto: #{p.name}",
     happened_at: p.created_at
   )
 end
 
-# 2. Logs de Actividades
+# Logs de Actividades
 Activity.where(completed: true).each do |a|
   TimelineLog.create!(
-    client: a.stage.project.client,
-    user: a.user,
-    resource: a,
+    client: a.stage.project.client, user: a.user, resource: a,
+    resource_name: a.name, # Snapshot
     action_type: 'update',
-    details: "Completó la actividad: #{a.name}",
+    details: "La tarea '#{a.name}' fue marcada como completada.",
     happened_at: a.updated_at
   )
 end
 
-# 3. Logs de Mensajes
-Message.all.each do |m|
-  TimelineLog.create!(
-    client: m.conversation.client,
-    user: m.user,
-    resource: m,
-    action_type: 'create',
-    details: "Mensaje: #{m.body.truncate(30)}",
-    happened_at: m.created_at
-  )
-end
-
-# 4. Logs de Comentarios de Proyecto (NUEVO)
+# Logs de Comentarios
 ProjectComment.all.each do |c|
   TimelineLog.create!(
-    client: c.project.client,
-    user: c.user,
-    resource: c,
+    client: c.project.client, user: c.user, resource: c,
+    resource_name: "Comentario: #{c.project.name}",
     action_type: 'create',
-    details: "Comentó en #{c.project.name}: #{c.body.truncate(30)}",
+    details: c.body.truncate(60),
     happened_at: c.created_at
   )
 end
 
-# 5. Logs de Miembros
-ProjectMember.all.each do |pm|
-  TimelineLog.create!(
-    client: pm.project.client,
-    user: pm.added_by,
-    resource: pm,
-    action_type: 'create',
-    details: "Agregó a #{pm.user.first_name} al equipo",
-    happened_at: pm.created_at
-  )
-end
-
-puts "-------------------------------------------------------"
-puts "✅ DB RESET COMPLETADO CON COMENTARIOS"
-puts "-------------------------------------------------------"
-puts "Admin: admin@consilium.com / password123"
-puts "User:  user@cliente.com / password123"
-puts "-------------------------------------------------------"
+puts ""
+puts "======================================================="
+puts "🚀 RESET COMPLETO Y EXITOSO"
+puts "======================================================="
+puts "  ADMIN:    admin@consilium.com / password123"
+puts "  EMPRESA 1 (FULL): gerente@tech-solutions-mexico.com"
+puts "  EMPRESA 2: gerente@alimentos-del-valle.com"
+puts "  Llaves de Status detectadas: #{STATUS_KEYS.join(', ')}"
+puts "======================================================="

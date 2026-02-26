@@ -3,6 +3,8 @@ class Project < ApplicationRecord
   belongs_to :client
 
   belongs_to :user, optional: true
+
+  belongs_to :responsible, class_name: "User", optional: true
   
   has_many :stages, -> { order(position: :asc) }, dependent: :destroy
   has_many :activities, through: :stages

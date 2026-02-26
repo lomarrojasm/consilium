@@ -1,27 +1,37 @@
+<%# app/views/projects/edit.html.erb %>
 <div class="row">
     <div class="col-12">
         <div class="page-title-box">
             <div class="page-title-right">
-                <ol class="breadcrumb m-0">
+                <ol class="breadcrumb m-0 font-12">
                     <li class="breadcrumb-item"><%= link_to "Cliente", client_path(@client) %></li>
                     <li class="breadcrumb-item"><%= link_to @project.name, client_project_path(@client, @project) %></li>
-                    <li class="breadcrumb-item active">Editar</li>
+                    <li class="breadcrumb-item active">Ajustes</li>
                 </ol>
             </div>
-            <h4 class="page-title">Editar Proyecto</h4>
+            <h4 class="page-title">Configuración del Proyecto</h4>
         </div>
     </div>
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-body">
-                
+    <div class="col-lg-9">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="avatar-sm bg-soft-primary rounded p-1 me-2">
+                        <i class="ri-settings-3-line font-24 text-primary"></i>
+                    </div>
+                    <div>
+                        <h4 class="header-title mb-0">Editar Información General</h4>
+                        <p class="text-muted font-13 mb-0">Actualiza los parámetros principales del proyecto para <%= @client.company_name %></p>
+                    </div>
+                </div>
+
                 <%= form_with(model: [@client, @project], local: true, class: "needs-validation") do |f| %>
                     
                     <% if @project.errors.any? %>
-                        <div class="alert alert-danger">
+                        <div class="alert alert-danger border-0 mb-4 shadow-sm">
                             <ul class="mb-0">
                                 <% @project.errors.full_messages.each do |msg| %>
                                     <li><%= msg %></li>
@@ -30,61 +40,70 @@
                         </div>
                     <% end %>
 
-                    <div class="mb-3">
-                        <%= f.label :name, "Nombre del Proyecto", class: "form-label" %>
-                        <%= f.text_field :name, class: "form-control", required: true %>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <%= f.label :start_date, "Fecha de Inicio", class: "form-label" %>
-                            <%= f.date_field :start_date, class: "form-control", required: true %>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <%= f.label :end_date, "Fecha Estimada Fin", class: "form-label" %>
-                            <%= f.date_field :end_date, class: "form-control", required: true %>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <%= f.label :budget, "Presupuesto ($)", class: "form-label" %>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <%= f.number_field :budget, class: "form-control", step: "0.01" %>
+                    <%# Fila 1: Nombre y Responsable (Filtrado por empresa) %>
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <div class="form-floating mb-3">
+                                <%= f.text_field :name, class: "form-control shadow-none", id: "editName", placeholder: "Nombre", required: true %>
+                                <label for="editName">Nombre del Proyecto</label>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <%= f.label :status, "Estatus Actual", class: "form-label" %>
-                            <%= f.select :status, 
-                                Project.statuses.keys.map { |s| [s.humanize.upcase, s] }, 
-                                {}, 
-                                { class: "form-select" } %>
+                        <div class="col-md-5">
+                            <div class="form-floating mb-3">
+                                <%# FILTRO: Solo usuarios que pertenecen al client_id del proyecto %>
+                                <%= f.collection_select :responsible_id, 
+                                    User.where(client_id: @client.id).order(:first_name), 
+                                    :id, :full_name, 
+                                    { prompt: "" }, 
+                                    { class: "form-select shadow-none", id: "editResponsible", required: true } %>
+                                <label for="editResponsible">Líder / Responsable</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <%# Fila 2: Fechas %>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <%= f.date_field :start_date, class: "form-control shadow-none", id: "editStart", required: true, placeholder: "Inicio" %>
+                                <label for="editStart">Fecha de Inicio</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <%= f.date_field :end_date, class: "form-control shadow-none", id: "editEnd", required: true, placeholder: "Fin" %>
+                                <label for="editEnd">Fecha Estimada de Cierre</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <%# Fila 3: Presupuesto y Estatus %>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <%= f.number_field :budget, class: "form-control shadow-none", id: "editBudget", step: "0.01", placeholder: "0.00" %>
+                                <label for="editBudget">Presupuesto ($)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <%= f.select :status, Project.statuses.keys.map { |s| [s.humanize.upcase, s] }, {}, { class: "form-select shadow-none", id: "editStatus" } %>
+                                <label for="editStatus">Estatus Operativo</label>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <%= f.label :details, "Descripción / Objetivos", class: "form-label" %>
-                        <%= f.text_area :details, rows: 5, class: "form-control" %>
+                    <%# Fila 4: Detalles / Descripción %>
+                    <div class="form-floating mb-4">
+                        <%= f.text_area :details, class: "form-control shadow-none", id: "editDetails", style: "height: 150px", placeholder: "Detalles" %>
+                        <label for="editDetails">Descripción y Objetivos Estratégicos</label>
                     </div>
 
-                    <div class="mb-4">
-                        <%= f.label :files, "Adjuntar archivos adicionales", class: "form-label" %>
-                        <%= f.file_field :files, multiple: true, class: "form-control" %>
-                        <div class="form-text text-muted">
-                            Nota: Subir archivos aquí no borrará los existentes. Para borrar archivos, hazlo desde la vista del proyecto.
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center mt-4">
-                        <%= link_to "Cancelar", client_project_path(@client, @project), class: "btn btn-light" %>
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-3 border-top">
+                        <%= link_to "Volver al Proyecto", client_project_path(@client, @project), class: "btn btn-light px-4" %>
                         
-                        <div>
-                            <%= link_to "Eliminar Proyecto", client_project_path(@client, @project), 
-                                data: { turbo_method: :delete, turbo_confirm: "¿Estás seguro? Esto borrará todas las etapas y actividades." }, 
-                                class: "btn btn-outline-danger me-2" %>
-                            
-                            <%= f.submit "Guardar Cambios", class: "btn btn-primary" %>
+                        <div class="d-flex gap-2">
+                            <%= f.submit "Actualizar Proyecto", class: "btn btn-primary px-4 shadow" %>
                         </div>
                     </div>
                 <% end %>

@@ -1,8 +1,9 @@
+<%# app/views/activities/_form.html.erb %>
 <%= form_with(model: [@client, @project, @activity], local: true, class: "needs-validation") do |f| %>
   
   <% if @activity.errors.any? %>
     <div class="alert alert-danger">
-      <ul>
+      <ul class="mb-0">
         <% @activity.errors.full_messages.each do |msg| %>
           <li><%= msg %></li>
         <% end %>
@@ -11,144 +12,170 @@
   <% end %>
 
   <div class="row">
+    <%# --- COLUMNA IZQUIERDA: INFORMACIÓN GENERAL --- %>
     <div class="col-lg-4">
-      <div class="card">
+      <div class="card shadow-sm">
         <div class="card-body">
-          <h5 class="card-title mb-3">Información General</h5>
+          <h5 class="card-title mb-3 text-primary"><i class="ri-information-line me-1"></i> Información General</h5>
 
-          <div class="mb-3">
-            <%= f.label :name, "Nombre de la Actividad", class: "form-label" %>
-            <%= f.text_area :name, rows: 3, class: "form-control", required: true %>
+          <%# Etapa del Proyecto %>
+          <div class="form-floating mb-3">
+             <%= f.collection_select :stage_id, @project.stages, :id, :name, {}, { class: "form-select" } %>
+             <%= f.label :stage_id, "Etapa del Proyecto" %>
           </div>
 
-          <div class="mb-3">
-            <%= f.label :document_ref, "Documento / Entregable (Ref)", class: "form-label" %>
-            <%= f.text_field :document_ref, class: "form-control" %>
+          <%# Nombre de la Actividad %>
+          <div class="form-floating mb-3">
+            <%= f.text_area :name, class: "form-control", placeholder: "Nombre", style: "height: 100px", required: true %>
+            <%= f.label :name, "Nombre de la Actividad" %>
           </div>
 
-          <div class="mb-3">
-            <%= f.label :area, "Área Responsable", class: "form-label" %>
-            <%= f.select :area, 
-                ['Integral', 'Dirección', 'Finanzas', 'Procesos', 'Comercial', 'RH'], 
-                { include_blank: 'Seleccionar...' }, 
-                class: "form-select" %>
+          <%# Responsable (Nuevo campo filtrado por miembros del proyecto) %>
+          <div class="form-floating mb-3">
+            <%= f.collection_select :responsible_id, @project.users.order(:first_name), :id, :full_name, { prompt: "" }, { class: "form-select", required: true } %>
+            <%= f.label :responsible_id, "Responsable de Ejecución" %>
           </div>
 
-          <div class="row">
+          <%# Documento / Entregable %>
+          <div class="form-floating mb-3">
+            <%= f.text_field :document_ref, class: "form-control", placeholder: "Referencia" %>
+            <%= f.label :document_ref, "Documento / Entregable (Ref)" %>
+          </div>
+
+          <%# Área Responsable %>
+          <div class="form-floating mb-3">
+            <%= f.select :area, ['Integral', 'Dirección', 'Finanzas', 'Procesos', 'Comercial', 'RH'], { include_blank: '' }, { class: "form-select" } %>
+            <%= f.label :area, "Área Interna" %>
+          </div>
+
+          <%# Tiempo: Mes, Semana, Día %>
+          <div class="row g-2">
             <div class="col-4">
-              <%= f.label :month, "Mes", class: "form-label" %>
-              <%= f.number_field :month, class: "form-control" %>
+              <div class="form-floating mb-3">
+                <%= f.number_field :month, class: "form-control", placeholder: "Mes" %>
+                <%= f.label :month, "Mes" %>
+              </div>
             </div>
             <div class="col-4">
-              <%= f.label :week, "Semana", class: "form-label" %>
-              <%= f.number_field :week, class: "form-control" %>
+              <div class="form-floating mb-3">
+                <%= f.number_field :week, class: "form-control", placeholder: "Semana" %>
+                <%= f.label :week, "Semana" %>
+              </div>
             </div>
             <div class="col-4">
-              <%= f.label :completed_day, "Día Fin", class: "form-label" %>
-              <%= f.number_field :completed_day, class: "form-control", placeholder: "1-31" %>
+              <div class="form-floating mb-1">
+                <%= f.number_field :completed_day, class: "form-control", placeholder: "Día" %>
+                <%= f.label :completed_day, "Día Fin" %>
+              </div>
             </div>
-          </div>
-          
-          <div class="mt-3">
-             <%= f.label :stage_id, "Etapa del Proyecto", class: "form-label" %>
-             <%= f.collection_select :stage_id, @project.stages, :id, :name, {}, class: "form-select" %>
           </div>
 
         </div>
       </div>
     </div>
 
+    <%# --- COLUMNA DERECHA: PRESUPUESTO --- %>
     <div class="col-lg-8">
-      <div class="card">
+      <div class="card shadow-sm">
         <div class="card-body">
-          <h5 class="card-title mb-3">Presupuesto y Esfuerzo</h5>
+          <h5 class="card-title mb-3 text-primary"><i class="ri-money-dollar-circle-line me-1"></i> Presupuesto y Esfuerzo</h5>
           
           <div class="table-responsive">
-            <table class="table table-bordered table-centered mb-0">
+            <table class="table table-centered table-nowrap mb-0">
               <thead class="table-light">
                 <tr>
                   <th>Rol</th>
-                  <th style="width: 25%;">Horas</th>
-                  <th style="width: 25%;">Tarifa ($/hr)</th>
+                  <th style="width: 20%;">Horas</th>
+                  <th style="width: 30%;">Tarifa ($/hr)</th>
                   <th style="width: 30%;">Costo Total ($)</th>
                 </tr>
               </thead>
               <tbody>
+                <%# Leader Row %>
                 <tr>
-                  <td class="fw-bold">Líder</td>
+                  <td class="fw-bold text-dark">Líder</td>
                   <td>
-                    <%= f.number_field :leader_hours, step: 0.5, class: "form-control calc-input", data: { role: 'leader', type: 'hours' } %>
-                  </td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <%= f.number_field :leader_rate, step: 0.01, class: "form-control calc-input", data: { role: 'leader', type: 'rate' } %>
+                    <div class="form-floating">
+                      <%= f.number_field :leader_hours, step: 0.5, class: "form-control calc-input", data: { role: 'leader', type: 'hours' }, placeholder: "0" %>
+                      <%= f.label :leader_hours, "Hrs" %>
                     </div>
                   </td>
                   <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <%= f.number_field :leader_cost, step: 0.01, class: "form-control bg-light", readonly: true, id: "total_leader" %>
+                    <div class="form-floating">
+                      <%= f.number_field :leader_rate, step: 0.01, class: "form-control calc-input", data: { role: 'leader', type: 'rate' }, placeholder: "0" %>
+                      <%= f.label :leader_rate, "Tarifa" %>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="form-floating">
+                      <%= f.number_field :leader_cost, step: 0.01, class: "form-control bg-light", readonly: true, id: "total_leader", placeholder: "Total" %>
+                      <%= f.label :leader_cost, "Subtotal" %>
                     </div>
                   </td>
                 </tr>
 
+                <%# Senior Row %>
                 <tr>
-                  <td class="fw-bold">Senior</td>
+                  <td class="fw-bold text-dark">Senior</td>
                   <td>
-                    <%= f.number_field :senior_hours, step: 0.5, class: "form-control calc-input", data: { role: 'senior', type: 'hours' } %>
-                  </td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <%= f.number_field :senior_rate, step: 0.01, class: "form-control calc-input", data: { role: 'senior', type: 'rate' } %>
+                    <div class="form-floating">
+                      <%= f.number_field :senior_hours, step: 0.5, class: "form-control calc-input", data: { role: 'senior', type: 'hours' }, placeholder: "0" %>
+                      <%= f.label :senior_hours, "Hrs" %>
                     </div>
                   </td>
                   <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <%= f.number_field :senior_cost, step: 0.01, class: "form-control bg-light", readonly: true, id: "total_senior" %>
+                    <div class="form-floating">
+                      <%= f.number_field :senior_rate, step: 0.01, class: "form-control calc-input", data: { role: 'senior', type: 'rate' }, placeholder: "0" %>
+                      <%= f.label :senior_rate, "Tarifa" %>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="form-floating">
+                      <%= f.number_field :senior_cost, step: 0.01, class: "form-control bg-light", readonly: true, id: "total_senior", placeholder: "Total" %>
+                      <%= f.label :senior_cost, "Subtotal" %>
                     </div>
                   </td>
                 </tr>
 
+                <%# Analyst Row %>
                 <tr>
-                  <td class="fw-bold">Analista</td>
+                  <td class="fw-bold text-dark">Analista</td>
                   <td>
-                    <%= f.number_field :analyst_hours, step: 0.5, class: "form-control calc-input", data: { role: 'analyst', type: 'hours' } %>
-                  </td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <%= f.number_field :analyst_rate, step: 0.01, class: "form-control calc-input", data: { role: 'analyst', type: 'rate' } %>
+                    <div class="form-floating">
+                      <%= f.number_field :analyst_hours, step: 0.5, class: "form-control calc-input", data: { role: 'analyst', type: 'hours' }, placeholder: "0" %>
+                      <%= f.label :analyst_hours, "Hrs" %>
                     </div>
                   </td>
                   <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <%= f.number_field :analyst_cost, step: 0.01, class: "form-control bg-light", readonly: true, id: "total_analyst" %>
+                    <div class="form-floating">
+                      <%= f.number_field :analyst_rate, step: 0.01, class: "form-control calc-input", data: { role: 'analyst', type: 'rate' }, placeholder: "0" %>
+                      <%= f.label :analyst_rate, "Tarifa" %>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="form-floating">
+                      <%= f.number_field :analyst_cost, step: 0.01, class: "form-control bg-light", readonly: true, id: "total_analyst", placeholder: "Total" %>
+                      <%= f.label :analyst_cost, "Subtotal" %>
                     </div>
                   </td>
                 </tr>
                 
                 <tr class="bg-light-subtle">
-                    <td colspan="3" class="text-end fw-bold">Costo Total Actividad:</td>
-                    <td>
-                        <h4 class="my-0 text-primary" id="grand_total">
+                    <td colspan="3" class="text-end fw-bold align-middle">Costo Total Actividad:</td>
+                    <td class="align-middle">
+                        <h3 class="my-0 text-success" id="grand_total">
                             <%= number_to_currency(@activity.activity_cost || 0) %>
-                        </h4>
+                        </h3>
                     </td>
                 </tr>
-
               </tbody>
             </table>
           </div>
           
-          <div class="alert alert-info mt-3 mb-0">
-            <i class="mdi mdi-information-outline me-1"></i> 
-            Los costos se calculan automáticamente: <strong>Horas × Tarifa = Costo</strong>.
+          <div class="alert alert-soft-info mt-3 mb-0 border-0">
+            <i class="ri-information-fill me-1"></i> 
+            El costo total se calcula automáticamente multiplicando las horas por la tarifa de cada rol.
           </div>
-
         </div>
       </div>
     </div>
@@ -156,8 +183,8 @@
 
   <div class="row mt-3">
     <div class="col-12 text-end">
-        <%= link_to "Cancelar", client_project_path(@client, @project), class: "btn btn-light me-2" %>
-        <%= f.submit "Guardar Cambios", class: "btn btn-success px-4" %>
+        <%= link_to "Cancelar", client_project_path(@client, @project), class: "btn btn-outline-secondary me-2 px-4" %>
+        <%= f.submit @activity.new_record? ? "Crear Actividad" : "Guardar Cambios", class: "btn btn-primary px-4 shadow-sm" %>
     </div>
   </div>
 <% end %>
@@ -170,7 +197,6 @@
             let grandTotal = 0;
             
             ['leader', 'senior', 'analyst'].forEach(role => {
-                // Seleccionar inputs por data attributes
                 const hoursInput = document.querySelector(`input[data-role='${role}'][data-type='hours']`);
                 const rateInput = document.querySelector(`input[data-role='${role}'][data-type='rate']`);
                 const totalInput = document.getElementById(`total_${role}`);
@@ -179,16 +205,13 @@
                 const rate = parseFloat(rateInput.value) || 0;
                 const cost = hours * rate;
                 
-                // Actualizar input readonly
                 totalInput.value = cost.toFixed(2);
                 grandTotal += cost;
             });
             
-            // Actualizar total visual
             document.getElementById('grand_total').innerText = "$" + grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
 
-        // Escuchar cambios en todos los inputs relevantes
         inputs.forEach(input => {
             input.addEventListener('input', calculate);
         });

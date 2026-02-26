@@ -1,526 +1,406 @@
-<div class="row">
-    <% if current_user.role == "admin" %>
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="<%= root_path %>">Consilium</a></li>
-                        <li class="breadcrumb-item"><a href="<%= clients_path %>">Clientes</a></li> 
-                        <li class="breadcrumb-item"><a href="<%= client_path(@client) %>"><%= @client.company_name %></a></li>                  
-                        <li class="breadcrumb-item active">Proyecto </li>
-                        <li class="breadcrumb-item active"><%= @project.name %> </li>
-                    </ol>
-                </div>
-                <h4 class="page-title">Proyecto</h4>
-            </div>
-        </div>
-    <% else %>
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="<%= client_dashboard_path %>">Consilium</a></li>
-                        <li class="breadcrumb-item"><a href="<%= client_path(@client) %>"><%= @client.company_name %></a></li>                  
-                        <li class="breadcrumb-item active">Proyecto </li>
-                        <li class="breadcrumb-item active"><%= @project.name %> </li>
-                    </ol>
-                </div>
-                <h4 class="page-title">Proyecto</h4>
-            </div>
-        </div>
-
-    <% end %>
-</div>
-
-<%= link_to schedule_view_client_project_path(@client, @project), 
-    class: "btn btn-info", 
-    target: "_blank" do %> <i class="mdi mdi-table-large me-1"></i> Ver Cronograma Completo
-<% end %>
-
-
+<%# --- ENCABEZADO Y ACCIONES --- %>
 <div class="row">
     <div class="col-12">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="mt-0 text-white"><%= @project.name %></h4>
-                        <span class="badge bg-light text-primary"><%= @client.company_name %></span>
-                        <span class="badge bg-info ms-2"><%= @project.status&.humanize&.upcase || "SIN ESTATUS" %></span>
-                    </div>
-                    <div class="text-end">
-                        <h2 class="text-white my-0"><%= number_to_currency(@project.activities.sum(:activity_cost)) %></h2>
-                        <p class="mb-0">Costo Real Calculado</p>
-                    </div>
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <div class="d-flex gap-2">
+                    <%= link_to schedule_view_client_project_path(@client, @project), 
+                        class: "btn btn-info shadow-sm", target: "_blank" do %> 
+                        <i class="ri-calendar-todo-line me-1"></i> Ver Cronograma
+                    <% end %>
+                    
+                    <% if can_edit_project?(@project) %>
+                        <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#membersModal">
+                            <i class="ri-group-line me-1"></i> Equipo
+                        </button>
+                        <%= link_to edit_client_project_path(@client, @project), class: "btn btn-light shadow-sm" do %>
+                            <i class="ri-settings-3-line"></i>
+                        <% end %>
+                        <%# BOTÓN DE ELIMINAR CON SWEETALERT %>
+                        <button type="button" class="btn btn-outline-danger shadow-sm" onclick="confirmDeleteProject()">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                    <% end %>
                 </div>
+            </div>
+            <h4 class="page-title">Detalle del Proyecto</h4>
+            <ol class="breadcrumb m-0">
+                <li class="breadcrumb-item"><%= link_to "Consilium", current_user.role == "admin" ? root_path : client_dashboard_path %></li>
+                <li class="breadcrumb-item"><%= link_to "Clientes", clients_path if current_user.role == "admin" %></li> 
+                <li class="breadcrumb-item"><%= link_to @client.company_name, client_path(@client) %></li>                  
+                <li class="breadcrumb-item active text-truncate" style="max-width: 150px;"><%= @project.name %></li>
+            </ol>
+        </div>
+    </div>
+</div>
 
-                <div class="mt-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="font-13">Progreso General</span>
-                        <span class="font-13"><%= @project.progress_percentage %>%</span>
-                    </div>
-                    <div class="progress progress-sm">
-                        <div class="progress-bar bg-success js-project-progress-bar" 
-                            role="progressbar" 
-                            style="width: <%= @project.progress_percentage %>%;">
+<%# --- BANNER PRINCIPAL DE PROGRESO --- %>
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-primary text-white border-0 mb-3 shadow">
+            <div class="card-body">
+                <div class="row align-items-center text-center text-md-start">
+                    <div class="col-md-4">
+                        <h3 class="mt-0 text-white"><%= @project.name %></h3>
+                        <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2">
+                            <span class="badge bg-white text-primary px-2"><%= @client.company_name %></span>
+                            <span class="badge bg-info-lighten text-info border border-info"><%= @project.status&.humanize&.upcase || "SIN ESTATUS" %></span>
                         </div>
                     </div>
-                    <span class="fw-bold js-project-progress-text">
-                        <%= @project.progress_percentage %>%
-                    </span>
+                    <%# NUEVO: PRESUPUESTO ANTES DEL COSTO REAL %>
+                    <div class="col-md-2 mt-3 mt-md-0 border-start border-white border-opacity-25">
+                        <p class="mb-0 opacity-75 font-12 text-uppercase fw-bold">Presupuesto</p>
+                        <h3 class="text-white my-0"><%= number_to_currency(@project.budget || 0) %></h3>
+                    </div>
+                    <div class="col-md-2 mt-3 mt-md-0 border-start border-white border-opacity-25">
+                        <p class="mb-0 opacity-75 font-12 text-uppercase fw-bold">Costo Real</p>
+                        <h3 class="text-white my-0"><%= number_to_currency(@project.activities.sum(:activity_cost)) %></h3>
+                    </div>
+                    <div class="col-md-4 mt-3 mt-md-0 border-start border-white border-opacity-25">
+                        <p class="mb-1 opacity-75 font-12 text-uppercase fw-bold text-md-end">Progreso: <strong><%= @project.progress_percentage %>%</strong></p>
+                        <div class="progress progress-sm bg-white bg-opacity-25" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: <%= @project.progress_percentage %>%;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-
-
 <div class="row">
-    <div class="col-xl-7">
-        <% if can_edit_project?(@project) %>
-            <div class="card">
-                <div class="card-body">
-                    <%= form_with(model: [@client, @project], local: true, class: "row g-3 align-items-end") do |f| %>
-                        <div class="col-md-5">
-                            <%= f.label :start_date, "Fecha Inicio", class: "form-label fw-bold" %>
-                            <%= f.date_field :start_date, class: "form-control" %>
-                        </div>
-                        <div class="col-md-5">
-                            <%= f.label :end_date, "Fecha Fin", class: "form-label fw-bold" %>
-                            <%= f.date_field :end_date, class: "form-control" %>
-                        </div>
-                        <div class="col-md-2">
-                            <%= f.submit "Actualizar", class: "btn btn-light w-100" %>
-                        </div>
-                        <div class="col-md-7 text-end">
-                            <%= link_to edit_client_project_path(@client, @project), class: "btn btn-primary btn-sm fw-bold" do %>
-                                <i class="mdi mdi-pencil"></i> Editar Proyecto
+    <%# --- DESCRIPCIÓN --- %>
+    <div class="col-md-8">
+        <div class="card shadow-none border mb-3">
+            <div class="card-body" style="min-height: 160px;">
+                <h5 class="text-uppercase mt-0 mb-2 font-12 fw-bold text-muted">Descripción del Proyecto</h5>
+                <p class="text-muted mb-0"><%= @project.details.present? ? @project.details : "Sin descripción detallada." %></p>
+            </div>
+        </div>
+    </div>
+
+    <%# --- RESPONSABLE Y EQUIPO --- %>
+    <div class="col-md-4">
+        <div class="card shadow-none border mb-2">
+            <div class="card-body py-2">
+                <h5 class="text-uppercase mt-0 mb-2 font-11 fw-bold text-primary"><i class="ri-shield-user-line me-1"></i> Responsable del Proyecto</h5>
+                <div class="d-flex align-items-center">
+                    <% if @project.responsible.present? %>
+                        <div class="avatar-sm me-2">
+                            <% if @project.responsible.avatar.attached? %>
+                                <%= image_tag url_for(@project.responsible.avatar), class: "rounded-circle img-thumbnail", style: "width: 42px; height: 42px; object-fit: cover;" %>
+                            <% else %>
+                                <span class="avatar-title rounded-circle bg-primary text-white font-14 fw-bold">
+                                    <%= @project.responsible.first_name[0] %><%= @project.responsible.last_name[0] %>
+                                </span>
                             <% end %>
                         </div>
+                        <div>
+                            <h5 class="font-14 mb-0 fw-bold"><%= @project.responsible.full_name %></h5>
+                            <p class="mb-0 text-muted font-12">Líder de Cuenta</p>
+                        </div>
+                    <% else %>
+                        <p class="text-muted font-11 mb-0 italic">Responsable no asignado.</p>
                     <% end %>
                 </div>
             </div>
+        </div>
 
-
-        
-
-                <div class="col-12 mb-4">
-                    <div class="card border-0 shadow-sm bg-primary bg-opacity-10">
-                        <div class="card-body d-flex align-items-center justify-content-between">
-                        
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-sm rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3">
-                            <i class="mdi mdi-forum-outline font-20"></i>
+        <div class="card shadow-none border mb-3">
+            <div class="card-body py-2">
+                <h5 class="text-uppercase mt-0 mb-2 font-11 fw-bold text-muted">Equipo de Trabajo</h5>
+                <div class="d-flex flex-wrap gap-1">
+                    <% if @project.users.any? %>
+                        <% @project.users.each do |member| %>
+                            <div class="avatar-xs" data-bs-toggle="tooltip" title="<%= member.full_name %>">
+                                <% if member.avatar.attached? %>
+                                    <%= image_tag url_for(member.avatar), class: "rounded-circle border", style: "width: 28px; height: 28px; object-fit: cover;" %>
+                                <% else %>
+                                    <span class="avatar-title rounded-circle bg-soft-secondary text-secondary font-10 fw-bold">
+                                        <%= member.first_name[0] %><%= member.last_name[0] %>
+                                    </span>
+                                <% end %>
                             </div>
-                            <div>
-                            <h5 class="mb-1 text-primary">Bitácora de Proyecto</h5>
-                            <p class="mb-0 text-muted small">
-                                Hay <strong><%= @project.respond_to?(:comments) ? @project.comments.count : 0 %></strong> comentarios registrados.
-                            </p>
-                            </div>
-                        </div>
-
-                        <%= link_to comments_client_project_path(@client, @project), class: "btn btn-primary btn-sm shadow-sm" do %>
-                            Ver Bitácora <i class="mdi mdi-arrow-right ms-1"></i>
                         <% end %>
-
-                        </div>
-                    </div>
-                </div>
-        
-                <div class="text-end mb-2">
-                    <%= link_to new_client_project_activity_path(@client, @project), class: "btn btn-primary btn-sm" do %>
-                        <i class="mdi mdi-plus"></i> Nueva Tarea
+                    <% else %>
+                        <span class="text-muted font-11">Sin miembros adicionales.</span>
                     <% end %>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        <% end %>
+<%# --- TABLA DE ACTIVIDADES (Acordeones Contraídos) --- %>
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="header-title m-0 text-primary"><i class="ri-list-check-2 me-1"></i> Plan de Trabajo y Etapas</h4>
+            <div class="d-flex gap-2">
+                <%= link_to comments_client_project_path(@client, @project), class: "btn btn-sm btn-outline-primary" do %>
+                    <i class="ri-chat-history-line me-1"></i> Bitácora (<%= @project.comments.count %>)
+                <% end %>
+                <% if can_edit_project?(@project) %>
+                    <%= link_to new_client_project_activity_path(@client, @project), class: "btn btn-sm btn-primary" do %>
+                        <i class="ri-add-line"></i> Nueva Tarea
+                    <% end %>
+                <% end %>
+            </div>
+        </div>
 
         <div class="accordion custom-accordion mb-4" id="projectStages">
             <% @stages.each do |stage| %>
                 <div class="card mb-2 border shadow-none">
-                <a href="" class="text-dark collapsed" data-bs-toggle="collapse" data-bs-target="#stage-<%= stage.id %>">
                     <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom py-2">
-                    <a class="text-dark d-flex align-items-center flex-grow-1" data-bs-toggle="collapse" href="#stage-<%= stage.id %>" aria-expanded="false">
-                        <i class="mdi mdi-folder-outline me-2 text-primary font-18"></i> 
-                        <h5 class="m-0 font-14"><%= stage.name %></h5>
-                    </a>
-                    
-                    <div class="d-flex align-items-center">
-                        <div class="d-none d-md-flex align-items-center me-3">
-                            <div class="progress progress-sm w-100 me-2" style="height: 5px; min-width: 80px;">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: <%= stage.progress_percentage %>%;"></div>
-                            </div>
-                            <span class="font-12 fw-bold"><%= stage.progress_percentage %>%</span>
-                        </div>
-
-                        <% if can_edit_project?(@project) %>
-                            <%= link_to new_client_project_activity_path(@client, @project, stage_id: stage.id), 
-                                class: "action-icon text-muted hover-primary me-2", 
-                                data: { bs_toggle: "tooltip" }, title: "Nueva Tarea" do %>
-                                <i class="mdi mdi-plus-circle-outline font-20"></i>
-                            <% end %>
+                        <%# Cambiamos a la clase 'collapsed' para que inicie cerrado %>
+                        <a class="text-dark d-flex align-items-center flex-grow-1 collapsed" data-bs-toggle="collapse" href="#stage-<%= stage.id %>">
+                            <i class="ri-folder-6-line me-2 text-primary font-20"></i> 
+                            <h5 class="m-0 font-15 fw-bold me-3"><%= stage.name %></h5>
                             
-                            <div class="dropdown">
-                                <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="mdi mdi-dots-vertical"></i>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end">
-                                    <%= link_to edit_client_project_stage_path(@client, @project, stage), class: "dropdown-item" do %>
-                                        <i class="mdi mdi-pencil me-1"></i> Editar Etapa
-                                    <% end %>
-                                    <div class="dropdown-divider"></div>
-                                    <%= button_to client_project_stage_path(@client, @project, stage), method: :delete, class: "dropdown-item text-danger", form: { onsubmit: "return confirm('¿Borrar etapa y sus tareas?');" } do %>
-                                        <i class="mdi mdi-delete me-1"></i> Eliminar Etapa
-                                    <% end %>
+                            <%# BARRA DE PROGRESO DE LA ETAPA RE-INSERTADA %>
+                            <div class="d-none d-md-flex align-items-center flex-grow-1" style="max-width: 200px;">
+                                <div class="progress progress-sm w-100 me-2" style="height: 6px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: <%= stage.progress_percentage %>%;"></div>
                                 </div>
+                                <span class="font-12 fw-bold text-success"><%= stage.progress_percentage %>%</span>
                             </div>
-                        <% end %>
-                    </div>
-                    </div>
-                </a>
-
-                <div id="stage-<%= stage.id %>" class="collapse" data-bs-parent="#projectStages">
-                    <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-centered table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                            <th style="width: 20px;"></th>
-                            <th>Sem</th>
-                            <th>Actividad</th>
-                            <th>Área</th>
-                            <th>Doc. Ref</th>
-                            <th>Evidencia</th>
-                            <th class="text-end" style="min-width: 120px;">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% stage.activities.order(:week).group_by(&:month).each do |month, activities| %>
-                            
-                            <tr class="bg-light-subtle"><td colspan="7" class="py-1 px-3"><strong class="font-12 text-uppercase text-muted">Mes <%= month || "?" %></strong></td></tr>
-
-                            <% activities.each do |activity| %>
-                                <tr>
-                                <td>
-                                    <% if can_edit_project?(@project) %>
-                                    <% if activity.evidence.attached? %>
-                                        <%= form_with url: toggle_client_project_activity_path(@client, @project, activity), method: :patch, html: { style: "display:inline;" } do |f| %>
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" <%= 'checked' if activity.completed %> onchange="this.form.submit()">
-                                        </div>
+                        </a>
+                        
+                        <div class="d-flex align-items-center gap-3">
+                            <% if can_edit_project?(@project) %>
+                                <div class="dropdown">
+                                    <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown"><i class="ri-more-2-fill text-muted"></i></a>
+                                    <div class="dropdown-menu dropdown-menu-end shadow border-0">
+                                        <%= link_to edit_client_project_stage_path(@client, @project, stage), class: "dropdown-item" do %>
+                                            <i class="ri-edit-line me-1"></i> Editar Etapa
                                         <% end %>
-                                    <% else %>
-                                        <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>'); return false;">
-                                        </div>
-                                    <% end %>
-                                    <% else %>
-                                    <input type="checkbox" class="form-check-input" <%= 'checked' if activity.completed %> disabled>
-                                    <% end %>
-                                </td>
-                                
-                                <td><span class="badge badge-outline-secondary"><%= activity.week %></span></td>
-                                
-                                <td>
-                                    <span class="<%= 'text-decoration-line-through text-muted' if activity.completed %>">
-                                    <%= activity.name %>
-                                    </span>
-                                </td>
-                                
-                                <td><span class="badge bg-primary-lighten text-primary font-10"><%= activity.area || "-" %></span></td>
-                                
-                                <td><span class="badge bg-info-lighten text-info"><%= activity.document_ref %></span></td>
-
-                                <td>
-                                    <% if activity.evidence.attached? %>
-                                    <%= link_to rails_blob_path(activity.evidence, disposition: "attachment"), class: "btn btn-link p-0 text-success", title: "Descargar", target: "_blank" do %>
-                                        <i class="mdi mdi-file-check-outline font-18"></i>
-                                    <% end %>
-                                    <% else %>
-                                    <span class="text-muted font-10">Pendiente</span>
-                                    <% end %>
-                                </td>
-
-                                <td class="text-end">
-                                    <% if can_edit_project?(@project) %>
-                                        <button type="button" class="btn btn-xs btn-light me-1" 
-                                                onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>')" 
-                                                data-bs-toggle="tooltip" title="Subir Evidencia">
-                                            <i class="mdi mdi-upload"></i>
-                                        </button>
-
-                                        <%= link_to edit_client_project_activity_path(@client, @project, activity), 
-                                            class: "btn btn-xs btn-outline-primary me-1", 
-                                            data: { bs_toggle: "tooltip" }, 
-                                            title: "Editar" do %>
-                                            <i class="mdi mdi-pencil"></i>
+                                        <%= button_to client_project_stage_path(@client, @project, stage), method: :delete, class: "dropdown-item text-danger", form: { onsubmit: "return confirm('¿Borrar etapa?');" } do %>
+                                            <i class="ri-delete-bin-line me-1"></i> Eliminar
                                         <% end %>
-
-                                        <%= link_to client_project_activity_path(@client, @project, activity), 
-                                            data: { turbo_method: :delete, turbo_confirm: "¿Estás seguro de eliminar esta actividad?" }, 
-                                            class: "btn btn-xs btn-outline-danger", 
-                                            title: "Eliminar" do %>
-                                            <i class="mdi mdi-delete"></i>
-                                        <% end %>
-                                    <% end %>
-                                </td>
-                                </tr>
+                                    </div>
+                                </div>
                             <% end %>
-                            <% end %>
-                        </tbody>
-                        </table>
+                        </div>
                     </div>
+
+                    <%# Quitamos la clase 'show' para que esté contraído por defecto %>
+                    <div id="stage-<%= stage.id %>" class="collapse">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-centered table-nowrap table-hover mb-0">
+                                    <thead class="table-light text-muted font-12 uppercase">
+                                        <tr>
+                                            <th style="width: 40px;">Status</th>
+                                            <th>Mes</th>
+                                            <th>Sem.</th>
+                                            <th>Actividad</th>
+                                            <th>Responsable</th>
+                                            <th>Área</th>
+                                            <th>Doc. Ref</th>
+                                            <th class="text-center">Evidencia</th>
+                                            <th class="text-end">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% stage.activities.order(:month, :week).each do |activity| %>
+                                            <tr>
+                                                <td class="text-center">
+                                                    <% if can_edit_project?(@project) %>
+                                                        <div class="form-check form-checkbox-success d-inline-block">
+                                                            <input type="checkbox" class="form-check-input" 
+                                                                   <%= 'checked' if activity.completed %> 
+                                                                   onclick="<%= activity.evidence.attached? ? "toggleActivity(this)" : "openUploadModal('#{activity.id}', '#{activity.name}')" %>">
+                                                        </div>
+                                                    <% else %>
+                                                        <i class="ri-checkbox-circle-fill font-18 <%= activity.completed ? 'text-success' : 'text-light' %>"></i>
+                                                    <% end %>
+                                                </td>
+                                                <td><span class="text-muted font-12 fw-bold">Mes <%= activity.month %></span></td>
+                                                <td><span class="badge badge-outline-secondary px-1">S<%= activity.week %></span></td>
+                                                <td style="white-space: normal; min-width: 250px;">
+                                                    <span class="<%= 'text-decoration-line-through text-muted italic' if activity.completed %> font-13 fw-medium">
+                                                        <%= activity.name %>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <% if activity.responsible.present? %>
+                                                        <div class="d-flex align-items-center">
+                                                            <% if activity.responsible.avatar.attached? %>
+                                                                <%= image_tag url_for(activity.responsible.avatar), class: "rounded-circle me-2", style: "width: 24px; height: 24px; object-fit: cover;" %>
+                                                            <% else %>
+                                                                <div class="avatar-xs me-2" style="width: 24px; height: 24px;">
+                                                                    <span class="avatar-title rounded-circle bg-soft-info text-info font-10 fw-bold">
+                                                                        <%= activity.responsible.first_name[0] %><%= activity.responsible.last_name[0] %>
+                                                                    </span>
+                                                                </div>
+                                                            <% end %>
+                                                            <span class="font-12"><%= activity.responsible.first_name %></span>
+                                                        </div>
+                                                    <% else %>
+                                                        <span class="text-muted font-11 italic">No asignado</span>
+                                                    <% end %>
+                                                </td>
+                                                <td><span class="badge badge-soft-primary font-10 text-uppercase"><%= activity.area %></span></td>
+                                                <td><code class="text-primary font-11"><%= activity.document_ref %></code></td>
+                                                <td class="text-center">
+                                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                                        <% if activity.evidence.attached? %>
+                                                            <%= link_to rails_blob_path(activity.evidence, disposition: "attachment"), class: "text-success", target: "_blank", data: { bs_toggle: "tooltip" }, title: "Descargar" do %>
+                                                                <i class="ri-file-check-line font-20"></i>
+                                                            <% end %>
+                                                        <% end %>
+                                                        
+                                                        <% if can_edit_project?(@project) %>
+                                                            <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary" 
+                                                                    onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>')" 
+                                                                    data-bs-toggle="tooltip" title="Subir Evidencia">
+                                                                <i class="ri-upload-2-line font-18"></i>
+                                                            </button>
+                                                        <% end %>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end">
+                                                    <% if can_edit_project?(@project) %>
+                                                        <div class="dropdown">
+                                                            <a href="#" class="text-muted dropdown-toggle arrow-none" data-bs-toggle="dropdown"><i class="ri-more-fill"></i></a>
+                                                            <div class="dropdown-menu dropdown-menu-end shadow border-0">
+                                                                <%= link_to edit_client_project_activity_path(@client, @project, activity), class: "dropdown-item font-13" do %>
+                                                                    <i class="ri-edit-line me-1"></i> Editar
+                                                                <% end %>
+                                                                <%= link_to client_project_activity_path(@client, @project, activity), 
+                                                                    data: { turbo_method: :delete, turbo_confirm: "¿Eliminar actividad?" }, class: "dropdown-item text-danger font-13" do %>
+                                                                    <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                                                <% end %>
+                                                            </div>
+                                                        </div>
+                                                    <% end %>
+                                                </td>
+                                            </tr>
+                                        <% end %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                </div>
                 </div>
             <% end %>
-            </div>
+        </div>
+        
         <% if can_edit_project?(@project) %>
-            <div class="mb-4">
-                <%= link_to new_client_project_stage_path(@client, @project), class: "btn btn-light btn-sm w-100 border-dashed" do %>
-                    <i class="mdi mdi-plus"></i> Agregar Nueva Etapa
+            <div class="text-center mb-4">
+                <%= link_to new_client_project_stage_path(@client, @project), class: "btn btn-outline-primary btn-sm border-dashed w-100 py-2" do %>
+                    <i class="ri-add-circle-line me-1"></i> Agregar Nueva Etapa de Proyecto
                 <% end %>
             </div>
         <% end %>
     </div>
+</div>
 
-    <div class="col-xl-5">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Equipo del Proyecto</h5>
-                <div class="list-group list-group-flush">
-                    <% if @project.users.any? %>
-                        <% @project.users.each do |member| %>
-                            <div class="list-group-item d-flex align-items-center px-0">
-                                <div class="avatar-sm me-2">
-                                    <span class="avatar-title rounded-circle bg-secondary-light text-white">
-                                        <%= member.first_name[0] %> <%= member.last_name[0] %>
-                                    </span>
-                                </div>
-                                <div>
-                                    <h5 class="font-14 mb-0"><%= member.first_name %> <%= member.last_name %></h5>
-                                    <small class="text-muted"><%= member.role&.humanize %></small>
+<%# --- REPOSITORIO DE ARCHIVOS --- %>
+<div class="row">
+    <div class="col-12">
+        <div class="card border shadow-none">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                <h5 class="card-title m-0 font-14"><i class="ri-folder-zip-line me-1 text-primary"></i> Repositorio de Documentos</h5>
+                <%= form_with(model: [@client, @project], local: true, html: { multipart: true, class: "d-flex gap-2" }) do |f| %>
+                    <%= f.file_field :files, multiple: true, class: "form-control form-control-sm", style: "width: 250px;" %>
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="ri-upload-cloud-2-line"></i></button>
+                <% end %>
+            </div>
+            <div class="card-body p-3">
+                <div class="row">
+                    <% if @project.files.attached? %>
+                        <% @project.files.each do |file| %>
+                            <div class="col-md-3 col-sm-6 mb-2">
+                                <div class="p-2 border rounded d-flex align-items-center justify-content-between bg-light bg-opacity-25">
+                                    <div class="d-flex align-items-center overflow-hidden">
+                                        <i class="ri-file-line font-24 text-secondary me-2"></i>
+                                        <div class="overflow-hidden">
+                                            <h6 class="font-12 mb-0 text-truncate" title="<%= file.filename %>"><%= file.filename %></h6>
+                                            <small class="text-muted"><%= number_to_human_size(file.byte_size) %></small>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown">
+                                        <a href="#" class="dropdown-toggle arrow-none text-muted" data-bs-toggle="dropdown"><i class="ri-more-v-line"></i></a>
+                                        <div class="dropdown-menu dropdown-menu-end shadow border-0">
+                                            <%= link_to rails_blob_path(file, disposition: "attachment"), class: "dropdown-item font-12" do %>
+                                                <i class="ri-download-line me-1"></i> Descargar
+                                            <% end %>
+                                            <%= button_to delete_file_client_project_path(@client, @project, attachment_id: file.id), method: :delete, class: "dropdown-item text-danger font-12", form: { onsubmit: "return confirm('¿Eliminar archivo?');" } do %>
+                                                <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                            <% end %>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         <% end %>
                     <% else %>
-                         <p class="text-muted font-13">No hay miembros asignados.</p>
+                        <div class="col-12 text-center py-4 text-muted">
+                            <i class="ri-folder-open-line font-24 d-block mb-1 opacity-50"></i>
+                            <p class="mb-0 font-13">No se han cargado documentos adicionales.</p>
+                        </div>
                     <% end %>
-                </div>
-                <div class="d-grid mt-3">
-                    <div class="d-grid mt-3">
-                        <% if can_edit_project?(@project) %>
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#membersModal">
-                                <i class="mdi mdi-account-cog me-1"></i> Gestionar Miembros
-                            </button>
-                        <% end %>
-                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Detalles</h5>
-                <p class="text-muted mb-0"><%= @project.details %></p>
-            </div>
-        </div>
-
-        
-
-        <div class="col-12 mb-4">
-            <div class="card shadow-sm border-0">
-                
-                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-                <h5 class="card-title mb-0 text-primary">
-                    <i class="mdi mdi-folder-zip-outline me-1"></i> Archivos y Documentos
-                </h5>
-                <span class="badge bg-light text-dark">
-                    <%= @project.files.attached? ? @project.files.count : 0 %> archivos
-                </span>
-                </div>
-
-                <div class="card-body p-0">
-                
-                <div class="table-responsive">
-                    <table class="table table-centered table-nowrap table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                        <th class="ps-4">Archivo</th>
-                        <th>Fecha de Subida</th>
-                        <th>Tamaño</th>
-                        <th class="text-end pe-4">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% if @project.files.attached? %>
-                        <% @project.files.each do |file| %>
-                            <tr>
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                <div class="avatar-sm">
-                                    <span class="avatar-title bg-light text-secondary rounded font-24">
-                                    <i class="mdi <%= file_icon_class(file.filename.to_s) %>"></i>
-                                    </span>
-                                </div>
-                                <div class="ms-2">
-                                    <a href="<%= rails_blob_path(file, disposition: "preview") %>" target="_blank" class="text-dark fw-bold text-decoration-none">
-                                    <%= file.filename %>
-                                    </a>
-                                </div>
-                                </div>
-                            </td>
-
-                            <td>
-                                <span class="text-muted font-13">
-                                <%= file.created_at.strftime("%d %b %Y, %H:%M") %>
-                                </span>
-                            </td>
-
-                            <td>
-                                <span class="badge bg-light text-dark border">
-                                <%= number_to_human_size(file.byte_size) %>
-                                </span>
-                            </td>
-
-                            <td class="text-end pe-4">
-                                <%= link_to rails_blob_path(file, disposition: "attachment"), 
-                                    class: "btn btn-link text-muted font-18 p-0 me-2", 
-                                    title: "Descargar", 
-                                    data: { bs_toggle: "tooltip" } do %>
-                                <i class="mdi mdi-download"></i>
-                                <% end %>
-
-                                <%= button_to delete_file_client_project_path(@client, @project, attachment_id: file.id),
-                                    method: :delete,
-                                    class: "btn btn-link text-danger font-18 p-0 border-0 bg-transparent align-middle", 
-                                    style: "display: inline-block;",
-                                    form: { data: { turbo_confirm: "¿Estás seguro de eliminar este archivo?" }, style: "display:inline-block;" } do %>
-                                    <i class="mdi mdi-delete"></i>
-                                <% end %>
-                            </td>
-                            </tr>
-                        <% end %>
-                        <% else %>
-                        <tr>
-                            <td colspan="4" class="text-center py-5">
-                            <div class="text-muted">
-                                <i class="mdi mdi-folder-open-outline font-40 d-block mb-2 opacity-25"></i>
-                                <p class="mb-0">No hay archivos subidos en este proyecto.</p>
-                            </div>
-                            </td>
-                        </tr>
-                        <% end %>
-                    </tbody>
-                    </table>
-                </div>
-
-                <div class="p-3 bg-light border-top">
-                    <h6 class="font-14 fw-bold mb-2"><i class="mdi mdi-cloud-upload me-1"></i> Subir nuevos archivos</h6>
-                    
-                    <%= form_with(model: [@client, @project], local: true, html: { multipart: true }) do |f| %>
-                    <div class="input-group">
-                        <%= f.file_field :files, multiple: true, class: "form-control", required: true %>
-                        <button type="submit" class="btn btn-primary">
-                        <i class="mdi mdi-upload me-1"></i> Cargar
-                        </button>
-                    </div>
-                    <small class="text-muted mt-1 d-block font-12">
-                        Los archivos nuevos se agregarán a la lista (no reemplazan los existentes).
-                    </small>
-                    <% end %>
-                </div>
-
-                </div>
-            </div>
-            </div>
-
-
     </div>
 </div>
 
+<%# --- MODALES --- %>
 
-
-
-
-
-
-
-
- <!-- Modal del miembros -->
-
-
- <div class="modal fade" id="membersModal" tabindex="-1" aria-hidden="true">
+<%# Modal Equipo %>
+<div class="modal fade" id="membersModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content shadow-lg border-0">
             <div class="modal-header">
-                <h5 class="modal-title">Gestionar Equipo del Proyecto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title"><i class="ri-group-line me-1"></i> Equipo del Proyecto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            
             <div class="modal-body">
                 <div class="bg-light p-3 rounded mb-4">
-                    <h6 class="fw-bold mb-3">Agregar Nuevo Miembro</h6>
-                    
+                    <h6 class="fw-bold mb-3 font-13">Agregar Miembro</h6>
                     <%= form_with(url: client_project_project_members_path(@client, @project), scope: :project_member, local: true) do |f| %>
-                        <div class="mb-2">
-                            <%= f.label :user_id, "Usuario (Cliente o Admin)", class: "form-label font-12" %>
-                            
-                            <% if @eligible_users.any? %>
-                                <%= f.collection_select :user_id, @eligible_users, :id, :email, { prompt: "Selecciona un usuario..." }, { class: "form-select form-select-sm", required: true } %>
-                            <% else %>
-                                <p class="text-muted font-12 mb-0">No hay más usuarios disponibles para agregar.</p>
-                            <% end %>
+                        <div class="form-floating mb-3">
+                            <%= f.collection_select :user_id, @eligible_users, :id, :full_name, { prompt: "" }, { class: "form-select", required: true } %>
+                            <label>Seleccionar Usuario</label>
                         </div>
-                        
-                        <% if @eligible_users.any? %>
-                            <div class="row align-items-end">
-                                <div class="col-8">
-                                    <%= f.label :role, "Rol en el Proyecto", class: "form-label font-12" %>
-                                    <%= f.select :role, 
-                                        options_for_select([['Líder', 'lider'], ['Senior', 'senior'], ['Analista', 'analista'], ['Espectador', 'espectador']]), 
-                                        {}, class: "form-select form-select-sm" %>
-                                </div>
-                                <div class="col-4">
-                                    <%= f.submit "Agregar", class: "btn btn-sm btn-primary w-100" %>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-8">
+                                <div class="form-floating">
+                                    <%= f.select :role, [['Líder', 'lider'], ['Senior', 'senior'], ['Analista', 'analista'], ['Espectador', 'espectador']], {}, class: "form-select" %>
+                                    <label>Rol asignado</label>
                                 </div>
                             </div>
-                        <% end %>
+                            <div class="col-4">
+                                <%= f.submit "Añadir", class: "btn btn-primary w-100 py-2 h-100" %>
+                            </div>
+                        </div>
                     <% end %>
                 </div>
 
-                <h6 class="fw-bold">Miembros Actuales</h6>
-                <div class="list-group list-group-flush mt-2">
+                <h6 class="fw-bold mb-2 font-13 text-muted uppercase">Miembros Actuales</h6>
+                <div class="list-group list-group-flush">
                     <% @project.project_members.includes(:user).each do |membership| %>
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <div class="d-flex align-items-center">
                                 <div class="avatar-xs me-2">
-                                    <span class="avatar-title rounded-circle bg-primary-light text-primary font-12">
-                                        <%= membership.user.first_name[0] %>
-                                    </span>
+                                    <% if membership.user.avatar.attached? %>
+                                        <%= image_tag url_for(membership.user.avatar), class: "rounded-circle", style: "width: 24px; height: 24px; object-fit: cover;" %>
+                                    <% else %>
+                                        <span class="avatar-title rounded-circle bg-primary-light text-primary font-11 fw-bold">
+                                            <%= membership.user.first_name[0] %>
+                                        </span>
+                                    <% end %>
                                 </div>
                                 <div>
-                                    <h5 class="font-13 mb-0 text-truncate" style="max-width: 150px;">
-                                        <%= membership.user.first_name %> <%= membership.user.last_name %>
-                                    </h5>
-                                    <small class="text-muted"><%= membership.role&.humanize %> | <%= membership.user.role %></small>
+                                    <h5 class="font-13 mb-0 fw-bold"><%= membership.user.full_name %></h5>
+                                    <small class="text-muted"><%= membership.role&.humanize %></small>
                                 </div>
                             </div>
-                            
-                            <%= button_to client_project_project_member_path(@client, @project, membership), 
-                                method: :delete, 
-                                class: "btn btn-xs btn-outline-danger",
-                                title: "Eliminar del equipo",
-                                form: { onsubmit: "return confirm('¿Quitar a este usuario del proyecto?');" } do %>
-                                <i class="mdi mdi-close"></i>
+                            <%= button_to client_project_project_member_path(@client, @project, membership), method: :delete, class: "btn btn-xs btn-outline-danger border-0", form: { onsubmit: "return confirm('¿Quitar del equipo?');" } do %>
+                                <i class="ri-close-line"></i>
                             <% end %>
                         </div>
-                    <% end %>
-                    
-                    <% if @project.project_members.empty? %>
-                        <p class="text-muted text-center font-12 my-3">No hay miembros asignados aún.</p>
                     <% end %>
                 </div>
             </div>
@@ -528,139 +408,99 @@
     </div>
 </div>
 
-
- <!-- Modal para permiso -->
-
-
-<div class="modal fade" id="modalAccessDenied" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-danger border-start border-4">
-            <div class="modal-header">
-                <h5 class="modal-title text-danger">Acceso Restringido</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>No tienes permisos para modificar el estatus de las actividades.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalCompleted" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-success border-start border-4">
-            <div class="modal-body text-center p-3">
-                <h4 class="text-success m-0"><i class="mdi mdi-check-circle me-1"></i> ¡Completada!</h4>
-                <p class="text-muted small mt-2 mb-3">Actividad registrada correctamente.</p>
-                <button type="button" class="btn btn-success btn-sm w-100" onclick="window.location.reload();">
-                    Entendido
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalIncomplete" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-warning border-start border-4">
-            <div class="modal-body text-center p-3">
-                <h4 class="text-warning m-0"><i class="mdi mdi-history me-1"></i> Pendiente</h4>
-                <p class="text-muted small mt-2 mb-3">La actividad vuelve a estar pendiente.</p>
-                <button type="button" class="btn btn-light btn-sm w-100" onclick="window.location.reload();">
-                    Entendido
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<!-- Modal para archivos -->
-
-
+<%# Modal Carga Evidencia (CORREGIDO CON TOKEN) %>
 <div class="modal fade" id="uploadEvidenceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Finalizar Actividad</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="ri-checkbox-circle-line me-1"></i> Completar Actividad</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      
-      <%= form_with scope: :activity, url: root_path, method: :patch, id: "evidenceForm", local: true, multipart: true do |f| %>
+      <%= form_with scope: :activity, 
+                    url: upload_evidence_client_project_activity_path(@client, @project, '0'), 
+                    method: :patch, 
+                    id: "evidenceForm", 
+                    local: true, 
+                    multipart: true do |f| %>
         
         <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
 
-        <div class="modal-body">
-          <div class="alert alert-info border-0" role="alert">
-            <i class="mdi mdi-information me-1"></i>
-            Para marcar la actividad <strong id="modalActivityName"></strong> como terminada, es obligatorio adjuntar la evidencia.
+        <div class="modal-body p-4">
+          <p class="mb-1 text-muted font-12 uppercase fw-bold">Actividad:</p>
+          <h5 id="modalActivityName" class="text-primary mt-0 mb-4"></h5>
+          
+          <div class="alert alert-info border-0 font-13 mb-4">
+            <i class="ri-information-line me-1"></i> Para marcar esta tarea como terminada, por favor adjunta el archivo de evidencia correspondiente.
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Archivo de Evidencia</label>
+            <label class="form-label font-13 fw-bold">Archivo de Evidencia</label>
             <%= f.file_field :evidence, class: "form-control", required: true %>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer bg-light">
           <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-          <%= f.submit "Subir y Finalizar", class: "btn btn-success" %>
+          <%= f.submit "Cargar y Finalizar", class: "btn btn-success px-4" %>
         </div>
       <% end %>
     </div>
   </div>
 </div>
 
-
 <script>
+    // Función para confirmar eliminación del proyecto con SweetAlert2
+    function confirmDeleteProject() {
+        Swal.fire({
+            title: '¿Eliminar Proyecto?',
+            text: "Esta acción borrará permanentemente el proyecto '<%= @project.name %>', todas sus etapas, tareas y archivos adjuntos. ¡No se puede deshacer!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#fa5c7c', // Color Danger de Hyper
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar todo',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Creamos un formulario dinámico para enviar el DELETE vía Turbo/Rails
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '<%= client_project_path(@client, @project) %>';
+
+                // Input para el método DELETE
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = '_method';
+                methodInput.value = 'delete';
+                form.appendChild(methodInput);
+
+                // Token CSRF de Rails
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'authenticity_token';
+                csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
+                form.appendChild(csrfInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        })
+    }
+
+    function openUploadModal(activityId, activityName) {
+        document.getElementById('modalActivityName').textContent = activityName;
+        let baseUrl = "<%= upload_evidence_client_project_activity_path(@client, @project, 'REPLACE_ID') %>";
+        let finalUrl = baseUrl.replace('REPLACE_ID', activityId);
+        document.getElementById('evidenceForm').action = finalUrl;
+        new bootstrap.Modal(document.getElementById('uploadEvidenceModal')).show();
+    }
+
     function toggleActivity(checkbox) {
-        // A. Identificar y mostrar el modal
-        var modalId = checkbox.checked ? 'modalCompleted' : 'modalIncomplete';
-        var modalEl = document.getElementById(modalId);
-        
-        if (modalEl) {
-            var myModal = new bootstrap.Modal(modalEl);
-            myModal.show();
-        }
-
-        // B. Enviar el formulario por Fetch (Silencioso)
         var form = checkbox.form;
-        var token = document.querySelector('meta[name="csrf-token"]').content;
-
         fetch(form.action, {
             method: 'PATCH',
             body: new FormData(form),
-            headers: {
-                'X-CSRF-Token': token,
-                'Accept': 'application/json'
-            }
-        }).catch(err => console.error("Error al guardar:", err));
+            headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }
+        }).then(() => window.location.reload());
     }
-
-    // La función de denegación se queda igual (no necesita recarga porque no hubo cambios)
-    function deniedActivity(event) {
-        event.preventDefault(); 
-        var modalEl = document.getElementById('modalAccessDenied');
-        if (modalEl) {
-            var myModal = new bootstrap.Modal(modalEl);
-            myModal.show();
-        }
-    }
-
-
-
-    function openUploadModal(activityId, activityName) {
-    document.getElementById('modalActivityName').textContent = activityName;
-    
-    // Generar la URL base usando las rutas de Rails
-    let baseUrl = "<%= upload_evidence_client_project_activity_path(@client, @project, '000') %>";
-    // Reemplazar el ID dummy '000' por el ID real de la actividad
-    let finalUrl = baseUrl.replace('000', activityId);
-    
-    document.getElementById('evidenceForm').action = finalUrl;
-    
-    var myModal = new bootstrap.Modal(document.getElementById('uploadEvidenceModal'));
-    myModal.show();
-  }
 </script>
-
-
