@@ -1,12 +1,16 @@
-// app/assets/config/manifest.js
-
 //= link_tree ../images
 //= link_tree ../fonts
 //= link_tree ../data
-//= link_directory ../stylesheets .css
+//= link_tree ../javascripts
 //= link_directory ../javascripts .js
-//= link_tree ../../javascript .js
-//= link_tree ../../../vendor/javascript .js
-
-//= link pages/clients/clients-table.js
-//= link pages/demo.dashboard-projects.js
+//= link_directory ../stylesheets .css
+//= link controllers/application.js
+//= link controllers/hello_controller.js
+//= link controllers/index.js
+//= link controllers/password_visibility_controller.js
+//= link @popperjs--core.js
+//= link bootstrap/dist/js/bootstrap.js
+//= link application.js
+//= link controllers/chat_controller.js
+//= link controllers/presence_controller.js
+//= link channels/consumer.js
