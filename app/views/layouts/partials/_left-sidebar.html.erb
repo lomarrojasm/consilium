@@ -33,17 +33,32 @@
 
       <% if current_user.role == "admin" %>
         <li class="side-nav-item">
-          <%= link_to projects_dashboards_path, 
-              data: { turbo: false }, 
-              class: "side-nav-link" do %>
-            <i class="uil-users-alt"></i>
-            <span> Dashboard </span>
-          <% end %>
-        </li>
+          <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false" aria-controls="sidebarDashboards" class="side-nav-link">
+              <i class="uil-dashboard"></i>
+              <span> Dashboards </span>
+              <span class="menu-arrow"></span>
+          </a>
+          <div class="collapse" id="sidebarDashboards">
+              <ul class="side-nav-second-level">
+                  <li>
+                      <%= link_to "Proyectos", projects_dashboards_path, data: { turbo: false } %>
+                  </li>
+                  <li>
+                      <%= link_to admin_prospect_questionnaires_path, data: { turbo: false } do %>
+                          <%# El contador ahora vive aquí, al lado del texto %>
+                          <span> Leads & Diagnósticos </span>
+                          <% count = ProspectQuestionnaire.where(status: 'Nuevo').count %>
+                          <% if count > 0 %>
+                              <span class="badge rounded-pill bg-danger float-end mt-1"><%= count %></span>
+                          <% end %>
+                      <% end %>
+                  </li>
+              </ul>
+          </div>
+      </li>
+
         <li class="side-nav-item">
-          <%= link_to clients_path, 
-              data: { turbo: false }, 
-              class: "side-nav-link" do %>
+          <%= link_to clients_path, data: { turbo: false }, class: "side-nav-link" do %>
             <i class="uil-users-alt"></i>
             <span> Clientes </span>
           <% end %>

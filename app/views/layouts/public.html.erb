@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>Cuestionario</title>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+
+  <%# ESTA LÍNEA ES VITAL %>
+  <%= javascript_importmap_tags %> 
+  
+  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+</head>
+  <%# Usamos un fondo suave de color crema para el body %>
+  <body class="bg-crema">
+    <%= yield %>
+  </body>
+</html>
+
+<style>
+  .bg-crema { background-color: #f7f7f4; }
+</style>

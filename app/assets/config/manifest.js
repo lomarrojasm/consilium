@@ -14,3 +14,5 @@
 //= link controllers/chat_controller.js
 //= link controllers/presence_controller.js
 //= link channels/consumer.js
+//= link controllers/questionnaire_controller.js
+//= link controllers/chart_controller.js

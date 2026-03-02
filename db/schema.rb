@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_02_26_223002) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_27_203559) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -213,6 +213,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_26_223002) do
     t.index ["client_id"], name: "index_projects_on_client_id"
     t.index ["responsible_id"], name: "index_projects_on_responsible_id"
     t.index ["user_id"], name: "index_projects_on_user_id"
+  end
+
+  create_table "prospect_questionnaires", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "name"
+    t.string "position"
+    t.string "company_name"
+    t.text "social_links"
+    t.string "website"
+    t.json "answers"
+    t.string "status", default: "Pendiente"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "notes"
   end
 
   create_table "solid_cable_messages", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|

@@ -1,0 +1,86 @@
+<div class="row">
+    <div class="col-lg-4">
+        <%# TARJETA DE PERFIL DEL PROSPECTO %>
+        <div class="card shadow-sm text-center p-3">
+            <div class="card-body">
+                <div class="avatar-lg bg-soft-primary text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                    <h2 class="mb-0"><%= @questionnaire.company_name[0] %></h2>
+                </div>
+                <h4 class="mb-1"><%= @questionnaire.company_name %></h4>
+                <p class="text-muted"><%= @questionnaire.name %> (<%= @questionnaire.position %>)</p>
+                
+                <div class="text-start mt-3">
+                    <p class="font-13"><strong>Web:</strong> <%= link_to @questionnaire.website, @questionnaire.website, target: "_blank" %></p>
+                    <p class="font-13"><strong>Redes:</strong> <%= @questionnaire.social_links %></p>
+                </div>
+
+                <hr>
+                
+                <%= form_with url: admin_prospect_questionnaire_path(@questionnaire), method: :patch do |f| %>
+                    <label class="form-label">Estatus de Seguimiento</label>
+                    <%= f.select :status, ["Nuevo", "En Análisis", "Contactado", "Convertido", "Rechazado"], {}, { class: "form-select form-select-sm mb-2", onchange: "this.form.submit()" } %>
+                <% end %>
+            </div>
+
+            <%# NUEVA SECCIÓN: NOTAS DEL CONSULTOR %>
+            <div class="card shadow-sm border-warning">
+                <div class="card-header bg-warning-subtle py-2">
+                    <h5 class="card-title mb-0 text-warning-emphasis">
+                        <i class="ri-edit-2-line me-1"></i> Notas del Consultor
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <%= form_with url: admin_prospect_questionnaire_path(@questionnaire), method: :patch do |f| %>
+                        <div class="mb-3">
+                            <%= f.text_area :notes, 
+                                class: "form-control font-13", 
+                                rows: 10, 
+                                value: @questionnaire.notes,
+                                placeholder: "Escribe aquí tus observaciones, riesgos detectados o puntos para la propuesta..." %>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-warning btn-sm">
+                                <i class="ri-save-line me-1"></i> Guardar Notas
+                            </button>
+                        </div>
+                    <% end %>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-lg-8">
+            <%# ACORDEÓN DE RESPUESTAS (Ya lo tienes) %>
+            <div class="card shadow-sm">
+                <%# ... (Contenido del acordeón) ... %>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-8">
+        <%# RESPUESTAS DEL CUESTIONARIO %>
+        <div class="card shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="card-title mb-0"><i class="ri-survey-line me-1 text-primary"></i> Diagnóstico Directivo</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="accordion accordion-flush" id="answersAccordion">
+                    <% @questionnaire.answers.each do |key, value| %>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed font-14 fw-medium" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%= key %>">
+                                    Pregunta <%= key.gsub('q', '') %>: <%= get_question_text(key) %>
+                                </button>
+                            </h2>
+                            <div id="collapse<%= key %>" class="accordion-collapse collapse" data-bs-parent="#answersAccordion">
+                                <div class="accordion-body bg-light-subtle italic text-dark">
+                                    <%= value.present? ? value : "Sin respuesta" %>
+                                </div>
+                            </div>
+                        </div>
+                    <% end %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

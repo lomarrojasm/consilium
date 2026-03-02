@@ -91,6 +91,24 @@ Rails.application.routes.draw do
   resources :users, only: [:index, :edit, :update, :destroy]
 
 
+  # 1. Rutas específicas para el cuestionario con URL limpia
+  get 'diagnostico', to: 'public_questionnaires#new', as: :new_diagnostico
+  post 'diagnostico', to: 'public_questionnaires#create', as: :public_questionnaires
+
+  # Autodiagnóstico Cuantitativo
+  get 'autodiagnostico', to: 'public_questionnaires#new_autodiagnostico', as: :new_autodiagnostico
+  post 'autodiagnostico', to: 'public_questionnaires#create_autodiagnostico', as: :create_autodiagnostico
+  get 'autodiagnostico_exito/:id', to: 'public_questionnaires#autodiagnostico_exito', as: :autodiagnostico_exito
+
+  # 2. Página de agradecimiento
+  get 'gracias', to: 'public_questionnaires#thanks', as: :thank_you
+
+  # 3. Tu panel de administración (dentro de la app)
+  namespace :admin do
+    resources :prospect_questionnaires, only: [:index, :show, :update]
+  end
+
+
   # =========================================================================
   # 2. RUTAS DE LA PLANTILLA HYPER (Solo Referencia Visual)
   # =========================================================================

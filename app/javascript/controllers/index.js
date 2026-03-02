@@ -4,13 +4,20 @@
 
 import { application } from "./application"
 
-// Esta línea mágica carga todos los archivos *_controller.js automáticamente
-import { eagerLoadControllersFrom } from "@hotwired/stimulus-loading"
-eagerLoadControllersFrom("controllers", application)
+import ChartController from "./chart_controller"
+application.register("chart", ChartController)
 
+import ChatController from "./chat_controller"
+application.register("chat", ChatController)
 
 import HelloController from "./hello_controller"
 application.register("hello", HelloController)
 
 import PasswordVisibilityController from "./password_visibility_controller"
 application.register("password-visibility", PasswordVisibilityController)
+
+import PresenceController from "./presence_controller"
+application.register("presence", PresenceController)
+
+import QuestionnaireController from "./questionnaire_controller"
+application.register("questionnaire", QuestionnaireController)
