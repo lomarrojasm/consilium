@@ -117,7 +117,7 @@ class PublicQuestionnairesController < ApplicationController
 
   def questionnaire_params
     # Permitimos campos base y el hash de respuestas answers
-    params.require(:prospect_questionnaire).permit(:name, :company_name, :website, :status).tap do |whitelisted|
+    params.require(:prospect_questionnaire).permit(:name, :position, :company_name, :website, :status).tap do |whitelisted|
       if params[:prospect_questionnaire][:answers].present?
         whitelisted[:answers] = params[:prospect_questionnaire][:answers].to_unsafe_h 
       end

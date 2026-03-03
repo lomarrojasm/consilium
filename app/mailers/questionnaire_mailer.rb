@@ -1,33 +1,33 @@
-class QuestionnaireMailer < ApplicationMailer
-end
+# app/mailers/questionnaire_mailer.rb
 class QuestionnaireMailer < ApplicationMailer
   def diagnostic_report(questionnaire)
+    # 1. Definimos las variables de instancia (son las que lee la vista)
     @questionnaire = questionnaire
     @company_name = @questionnaire.company_name
 
-    # Generamos el PDF usando la misma lógica que en el controlador
-    # Nota: Aquí usamos un helper para renderizar el HTML desde el Mailer
-    pdf_html = ActionController::Base.new.render_to_string(
+    # 2. Renderizamos el HTML usando el contexto del Mailer
+    # Esto busca el archivo en app/views/public_questionnaires/autodiagnostico_exito.html.erb
+    pdf_html = render_to_string(
       template: 'public_questionnaires/autodiagnostico_exito',
       layout: 'pdf',
-      locals: { :"@questionnaire" => @questionnaire },
       formats: [:html]
     )
 
-    # Configuramos Grover para generar el PDF en el Job
-    # IMPORTANTE: En background jobs, request.base_url no existe. 
-    # Usamos la IP interna de Docker tal como lo configuramos antes.
+    # 3. Configuramos Grover para generar el PDF
+    # Usamos la IP interna que configuramos para producción
     grover = Grover.new(pdf_html, 
-      display_url: "http://127.0.0.1:80",
+      display_url: Rails.env.production? ? "http://127.0.0.1:80" : "http://localhost:3000",
       wait_until: 'networkidle0',
       print_background: true,
       launch_args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     )
 
+    # 4. Adjuntamos el archivo
     attachments["Reporte_Consilium_#{@company_name.parameterize}.pdf"] = grover.to_pdf
 
+    # 5. Enviamos con BCC (asegúrate de incluir la coma al final de cada línea)
     mail(
-      to: @questionnaire.email, # Asegúrate de que tu modelo tenga el campo :email
+      to: @questionnaire.email,
       bcc: "omar.rojas@ligoconsulting.com",
       subject: "Tu Diagnóstico Empresarial Consilium - #{@company_name}"
     )

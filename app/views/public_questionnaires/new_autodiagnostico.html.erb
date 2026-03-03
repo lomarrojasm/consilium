@@ -77,6 +77,11 @@
                   </div>
 
                   <div class="form-floating mb-3">
+                    <%= f.text_field :position, class: "form-control custom-input", id: "floatPosition", placeholder: "Puesto", required: true %>
+                    <label for="floatPosition">Puesto / Cargo</label>
+                  </div>
+
+                  <div class="form-floating mb-3">
                     <%= f.text_field :company_name, class: "form-control custom-input", id: "floatCompany", placeholder: "Empresa", required: true %>
                     <label for="floatCompany">Empresa / Razón Social</label>
                   </div>

@@ -17,7 +17,10 @@
     <div class="mt-5 p-5 bg-light rounded-4 text-start shadow-sm mx-auto" style="max-width: 600px;">
       <h4 class="fw-bold text-dark mb-4">Bienvenido a tu Diagnóstico</h4>
       <p class="text-muted" style="line-height: 1.8;">
-        Este reporte ejecutivo ha sido generado para <strong><%= @questionnaire.company_name %></strong>. 
+        Este reporte ejecutivo ha sido generado para
+        <p>Generado para: <strong><%= @questionnaire.name %></strong></p>
+        <p>Cargo: <strong><%= @questionnaire.position %></strong></p>
+        <p>Empresa: <strong><%= @questionnaire.company_name %></strong></p>
         Su propósito es brindarte una radiografía clara y objetiva sobre el nivel de madurez actual de tu organización.
       </p>
       <p class="text-muted" style="line-height: 1.8;">
@@ -92,7 +95,7 @@
 
             <%# Enlace secundario de salida %>
             <%= link_to "Finalizar y Salir", new_user_session_path, class: "text-muted font-12 fw-bold text-decoration-none" %>
-            
+
           </div>
         </div>
 
