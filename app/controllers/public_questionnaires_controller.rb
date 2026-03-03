@@ -23,7 +23,7 @@ class PublicQuestionnairesController < ApplicationController
       render :new, status: :unprocessable_entity
     end
   end
-  
+
   # --- NUEVO MÉTODO DE ÉXITO ---
   def exito
     # Simplemente renderizará la vista de agradecimiento
@@ -63,7 +63,7 @@ class PublicQuestionnairesController < ApplicationController
     )
 
     # 1. LA VARIABLE DEBE ESTAR AQUÍ: Justo después del HTML y antes de Grover
-    base_url_for_pdf = Rails.env.production? ? "http://localhost:80" : request.base_url
+    base_url_for_pdf = Rails.env.production? ? "http://127.0.0.1:80" : request.base_url
 
     # 2. SE LA PASAMOS A GROVER
     grover = Grover.new(html, 
