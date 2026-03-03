@@ -4,19 +4,23 @@ FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 WORKDIR /rails
 
-# Instalamos dependencias de ejecución + Node.js y NPM
-RUN echo "Construccion_Final_V3" && apt-get update -y && \
+# 1. Instalamos Chromium, Node y fuentes esenciales para que el PDF no salga con cuadros raros
+RUN echo "Construccion_Final_V4" && apt-get update -y && \
     apt-get install --no-install-recommends -y \
     curl libjemalloc2 libvips default-mysql-client default-libmysqlclient-dev \
-    nodejs npm && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+    nodejs npm \
+    chromium \
+    fonts-liberation fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst \
+    && rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# --- COMPLEMENTO: Activamos jemalloc para optimizar memoria ---
+# 2. Activamos jemalloc y configuramos Puppeteer para Docker
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development" \
-    LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libjemalloc.so.2"
+    LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libjemalloc.so.2" \
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD="true" \
+    PUPPETEER_EXECUTABLE_PATH="/usr/bin/chromium"
 
 FROM base AS build
 
@@ -30,7 +34,7 @@ COPY Gemfile Gemfile.lock ./
 RUN bundle install && \
     bundle exec bootsnap precompile --gemfile
 
-# 2. INSTALAR LIBRERÍAS DE NODE
+# 2. INSTALAR LIBRERÍAS DE NODE (Puppeteer usará el motor nativo gracias a las ENV vars)
 COPY package.json package-lock.json* ./
 RUN npm install
 
@@ -46,13 +50,12 @@ FROM base
 COPY --from=build /usr/local/bundle /usr/local/bundle
 COPY --from=build /rails /rails
 
-# --- COMPLEMENTO: Aseguramos permisos en carpetas críticas de producción ---
+# --- Aseguramos permisos en carpetas críticas de producción ---
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
-    # Se añade 'public' para evitar fallos en assets y 'storage' para Active Storage
     chown -R rails:rails db log storage tmp public
 
-# --- COMPLEMENTO: Aseguramos que los ejecutables tengan permiso ---
+# --- Aseguramos que los ejecutables tengan permiso ---
 RUN chmod +x bin/thrust bin/rails bin/docker-entrypoint
 
 USER 1000:1000

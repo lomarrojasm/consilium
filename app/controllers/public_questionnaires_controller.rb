@@ -53,32 +53,33 @@ class PublicQuestionnairesController < ApplicationController
 
   # --- 3. GENERACIÓN DE PDF ---
   def download_pdf
-  @questionnaire = ProspectQuestionnaire.find(params[:id])
-  set_scores_from_answers
+    @questionnaire = ProspectQuestionnaire.find(params[:id])
+    set_scores_from_answers
 
-  html = render_to_string(
-    template: 'public_questionnaires/autodiagnostico_exito',
-    layout: 'pdf', 
-    formats: [:html]
-  )
+    html = render_to_string(
+      template: 'public_questionnaires/autodiagnostico_exito',
+      layout: 'pdf', 
+      formats: [:html]
+    )
 
-  grover = Grover.new(html, 
-    display_url: request.base_url,
-    wait_until: 'networkidle2',
-    print_background: true,
-    format: 'A4',
-    margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
-    # El viewport obliga a Bootstrap a usar el diseño de escritorio (side-by-side)
-    viewport: { width: 1024, height: 1400 } 
-  )
+    grover = Grover.new(html, 
+      display_url: request.base_url,
+      wait_until: 'networkidle2',
+      print_background: true,
+      format: 'A4',
+      margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
+      # El viewport obliga a Bootstrap a usar el diseño de escritorio (side-by-side)
+      viewport: { width: 1024, height: 1400 },
+      launch_args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+    )
 
-  pdf = grover.to_pdf
+    pdf = grover.to_pdf
 
-  send_data pdf, 
-            filename: "Reporte_Consilium_#{@questionnaire.company_name.parameterize}.pdf", 
-            type: 'application/pdf',
-            disposition: 'attachment'
-end
+    send_data pdf, 
+              filename: "Reporte_Consilium_#{@questionnaire.company_name.parameterize}.pdf", 
+              type: 'application/pdf',
+              disposition: 'attachment'
+  end
 
   private
 
