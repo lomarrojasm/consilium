@@ -63,7 +63,7 @@ class PublicQuestionnairesController < ApplicationController
     )
 
     grover = Grover.new(html, 
-      display_url: "http://localhost:80",
+      display_url: base_url_for_pdf,
       wait_until: 'networkidle0',
       print_background: true,
       format: 'A4',
