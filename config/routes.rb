@@ -99,13 +99,14 @@ Rails.application.routes.draw do
   get 'autodiagnostico', to: 'public_questionnaires#new_autodiagnostico', as: :new_autodiagnostico
   post 'autodiagnostico', to: 'public_questionnaires#create_autodiagnostico', as: :create_autodiagnostico
   get 'autodiagnostico_exito/:id', to: 'public_questionnaires#autodiagnostico_exito', as: :autodiagnostico_exito
+  get 'autodiagnostico_pdf/:id', to: 'public_questionnaires#download_pdf', as: :autodiagnostico_pdf
 
-  # 2. Página de agradecimiento
-  get 'gracias', to: 'public_questionnaires#thanks', as: :thank_you
+  # Rutas públicas
+  get 'diagnostico_exito', to: 'public_questionnaires#exito', as: :success_page
 
   # 3. Tu panel de administración (dentro de la app)
   namespace :admin do
-    resources :prospect_questionnaires, only: [:index, :show, :update]
+    resources :prospect_questionnaires, only: [:index, :show, :update, :destroy]
   end
 
 

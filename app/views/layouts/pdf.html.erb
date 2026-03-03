@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Consilium - Reporte Estratégico</title>
+    <meta charset="utf-8">
+    
+    <%= stylesheet_link_tag "application", media: "all", host: request.base_url %>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+      /* --- CONFIGURACIÓN MULTI-PÁGINA --- */
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+
+      * {
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important;
+      }
+      
+      body {
+        background-color: #f4f7fa !important;
+        margin: 0; padding: 0;
+        font-family: 'Inter', 'Helvetica', sans-serif;
+      }
+
+      /* --- CONTROL DE PÁGINAS --- */
+      .page-break {
+        page-break-before: always;
+        clear: both;
+      }
+      
+      .pdf-page {
+    min-height: 297mm; /* <--- CAMBIA height por min-height */
+    width: 100%;
+    padding: 40px 50px;
+    box-sizing: border-box;
+    position: relative;
+    }
+    /* Agrega esta nueva regla para proteger las tarjetas */
+.avoid-break {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+      /* --- CONTROL DE VISIBILIDAD --- */
+      /* Ocultamos elementos web en el PDF */
+      .web-only, .navbar, .btn, .no-print { display: none !important; }
+      /* Mostramos elementos exclusivos del PDF */
+      .pdf-only { display: block !important; }
+
+      /* --- DISEÑO DE TARJETAS Y TABLAS --- */
+      .card {
+        border: none !important;
+        border-radius: 20px !important;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.03) !important;
+      }
+      
+      .table-custom th { background-color: #6366f1; color: white; border: none; }
+      .table-custom td { vertical-align: middle; border-bottom: 1px solid #eee; }
+
+      /* --- GRÁFICA HD --- */
+      canvas {
+        display: block !important;
+        width: 100% !important;
+        max-height: 350px !important;
+      }
+      
+      .footer-pdf {
+        position: absolute;
+        bottom: 30px; left: 0; width: 100%;
+        text-align: center; font-size: 10px; color: #94a3b8;
+      }
+    </style>
+
+    <script>
+      window.onload = async function() {
+        const canvas = document.getElementById('radarChart');
+        if (canvas) {
+          const container = canvas.closest('[data-chart-scores-value]');
+          const scores = JSON.parse(container.dataset.chartScoresValue);
+          
+          new Chart(canvas.getContext('2d'), {
+            type: 'radar',
+            data: {
+              labels: ['Estrategia', 'Finanzas', 'Operaciones', 'Ventas', 'C. Humano'],
+              datasets: [{
+                data: scores,
+                fill: true,
+                backgroundColor: 'rgba(99, 102, 241, 0.25)',
+                borderColor: '#6366f1',
+                borderWidth: 3,
+                pointBackgroundColor: '#6366f1',
+                pointRadius: 4
+              }]
+            },
+            options: {
+              animation: false,
+              devicePixelRatio: 3, /* Calidad HD para impresión */
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: { r: { min: 0, max: 5, ticks: { display: false } } },
+              plugins: { legend: { display: false } }
+            }
+          });
+        }
+      };
+    </script>
+  </head>
+  <body>
+    <%= yield %>
+  </body>
+</html>

@@ -1,86 +1,185 @@
-<div class="row">
-    <div class="col-lg-4">
-        <%# TARJETA DE PERFIL DEL PROSPECTO %>
-        <div class="card shadow-sm text-center p-3">
-            <div class="card-body">
-                <div class="avatar-lg bg-soft-primary text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
-                    <h2 class="mb-0"><%= @questionnaire.company_name[0] %></h2>
-                </div>
-                <h4 class="mb-1"><%= @questionnaire.company_name %></h4>
-                <p class="text-muted"><%= @questionnaire.name %> (<%= @questionnaire.position %>)</p>
-                
-                <div class="text-start mt-3">
-                    <p class="font-13"><strong>Web:</strong> <%= link_to @questionnaire.website, @questionnaire.website, target: "_blank" %></p>
-                    <p class="font-13"><strong>Redes:</strong> <%= @questionnaire.social_links %></p>
-                </div>
-
-                <hr>
-                
-                <%= form_with url: admin_prospect_questionnaire_path(@questionnaire), method: :patch do |f| %>
-                    <label class="form-label">Estatus de Seguimiento</label>
-                    <%= f.select :status, ["Nuevo", "En Análisis", "Contactado", "Convertido", "Rechazado"], {}, { class: "form-select form-select-sm mb-2", onchange: "this.form.submit()" } %>
+<div class="row mb-3">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4 class="page-title mb-0">Análisis de Prospecto: <%= @questionnaire.company_name %></h4>
+        
+        <div class="d-flex gap-2">
+            <%# BOTÓN DE DESCARGA PDF (Solo visible si es Autodiagnóstico) %>
+            <% if @questionnaire.answers && @questionnaire.answers['a1'].present? %>
+                <%= link_to autodiagnostico_pdf_path(@questionnaire), 
+                            class: "btn btn-sm btn-danger rounded-pill shadow-sm", 
+                            data: { turbo: false } do %>
+                    <i class="ri-file-pdf-2-line me-1"></i> Descargar Reporte PDF
                 <% end %>
-            </div>
+            <% end %>
 
-            <%# NUEVA SECCIÓN: NOTAS DEL CONSULTOR %>
-            <div class="card shadow-sm border-warning">
-                <div class="card-header bg-warning-subtle py-2">
-                    <h5 class="card-title mb-0 text-warning-emphasis">
-                        <i class="ri-edit-2-line me-1"></i> Notas del Consultor
-                    </h5>
+            <%# BOTÓN VOLVER %>
+            <%= link_to admin_prospect_questionnaires_path, class: "btn btn-sm btn-outline-secondary rounded-pill" do %>
+                <i class="ri-arrow-left-line me-1"></i> Volver al Dashboard
+            <% end %>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <%# ========================================== %>
+    <%# COLUMNA IZQUIERDA: PERFIL Y NOTAS (4 Cols) %>
+    <%# ========================================== %>
+    <div class="col-lg-4">
+        
+        <%# 1. TARJETA DE PERFIL DEL PROSPECTO %>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body text-center pt-4">
+                <div class="avatar-xl bg-primary-subtle text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center shadow-sm">
+                    <h1 class="mb-0 fw-bold"><%= @questionnaire.company_name.first.upcase if @questionnaire.company_name.present? %></h1>
                 </div>
-                <div class="card-body">
-                    <%= form_with url: admin_prospect_questionnaire_path(@questionnaire), method: :patch do |f| %>
-                        <div class="mb-3">
-                            <%= f.text_area :notes, 
-                                class: "form-control font-13", 
-                                rows: 10, 
-                                value: @questionnaire.notes,
-                                placeholder: "Escribe aquí tus observaciones, riesgos detectados o puntos para la propuesta..." %>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-warning btn-sm">
-                                <i class="ri-save-line me-1"></i> Guardar Notas
-                            </button>
-                        </div>
+                <h4 class="mb-1 fw-bold text-dark"><%= @questionnaire.company_name %></h4>
+                <p class="text-muted font-14 mb-3">
+                    <i class="ri-user-line align-middle me-1"></i> <%= @questionnaire.name %><br>
+                    <span class="badge bg-light text-dark border mt-1"><%= @questionnaire.position %></span>
+                </p>
+                
+                <div class="text-start bg-light p-3 rounded-3 mb-3">
+                    <p class="font-13 mb-2">
+                        <i class="ri-global-line text-primary me-1"></i> 
+                        <strong>Web:</strong> 
+                        <% if @questionnaire.website.present? %>
+                            <%= link_to @questionnaire.website, @questionnaire.website, target: "_blank", class: "text-decoration-none" %>
+                        <% else %>
+                            <span class="text-muted">No proporcionada</span>
+                        <% end %>
+                    </p>
+                    <p class="font-13 mb-0">
+                        <i class="ri-links-line text-primary me-1"></i> 
+                        <strong>Redes:</strong> <%= @questionnaire.social_links.presence || '<span class="text-muted">No proporcionadas</span>'.html_safe %>
+                    </p>
+                </div>
+
+                <hr class="border-light">
+                
+                <%# CAMBIO: Usamos model: [:admin, @questionnaire] para que Rails sepa la ruta automáticamente %>
+                <div class="text-start">
+                    <label class="form-label font-13 fw-bold text-dark">Estatus de Seguimiento</label>
+                    <%= form_with model: [:admin, @questionnaire], class: "d-flex gap-2" do |f| %>
+                        <%= f.select :status, 
+                            ["Nuevo", "Autodiagnóstico", "En Análisis", "Contactado", "Convertido", "Rechazado"], 
+                            {}, 
+                            { class: "form-select form-select-sm", onchange: "this.form.submit()" } %>
                     <% end %>
                 </div>
             </div>
-
         </div>
-        <div class="col-lg-8">
-            <%# ACORDEÓN DE RESPUESTAS (Ya lo tienes) %>
-            <div class="card shadow-sm">
-                <%# ... (Contenido del acordeón) ... %>
+
+        <%# 2. SECCIÓN: NOTAS DEL CONSULTOR %>
+        <div class="card shadow-sm border-0" style="border-top: 4px solid #f5b225 !important;">
+            <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+                <h5 class="card-title mb-0 text-dark fw-bold">
+                    <i class="ri-edit-2-fill text-warning me-1"></i> Notas Internas
+                </h5>
+            </div>
+            <div class="card-body">
+                <%= form_with model: [:admin, @questionnaire] do |f| %>
+                    <div class="mb-3">
+                        <%= f.text_area :notes, 
+                            class: "form-control font-13 bg-light border-0", 
+                            rows: 6, 
+                            placeholder: "Escribe aquí tus observaciones, riesgos detectados o puntos para la propuesta..." %>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-warning btn-sm fw-bold text-dark">
+                            <i class="ri-save-line me-1"></i> Guardar Notas
+                        </button>
+                    </div>
+                <% end %>
             </div>
         </div>
 
     </div>
 
+    <%# ========================================== %>
+    <%# COLUMNA DERECHA: RESULTADOS (8 Cols)       %>
+    <%# ========================================== %>
     <div class="col-lg-8">
-        <%# RESPUESTAS DEL CUESTIONARIO %>
-        <div class="card shadow-sm">
-            <div class="card-header bg-white border-bottom">
-                <h5 class="card-title mb-0"><i class="ri-survey-line me-1 text-primary"></i> Diagnóstico Directivo</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="accordion accordion-flush" id="answersAccordion">
-                    <% @questionnaire.answers.each do |key, value| %>
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed font-14 fw-medium" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%= key %>">
-                                    Pregunta <%= key.gsub('q', '') %>: <%= get_question_text(key) %>
-                                </button>
-                            </h2>
-                            <div id="collapse<%= key %>" class="accordion-collapse collapse" data-bs-parent="#answersAccordion">
-                                <div class="accordion-body bg-light-subtle italic text-dark">
-                                    <%= value.present? ? value : "Sin respuesta" %>
-                                </div>
-                            </div>
-                        </div>
-                    <% end %>
+
+        <%# VALIDACIÓN: Si es un autodiagnóstico, mostramos la gráfica %>
+        <% if @questionnaire.answers && @questionnaire.answers['a1'].present? %>
+            <%# Extraemos los datos para la gráfica directo de las respuestas %>
+            <% 
+               ans = @questionnaire.answers
+               scores = [
+                 (1..5).map { |i| ans["a#{i}"].to_f }.sum / 5.0,
+                 (6..10).map { |i| ans["a#{i}"].to_f }.sum / 5.0,
+                 (11..15).map { |i| ans["a#{i}"].to_f }.sum / 5.0,
+                 (16..20).map { |i| ans["a#{i}"].to_f }.sum / 5.0,
+                 (21..25).map { |i| ans["a#{i}"].to_f }.sum / 5.0
+               ].map { |s| s.round(2) }
+            %>
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="card-title mb-0 fw-bold"><i class="ri-pie-chart-2-line me-1 text-success"></i> Resultado del Autodiagnóstico</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div data-controller="chart" data-chart-scores-value="<%= scores.to_json %>" style="width: 100%; height: 350px; margin: 0 auto;">
+                        <canvas id="radarChart" data-chart-target="canvas"></canvas>
+                    </div>
                 </div>
             </div>
+        <% end %>
+
+        <%# ACORDEÓN DE RESPUESTAS %>
+        <div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom">
+        <h5 class="card-title mb-0 fw-bold"><i class="ri-question-answer-line me-1 text-info"></i> Detalle de Respuestas</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="accordion accordion-flush" id="answersAccordion">
+            <% @questionnaire.answers.each_with_index do |(key, value), index| %>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button <%= 'collapsed' unless index == 0 %> font-14 text-dark" 
+                                type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#collapse<%= key %>"
+                                style="background-color: #f8f9fa;">
+                            
+                            <%# Extraemos solo el número de la llave (ej. de 'a1' o 'q1' sacamos '1') %>
+                            <% numero = key.gsub(/[^\d]/, '') %>
+                            
+                            <div class="d-flex align-items-start">
+                                <span class="fw-bold text-primary me-2"><%= numero %>.</span>
+                                <span class="fw-medium"><%= get_question_text(key) %></span>
+                            </div>
+
+                        </button>
+                    </h2>
+                    <div id="collapse<%= key %>" class="accordion-collapse collapse <%= 'show' if index == 0 %>" data-bs-parent="#answersAccordion">
+                        <div class="accordion-body bg-white text-muted">
+                            <% if value.present? %>
+                                <% if key.start_with?('a') %>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-primary rounded-pill px-3 py-2 font-14 me-3 shadow-sm">
+                                            Calificación: <%= value %> / 5
+                                        </span>
+                                        <span class="font-13 fst-italic">
+                                            <% case value.to_i
+                                               when 1..2 then "Área Crítica / Riesgo"
+                                               when 3 then "Nivel Básico / Estable"
+                                               when 4..5 then "Nivel Sólido / Optimizado"
+                                               end %>
+                                        </span>
+                                    </div>
+                                <% else %>
+                                    <p class="mb-0 text-dark" style="line-height: 1.6;"><%= value %></p>
+                                <% end %>
+                            <% else %>
+                                <span class="text-danger fst-italic"><i class="ri-error-warning-line"></i> El prospecto no respondió esta pregunta.</span>
+                            <% end %>
+                        </div>
+                    </div>
+                </div>
+            <% end %>
         </div>
+    </div>
+</div>
+
     </div>
 </div>

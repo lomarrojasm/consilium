@@ -2,12 +2,16 @@
 <% @body_attributes = "class='authentication-bg pb-0'" %>
 
 <div class="auth-fluid">
+  
+  <%# ========================================== %>
+  <%# LADO IZQUIERDO: FORMULARIO DE LOGIN        %>
+  <%# ========================================== %>
   <div class="auth-fluid-form-box">
     <div class="card-body d-flex flex-column h-100 gap-3">
 
-      <div class="auth-brand text-center">
+      <div class="auth-brand text-center mt-4">
         <a href="<%= root_path %>" class="logo-dark">
-          <span><img src="<%= image_path("consilium_rec.png") %>" alt="dark logo" height=100"></span>
+          <span><img src="<%= image_path("consilium_rec.png") %>" alt="dark logo" height="100"></span>
         </a>
         <a href="<%= root_path %>" class="logo-light">
           <span><img src="<%= image_path("consilium_rec.png") %>" alt="logo" height="100"></span>
@@ -16,19 +20,19 @@
 
       <div class="my-auto">
         <div class="text-center">
-          <h4 class="mt-0">¡Bienvenido de nuevo!</h4>
-          <p class="text-muted mb-4">Ingresa tu correo y contraseña para acceder.</p>
+          <h4 class="mt-0 fw-bold">¡Bienvenido de nuevo!</h4>
+          <p class="text-muted mb-4">Ingresa tu correo y contraseña para acceder al panel.</p>
         </div>
 
         <% if flash[:alert] %>
-          <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <%= flash[:alert] %>
+          <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="ri-error-warning-line me-1"></i> <%= flash[:alert] %>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
         <% end %>
         <% if flash[:notice] %>
-          <div class="alert alert-info alert-dismissible fade show" role="alert">
-            <%= flash[:notice] %>
+          <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+            <i class="ri-information-line me-1"></i> <%= flash[:notice] %>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
         <% end %>
@@ -36,51 +40,143 @@
         <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
           
           <div class="mb-3">
-            <%= f.label :email, "Correo Electrónico", class: "form-label" %>
-            <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control", placeholder: "Ingresa tu correo" %>
+            <%= f.label :email, "Correo Electrónico", class: "form-label fw-medium" %>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="ri-mail-line text-muted"></i></span>
+              <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control border-start-0", placeholder: "ejemplo@consilium.com" %>
+            </div>
           </div>
 
           <div class="mb-3">
             <% if devise_mapping.recoverable? && controller_name != 'passwords' && controller_name != 'registrations' %>
-              <%= link_to "Olvidaste tu contraseña?", new_password_path(resource_name), class: "text-muted float-end" %>
+              <%= link_to "¿Olvidaste tu contraseña?", new_password_path(resource_name), class: "text-muted float-end font-13" %>
             <% end %>
             
-            <%= f.label :password, "Contraseña", class: "form-label" %>
+            <%= f.label :password, "Contraseña", class: "form-label fw-medium" %>
             
             <div class="input-group input-group-merge" data-controller="password-visibility">
-              
+              <span class="input-group-text bg-light border-end-0"><i class="ri-lock-line text-muted"></i></span>
               <%= f.password_field :password, 
                   autocomplete: "current-password", 
-                  class: "form-control", 
+                  class: "form-control border-start-0", 
                   placeholder: "Ingresa tu contraseña",
                   data: { password_visibility_target: "input" } %>
               
               <div class="input-group-text" data-action="click->password-visibility#toggle" style="cursor: pointer;">
                 <span class="password-eye"></span>
               </div>
-
             </div>
           </div>
 
           <% if devise_mapping.rememberable? %>
-            <div class="mb-3">
+            <div class="mb-4">
               <div class="form-check">
                 <%= f.check_box :remember_me, class: "form-check-input" %>
-                <%= f.label :remember_me, "Recordarme", class: "form-check-label" %>
+                <%= f.label :remember_me, "Recordarme en este equipo", class: "form-check-label text-muted" %>
               </div>
             </div>
           <% end %>
 
           <div class="d-grid mb-0 text-center">
-            <%= f.submit "Iniciar Sesión", class: "btn btn-primary" %>
+            <%= f.submit "Iniciar Sesión", class: "btn btn-primary btn-lg shadow-sm fw-bold" %>
           </div>
 
         <% end %>
+      </div>
+      
+      <div class="text-center mt-auto pb-4">
+        <p class="text-muted font-13">© <%= Time.now.year %> Consilium. Todos los derechos reservados.</p>
+      </div>
+
+    </div>
+  </div>
+  
+  <%# ========================================== %>
+  <%# LADO DERECHO: LLAMADOS A LA ACCIÓN (CTAs)  %>
+  <%# ========================================== %>
+  <div class="auth-fluid-right d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #f8f9fa 0%, #eef2f7 100%);">
+    <div class="text-center px-4 px-lg-5" style="max-width: 700px;">
+      
+      <h2 class="fw-bold text-dark mb-3 display-6">¿Aún no eres cliente?</h2>
+      <p class="text-muted font-16 mb-5" style="line-height: 1.6;">
+        Descubre el nivel de madurez de tu empresa o cuéntanos tus desafíos actuales. Da el primer paso hacia la transformación de tu negocio de forma completamente gratuita.
+      </p>
+
+      <div class="row g-4">
+        
+        <%# OPCIÓN 1: Autodiagnóstico Express %>
+        <div class="col-md-6">
+          <div class="card h-100 border-0 shadow-sm custom-hover-card">
+            <div class="card-body p-4 text-center d-flex flex-column">
+              <div class="avatar-md bg-success-subtle text-success rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                <i class="ri-radar-line font-24"></i>
+              </div>
+              <h4 class="fw-bold text-dark">Autodiagnóstico</h4>
+              <p class="text-muted font-13 mb-4 flex-grow-1">
+                Responde un test de opción múltiple en 5 minutos y obtén al instante una gráfica y un reporte en PDF con tus resultados.
+              </p>
+              <%= link_to new_autodiagnostico_path, class: "btn btn-outline-success rounded-pill fw-bold w-100" do %>
+                Realizar Test <i class="ri-arrow-right-line ms-1"></i>
+              <% end %>
+            </div>
+          </div>
         </div>
 
-     
+        <%# OPCIÓN 2: Diagnóstico Profundo %>
+        <div class="col-md-6">
+          <div class="card h-100 border-0 shadow-sm custom-hover-card">
+            <div class="card-body p-4 text-center d-flex flex-column">
+              <div class="avatar-md bg-primary-subtle text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                <i class="ri-file-text-line font-24"></i>
+              </div>
+              <h4 class="fw-bold text-dark">Contexto Directivo</h4>
+              <p class="text-muted font-13 mb-4 flex-grow-1">
+                Cuéntanos con tus propias palabras los retos y la visión de tu empresa para recibir una propuesta estratégica personalizada.
+              </p>
+              <%# Asegúrate de que esta ruta coincida con la de tu cuestionario narrativo (ej. new_public_questionnaire_path) %>
+              <%= link_to new_diagnostico_path, class: "btn btn-outline-primary rounded-pill fw-bold w-100" do %>
+                Iniciar Diagnóstico <i class="ri-arrow-right-line ms-1"></i>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+      </div>
 
     </div>
   </div>
   
 </div>
+
+<%# Pequeño estilo para darle vida a las tarjetas al pasar el cursor %>
+<style>
+  .auth-fluid {
+    display: flex;
+    min-height: 100vh;
+  }
+  .auth-fluid-form-box {
+    max-width: 480px;
+    width: 100%;
+    background: #fff;
+    z-index: 2;
+    box-shadow: 0 0 24px 0 rgba(0,0,0,.06);
+  }
+  .auth-fluid-right {
+    flex: 1;
+    position: relative;
+  }
+  .custom-hover-card {
+    transition: all 0.3s ease;
+    cursor: default;
+  }
+  .custom-hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+  }
+  /* Responsivo para móviles: apilar en lugar de dividir pantalla */
+  @media (max-width: 991px) {
+    .auth-fluid { flex-direction: column; }
+    .auth-fluid-form-box { max-width: 100%; min-height: 100vh; }
+    .auth-fluid-right { padding: 3rem 1rem !important; }
+  }
+</style>

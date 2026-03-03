@@ -13,18 +13,32 @@ module Admin
         end
 
         def update
-            # Permitimos :notes además del :status
+            @questionnaire = ProspectQuestionnaire.find(params[:id])
+            
+            # IMPORTANTE: Usamos questionnaire_params, NO params a secas
             if @questionnaire.update(questionnaire_params)
-                redirect_to admin_prospect_questionnaire_path(@questionnaire), notice: "Notas y estatus actualizados correctamente."
+            redirect_to admin_prospect_questionnaire_path(@questionnaire), notice: 'Actualizado correctamente.'
             else
-                render :show, alert: "No se pudieron guardar los cambios."
+            redirect_to admin_prospect_questionnaire_path(@questionnaire), alert: 'Hubo un error al guardar.'
             end
         end
 
         def destroy
-            @questionnaire.destroy
-            redirect_to admin_prospect_questionnaires_path, notice: "Diagnóstico eliminado correctamente."
-        end
+            @questionnaire = ProspectQuestionnaire.find(params[:id])
+            
+            # Guardamos el nombre para el mensaje de éxito
+            company_name = @questionnaire.company_name
+            
+            if @questionnaire.destroy
+                # En Rails 8 (Turbo), las redirecciones tras un delete requieren status: :see_other (303)
+                redirect_to admin_prospect_questionnaires_path, 
+                            notice: "El diagnóstico de #{company_name} fue eliminado correctamente.", 
+                            status: :see_other
+            else
+                redirect_to admin_prospect_questionnaires_path, 
+                            alert: "Hubo un error al intentar eliminar el diagnóstico."
+            end
+            end
 
 
         private
@@ -34,7 +48,7 @@ module Admin
         end
 
         def questionnaire_params
-            params.permit(:status, :notes)
+            params.require(:prospect_questionnaire).permit(:notes, :status)
         end
     end
 end

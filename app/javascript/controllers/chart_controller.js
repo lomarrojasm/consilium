@@ -66,7 +66,12 @@ export default class extends Controller {
         }]
       },
       options: {
+        animation: {
+          // Si detectamos que estamos en modo impresión o captura, desactivamos la animación
+          duration: (window.matchMedia('print').matches || navigator.userAgent.includes('HeadlessChrome')) ? 0 : 1000
+        },
         responsive: true,
+        devicePixelRatio: 2,
         maintainAspectRatio: false,
         scales: {
           r: {

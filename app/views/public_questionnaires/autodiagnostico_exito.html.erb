@@ -1,134 +1,189 @@
-<%# 1. NAVBAR SUPERIOR %>
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm py-2">
-  <div class="container-fluid px-4">
-    <div class="d-flex align-items-center">
-      <div class="text-start">
-        <span class="fw-bold text-dark font-18" style="letter-spacing: -0.5px;">
-          Cons<span class="text-primary">ilium</span>
-        </span>
-        <small class="text-muted d-block mt-n1" style="font-size: 8px; font-weight: 500;">Consulta, delega y transforma</small>
+<%# Para asegurar que la web no muestre el contenido del PDF %>
+<style>
+  @media screen { .pdf-only { display: none !important; } }
+</style>
+
+<%# ========================================== %>
+<%# PÁGINA 1: INTRODUCCIÓN (SOLO PDF)          %>
+<%# ========================================== %>
+<div class="pdf-only pdf-page bg-white">
+  <div class="h-100 d-flex flex-column justify-content-center text-center">
+    <div class="mb-5">
+      <div style="width: 80px; height: 8px; background: #6366f1; margin: 0 auto 30px auto; border-radius: 10px;"></div>
+      <h1 class="fw-bold text-dark display-4 mb-2">Cons<span class="text-primary">ilium</span></h1>
+      <h3 class="text-muted fw-light">Reporte de Autodiagnóstico Empresarial</h3>
+    </div>
+    
+    <div class="mt-5 p-5 bg-light rounded-4 text-start shadow-sm mx-auto" style="max-width: 600px;">
+      <h4 class="fw-bold text-dark mb-4">Bienvenido a tu Diagnóstico</h4>
+      <p class="text-muted" style="line-height: 1.8;">
+        Este reporte ejecutivo ha sido generado para <strong><%= @questionnaire.company_name %></strong>. 
+        Su propósito es brindarte una radiografía clara y objetiva sobre el nivel de madurez actual de tu organización.
+      </p>
+      <p class="text-muted" style="line-height: 1.8;">
+        A través de la metodología Consilium, analizamos 5 pilares fundamentales para identificar brechas, riesgos operativos y, lo más importante, la ruta exacta para escalar tu negocio con control y certidumbre.
+      </p>
+    </div>
+  </div>
+  <div class="footer-pdf">Página 1 de 3 | Consilium - Consulta, delega y transforma</div>
+</div>
+
+
+<%# ========================================== %>
+<%# PÁGINA 2: GRÁFICA Y PUNTAJES (WEB Y PDF)   %>
+<%# ========================================== %>
+<div class="page-break pdf-page" style="padding-top: 20px;">
+  
+  <%# La Navbar solo se ve en la web %>
+  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm py-2 web-only">
+    <div class="container-fluid px-4">
+      <div class="d-flex align-items-center">
+        <span class="fw-bold text-dark font-18">Cons<span class="text-primary">ilium</span></span>
+      </div>
+      <div class="ms-auto">
+        <%= link_to "Nuevo Diagnóstico", new_autodiagnostico_path, class: "btn btn-outline-primary rounded-pill px-3 py-1 font-12 fw-bold" %>
       </div>
     </div>
-    <div class="ms-auto">
-      <%= link_to "Nuevo Diagnóstico", new_autodiagnostico_path, class: "btn btn-outline-primary rounded-pill px-3 py-1 font-12 fw-bold" %>
+  </nav>
+
+  <div class="container mt-4">
+    <div class="pdf-only text-center mb-4">
+      <h3 class="fw-bold text-dark">Radiografía de Madurez</h3>
+      <p class="text-muted">Desempeño actual por pilar estratégico</p>
+    </div>
+
+    <div class="card border-0 shadow-lg" style="border-radius: 24px; background: white;">
+      <div class="card-body p-4 p-md-5">
+        <div class="row align-items-center">
+          
+          <%# GRÁFICA %>
+          <div class="col-md-7 mb-4 mb-md-0">
+            <div data-controller="chart" data-chart-scores-value="<%= @scores.to_json %>" style="width: 100%; height: 350px;">
+                <canvas id="radarChart" data-chart-target="canvas"></canvas>
+            </div>
+          </div>
+
+          <%# DESGLOSE %>
+          <div class="col-md-5 ps-md-4">
+            <h5 class="fw-bold mb-4 text-dark border-bottom pb-2">Puntuación por Área</h5>
+            <% categories = ["Dirección y Estrategia", "Finanzas", "Operaciones / Procesos", "Comercial (Ventas / Mkt)", "RH (Personas y Cultura)"] %>
+            <% @scores.each_with_index do |score, i| %>
+              <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="font-12 fw-bold text-dark"><%= categories[i] %></span>
+                  <span class="font-12 fw-bold text-primary"><%= score %> / 5.0</span>
+                </div>
+                <div class="progress" style="height: 6px; border-radius: 10px;">
+                  <div class="progress-bar custom-gradient-progress" style="width: <%= (score/5.0)*100 %>%; background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);"></div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+
+        </div>
+
+        <%# ACCIONES WEB (Ocultas en PDF) %>
+        <div class="text-center mt-5 web-only">
+          <h5 class="fw-bold text-dark mb-3">¿Cómo transformar estos resultados?</h5>
+          <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+            <%= link_to autodiagnostico_pdf_path(@questionnaire), class: "btn btn-primary btn-lg rounded-pill px-5 shadow-sm", data: { turbo: false } do %>
+              Descargar Reporte PDF <i class="ri-file-pdf-line ms-1"></i>
+            <% end %>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
-</nav>
+  <div class="footer-pdf pdf-only">Página 2 de 3 | Consilium - Consulta, delega y transforma</div>
+</div>
 
-<div class="auth-fluid-container" style="min-height: calc(100vh - 60px); display: flex; align-items: center; justify-content: center; background: #f4f7fa; position: relative; overflow: hidden; padding: 40px 0;">
-  
-  <%# Fondo de círculos decorativos %>
-  <div class="auth-fluid-circles">
-    <div class="circle-1"></div><div class="circle-2"></div><div class="circle-3"></div>
-  </div>
 
-  <div class="container" style="position: relative; z-index: 10;">
-    <div class="row justify-content-center">
-      <div class="col-lg-11 col-xl-10">
-        
-        <div class="card border-0 shadow-lg" style="border-radius: 24px; background: white;">
-          <div class="card-header py-4 text-center border-0" style="background-color: #6366f1;">
-            <h3 class="text-white fw-bold mb-0">Resultados del Diagnóstico de Madurez</h3>
-          </div>
-          
-          <div class="card-body p-4 p-md-5">
-            <div class="row align-items-start">
-              
-              <%# --- BLOQUE IZQUIERDO: GRÁFICA --- %>
-              <div class="col-md-7 mb-4 mb-md-0">
-                <div class="text-center mb-3">
-                  <h4 class="fw-bold text-dark mb-1">Radiografía Empresarial</h4>
-                  <p class="text-muted small">Visualización de los 5 pilares estratégicos</p>
-                </div>
-                
-                <%# El controlador de Stimulus se encarga de la carga dinámica de la librería y el dibujo %>
-                <div data-controller="chart" 
-                     data-chart-scores-value="<%= @scores.to_json %>"
-                     style="width: 100%; height: 400px; position: relative;">
-                    
-                    <canvas id="radarChart" 
-                            data-chart-target="canvas"
-                            style="display: block; width: 100%; height: 400px;">
-                    </canvas>
-                </div>
-              </div>
+<%# ========================================== %>
+<%# PÁGINA 3: PLAN DE ACCIÓN (SOLO PDF)        %>
+<%# ========================================== %>
+<div class="pdf-only page-break pdf-page bg-white">
+  <% avg_global = ((@scores.sum / 25.0) * 100).round %>
+  <% dir_score = ((@scores[0] / 5.0) * 100).round %>
+  <% op_score = ((@scores[2] / 5.0) * 100).round %>
 
-              <%# --- BLOQUE DERECHO: MÉTRICAS Y COMENTARIOS --- %>
-              <div class="col-md-5 ps-md-4 border-start">
-                <h5 class="fw-bold mb-4 text-dark pb-2 border-bottom">Puntuación por Área</h5>
-                
-                <% categories = ["Dirección", "Finanzas", "Operaciones", "Comercial", "Personas"] %>
-                <% total_score = 0 %>
-                
-                <% @scores.each_with_index do |score, i| %>
-                  <% total_score += score %>
-                  <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                      <span class="font-12 fw-bold text-dark"><%= categories[i] %></span>
-                      <span class="font-12 fw-bold text-primary"><%= score %> / 5.0</span>
-                    </div>
-                    <div class="progress" style="height: 8px; border-radius: 10px; background-color: #eee;">
-                      <div class="progress-bar custom-gradient-progress" 
-                           role="progressbar" 
-                           style="width: <%= (score/5.0)*100 %>%"></div>
-                    </div>
-                  </div>
-                <% end %>
+  <div class="container-fluid p-0">
+    <h3 class="fw-bold text-dark mb-4 border-bottom pb-2">Interpretación Ejecutiva</h3>
+    <p class="text-muted mb-5 text-justify">
+      El prediagnóstico revela un índice global del <strong><%= avg_global %>%</strong>. 
+      Dependiendo de los picos en tu gráfica, áreas como Comercial y Finanzas podrían presentar un nivel superior, 
+      mientras que pilares como Dirección y Operaciones muestran oportunidades críticas de mejora.
+    </p>
 
-                <%# --- INTERPRETACIÓN DEL RESULTADO --- %>
-                <% avg = (total_score / 5.0).round(1) %>
-                <div class="mt-4 p-3 rounded-4 bg-light border">
-                  <h6 class="fw-bold text-dark mb-2">Diagnóstico General: <span class="text-primary"><%= avg %> / 5.0</span></h6>
-                  <p class="text-muted small mb-0">
-                    <% if avg <= 2.0 %>
-                      <strong>Nivel Inicial:</strong> Tu empresa opera de forma reactiva. Existe una alta dependencia del dueño y falta de procesos formales.
-                    <% elsif avg <= 3.5 %>
-                      <strong>Nivel en Desarrollo:</strong> Tienes bases sólidas pero la ejecución es inconsistente. Necesitas estandarizar para escalar.
-                    <% else %>
-                      <strong>Nivel Optimizado:</strong> Tu empresa cuenta con procesos robustos. El enfoque debe ser la innovación y la mejora continua.
-                    <% end %>
-                  </p>
-                </div>
-              </div>
+    <h4 class="fw-bold text-dark mb-3">Análisis de Capacidades</h4>
+    <div class="table-responsive mb-5">
+      <table class="table table-custom rounded-3 overflow-hidden shadow-sm">
+        <thead>
+          <tr>
+            <th class="py-3 px-4">Área Estratégica</th>
+            <th class="py-3 px-4 text-center">Tu Resultado</th>
+            <th class="py-3 px-4 text-center">Referencia Ideal Consilium</th>
+          </tr>
+        </thead>
+        <tbody class="bg-light">
+          <% categories.each_with_index do |cat, i| %>
+            <tr>
+              <td class="py-3 px-4 fw-bold text-dark"><%= cat %></td>
+              <td class="py-3 px-4 text-center text-primary fw-bold"><%= @scores[i] %> / 5.0</td>
+              <td class="py-3 px-4 text-center text-muted">5.0 / 5.0</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
 
-            </div>
+    <div class="row g-4 mb-4 avoid-break">
+      <%# DIAGNÓSTICO Y DOLOR %>
+      <div class="col-6">
+        <div class="card h-100 bg-light p-4">
+          <h5 class="fw-bold text-danger mb-3"><i class="ri-error-warning-line me-2"></i> Diagnóstico y Riesgo</h5>
+          <p class="small text-muted mb-2">
+            "Tu empresa enfrenta brechas en <strong>Dirección y Estrategia (<%= dir_score %>%)</strong> y <strong>Operaciones (<%= op_score %>%)</strong> que afectan su desempeño."
+          </p>
+          <strong class="small text-dark d-block mt-3">Punto de Dolor:</strong>
+          <p class="small text-muted mb-2">Estrés por falta de control y posibles fugas de efectivo que merman la rentabilidad.</p>
+          <strong class="small text-dark d-block mt-2">Causa Raíz:</strong>
+          <p class="small text-muted mb-0">La falta de procesos definidos limita la gestión, generando decisiones a ciegas.</p>
+        </div>
+      </div>
 
-            <hr class="my-5 opacity-50">
-
-            <%# --- ACCIONES FINALES --- %>
-            <div class="text-center">
-              <h5 class="fw-bold text-dark mb-3">¿Cómo podemos transformar estos resultados?</h5>
-              <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
-                <button class="btn btn-primary btn-lg rounded-pill px-5 shadow-sm" style="background-color: #6366f1; border: none;">
-                  Descargar Reporte PDF <i class="ri-file-pdf-line ms-1"></i>
-                </button>
-                <a href="https://wa.me/TU_WHATSAPP" target="_blank" class="btn btn-outline-success btn-lg rounded-pill px-5">
-                  Agendar Sesión de Claridad <i class="ri-whatsapp-line ms-1"></i>
-                </a>
-              </div>
-            </div>
-          </div>
+      <%# SOLUCIÓN PROPUESTA %>
+      <div class="col-6">
+        <div class="card h-100 p-4" style="background-color: #f0fdf4; border: 1px solid #bbf7d0 !important;">
+          <h5 class="fw-bold text-success mb-3"><i class="ri-checkbox-circle-line me-2"></i> Solución Consilium</h5>
+          <p class="small text-muted mb-3">
+            Acompañamiento en la definición de objetivos anuales y documentación de procesos clave.
+          </p>
+          <strong class="small text-dark d-block">Alcance:</strong>
+          <ul class="small text-muted mb-3 ps-3">
+            <li>Definición de objetivos anuales</li>
+            <li>Documentación de procesos clave</li>
+            <li>Reportes mensuales de flujo y resultados</li>
+          </ul>
+          <strong class="small text-dark d-block">Impacto Esperado:</strong>
+          <ul class="small text-muted mb-0 ps-3">
+            <li>Claridad en la dirección del negocio</li>
+            <li>Reducción de riesgos financieros</li>
+            <li>Eficiencia operativa garantizada</li>
+          </ul>
         </div>
       </div>
     </div>
+
+    <%# CTA FINAL %>
+    <div class="text-center mt-5">
+      <h5 class="fw-bold text-dark">Transforma tu negocio con Consilium</h5>
+      <p class="text-muted small mb-3">Sin compromiso. 30 minutos de asesoría gratuita basada en estos resultados.</p>
+      <a href="https://wa.me/TU_NUMERO" style="display: inline-block; background-color: #6366f1; color: white; padding: 12px 30px; border-radius: 30px; text-decoration: none; font-weight: bold;">
+        Agendar Sesión de Implementación
+      </a>
+    </div>
+
   </div>
+  <div class="footer-pdf">Página 3 de 3 | Consilium - Consulta, delega y transforma</div>
 </div>
-
-<%# Scripts adicionales del layout/plantilla %>
-<% content_for :javascript do %>
-  <%= javascript_include_tag 'pages/demo.chartjs-other.js', defer: true %>
-<% end %>
-
-<style>
-  /* Círculos de fondo */
-  .auth-fluid-circles { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; width: 100%; height: 100%; }
-  .auth-fluid-circles [class^="circle-"] { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0) 70%); border: 1px solid rgba(99, 102, 241, 0.1); }
-  .circle-1 { width: 500px; height: 500px; } 
-  .circle-2 { width: 850px; height: 850px; } 
-  .circle-3 { width: 1200px; height: 1200px; }
-
-  /* Estilos de progreso y texto */
-  .custom-gradient-progress { background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%); }
-  .font-12 { font-size: 12px; }
-  .bg-light { background-color: #f8fafc !important; }
-</style>
