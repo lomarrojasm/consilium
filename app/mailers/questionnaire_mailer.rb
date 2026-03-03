@@ -11,6 +11,7 @@ class QuestionnaireMailer < ApplicationMailer
     @download_url = autodiagnostico_pdf_url(@questionnaire.signed_id)
 
     mail(
+      from: ENV['MAILER_SENDER'],
       to: @questionnaire.email,
       bcc: "omar.rojas@ligoconsulting.com",
       subject: "Resultados de tu Diagnóstico Consilium - #{@questionnaire.company_name}"
