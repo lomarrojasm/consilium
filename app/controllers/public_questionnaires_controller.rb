@@ -39,6 +39,8 @@ class PublicQuestionnairesController < ApplicationController
     @questionnaire.status = "Autodiagnóstico"
     
     if @questionnaire.save
+      # DISPARO EN SEGUNDO PLANO: Rails lo manda a Solid Queue y libera al usuario
+      QuestionnaireMailer.diagnostic_report(@questionnaire).deliver_later
       redirect_to autodiagnostico_exito_path(@questionnaire)
     else
       render :new_autodiagnostico, status: :unprocessable_entity

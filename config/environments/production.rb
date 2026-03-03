@@ -60,6 +60,8 @@ Rails.application.configure do
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
   config.active_job.queue_adapter = :solid_queue
+  # Configura los correos para que usen deliver_later por defecto
+  config.action_mailer.deliver_later_queue_name = "mailers"
   config.solid_queue.connects_to = { database: { writing: :queue } }
   #config.solid_queue.connects_to = { database: { writing: :queue } }
 
@@ -68,6 +70,7 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
+  config.action_mailer.default_options = { from: ENV['MAILER_SENDER'] }
   config.action_mailer.default_url_options = { host: '74.208.227.22' }
 
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via rails credentials:edit.
