@@ -1,4 +1,7 @@
-<%# 1. NAVBAR SUPERIOR %>
+<%# 1. Inclusión de dependencias externas %>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<%# 2. NAVBAR SUPERIOR %>
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm py-2">
   <div class="container-fluid px-4">
     <div class="d-flex align-items-center">
@@ -17,16 +20,17 @@
     <div class="ms-auto d-flex align-items-center">
       <%= link_to "Reiniciar", new_autodiagnostico_path, 
           class: "btn btn-soft-danger rounded-pill px-3 py-1 font-12 fw-bold shadow-none",
-          data: { turbo: false, confirm: "¿Deseas reiniciar la evaluación?" } %>
+          data: { turbo: false, confirm: "¿Deseas reiniciar la evaluación? Se perderá tu progreso actual." } %>
     </div>
   </div>
 </nav>
 
-<%# 2. CONTENEDOR CON CÍRCULOS Y STIMULUS %>
+<%# 3. CONTENEDOR PRINCIPAL CON STIMULUS %>
 <div class="auth-fluid-container" 
      data-controller="questionnaire" 
      style="min-height: calc(100vh - 60px); display: flex; align-items: center; justify-content: center; background: #f4f7fa !important; position: relative; overflow: hidden; padding: 40px 0;">
   
+  <%# Círculos Glow de Fondo %>
   <div class="auth-fluid-circles">
     <div class="circle-1"></div><div class="circle-2"></div><div class="circle-3"></div><div class="circle-4"></div>
   </div>
@@ -35,7 +39,7 @@
     <div class="row justify-content-center">
       <div class="col-lg-8 col-xl-7">
         
-        <%# --- PROGRESO --- %>
+        <%# --- INDICADORES DE PROGRESO --- %>
         <div class="mb-4 px-1 text-center">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="badge bg-soft-primary text-primary rounded-pill px-3 py-1 text-uppercase font-10 fw-bold tracking-wider">
@@ -43,83 +47,75 @@
             </span>
             <span class="fw-bold text-primary font-12" data-questionnaire-target="progressText">0%</span>
           </div>
-          <div class="progress shadow-sm" style="height: 5px; border-radius: 10px; background-color: rgba(99, 102, 241, 0.15);">
-            <div class="progress-bar custom-gradient-progress" data-questionnaire-target="progressBar" style="width: 0%"></div>
+          <div class="progress shadow-sm" style="height: 6px; border-radius: 10px; background-color: rgba(99, 102, 241, 0.15);">
+            <div class="progress-bar custom-gradient-progress" 
+                 data-questionnaire-target="progressBar" 
+                 style="width: 0%; transition: width 0.4s ease;"></div>
           </div>
           <div class="mt-2">
             <span class="text-muted font-11 fw-bold">Paso <span data-questionnaire-target="currentNum">1</span> de 26</span>
           </div>
         </div>
 
-        <%# --- TARJETA --- %>
-        <div class="card border-0 shadow-lg" style="border-radius: 20px; background: white;">
+        <%# --- TARJETA DEL CUESTIONARIO --- %>
+        <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 20px; background: white;">
           <div class="card-body p-4 p-md-5">
             <%= form_with(model: @questionnaire, url: create_autodiagnostico_path, id: "autodiagnostico-form") do |f| %>
               
-              <div style="min-height: 400px;">
+              <div style="min-height: 420px;">
                 
-                <%# PASO 0: INSTRUCCIONES Y DATOS %>
+                <%# PASO 0: DATOS DE CONTACTO %>
                 <div data-questionnaire-target="step" class="animate-fade-in">
                   <div class="text-center mb-4">
-                    <h2 class="fw-bold text-dark">Autodiagnóstico empresarial</h2>
-                    <p class="text-muted small">Evaluación general: Dirección y Estrategia, Finanzas, Operaciones, Comercial y Personas.</p>
-                  </div>
-
-                  <div class="bg-light rounded-4 p-3 mb-4 border">
-                    <h6 class="fw-bold text-primary mb-3 font-13 text-center text-uppercase">Guía de Calificación (Escala 1–5)</h6>
-                    <div class="row g-2">
-                      <div class="col-12 d-flex align-items-start font-12 mb-2">
-                        <span class="badge bg-white text-dark border me-2" style="width: 25px;">1</span> 
-                        <span>No existe / no se realiza.</span>
-                      </div>
-                      <div class="col-12 d-flex align-items-start font-12 mb-2">
-                        <span class="badge bg-white text-dark border me-2" style="width: 25px;">2</span> 
-                        <span><strong>Informal:</strong> Sin estándares, depende de personas.</span>
-                      </div>
-                      <div class="col-12 d-flex align-items-start font-12 mb-2">
-                        <span class="badge bg-white text-dark border me-2" style="width: 25px;">3</span> 
-                        <span><strong>Parcial:</strong> Definido, aplicación inconsistente.</span>
-                      </div>
-                      <div class="col-12 d-flex align-items-start font-12 mb-2">
-                        <span class="badge bg-white text-dark border me-2" style="width: 25px;">4</span> 
-                        <span><strong>Formal:</strong> Documentado y aplicado con frecuencia.</span>
-                      </div>
-                      <div class="col-12 d-flex align-items-start font-12">
-                        <span class="badge bg-white text-dark border me-2" style="width: 25px;">5</span> 
-                        <span><strong>Estandarizado:</strong> Medido y en mejora continua.</span>
-                      </div>
-                    </div>
+                    <h2 class="fw-bold text-dark">Diagnóstico Empresarial</h2>
+                    <p class="text-muted small">Ingresa tus datos para comenzar. Tu reporte ejecutivo en PDF será enviado al correo que registres.</p>
                   </div>
 
                   <div class="form-floating mb-3">
                     <%= f.text_field :name, class: "form-control custom-input", id: "floatName", placeholder: "Nombre", required: true %>
-                    <label for="floatName">Tu Nombre y puesto</label>
+                    <label for="floatName">Nombre y puesto</label>
                   </div>
 
                   <div class="form-floating mb-3">
                     <%= f.text_field :company_name, class: "form-control custom-input", id: "floatCompany", placeholder: "Empresa", required: true %>
-                    <label for="floatCompany">Razón social / Nombre comercial</label>
+                    <label for="floatCompany">Empresa / Razón Social</label>
+                  </div>
+
+                  <div class="form-floating mb-4">
+                    <%= f.email_field :email, class: "form-control custom-input", id: "floatEmail", placeholder: "Email", required: true %>
+                    <label for="floatEmail">Correo Electrónico</label>
+                  </div>
+
+                  <div class="bg-light rounded-4 p-3 mb-4 border shadow-sm">
+                    <h6 class="fw-bold text-primary mb-3 font-13 text-center text-uppercase">Guía de Calificación (Escala 1–5)</h6>
+                    <div class="row g-2">
+                      <div class="col-12 d-flex align-items-start font-11 mb-1">
+                        <span class="badge bg-white text-dark border me-2">1</span> <span>No existe / El proceso es nulo.</span>
+                      </div>
+                      <div class="col-12 d-flex align-items-start font-11">
+                        <span class="badge bg-white text-dark border me-2">5</span> <span>Estandarizado y en mejora continua.</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <%# PASOS 1-25: PREGUNTAS %>
+                <%# PASOS 1-25: PREGUNTAS CUANTITATIVAS %>
                 <% get_autodiagnostico_questions.each do |category, qs| %>
                   <% qs.each do |key, text| %>
                     <div data-questionnaire-target="step" class="d-none animate-fade-in text-center">
                       <span class="badge bg-soft-primary text-primary rounded-pill px-3 py-1 mb-2 text-uppercase font-10 fw-bold">
                         <%= category %>
                       </span>
-                      <h3 class="fw-bold text-dark mt-2 mb-4" style="font-size: 1.4rem; line-height: 1.4;"><%= text %></h3>
+                      <h3 class="fw-bold text-dark mt-2 mb-4" style="font-size: 1.45rem; line-height: 1.4;"><%= text %></h3>
                       
-                      <div class="d-flex justify-content-center gap-2 gap-md-3 my-4">
+                      <div class="d-flex justify-content-center gap-2 gap-md-3 my-4 py-2">
                         <% (1..5).each do |n| %>
                           <div class="rating-box">
-                            <%# CORRECCIÓN EN EL NAME: prospect_questionnaire[answers][a1] %>
                             <%= f.radio_button :answers, n, 
                                 name: "prospect_questionnaire[answers][#{key}]", 
                                 id: "#{key}_#{n}", 
-                                class: "btn-check", 
-                                required: true %>
+                                class: "btn-check",
+                                data: { action: "change->questionnaire#autoNext" } %>
                             <label class="btn btn-outline-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center rating-label" 
                                    for="<%= key %>_<%= n %>">
                               <%= n %>
@@ -128,13 +124,13 @@
                         <% end %>
                       </div>
 
-                      <div class="mt-4 p-3 border rounded-4 bg-light">
+                      <div class="mt-5 p-3 border rounded-4 bg-light shadow-sm">
                         <div class="row text-muted font-10 fw-bold text-uppercase">
-                          <div class="col border-end">1. No existe</div>
-                          <div class="col border-end">2. Informal</div>
+                          <div class="col border-end">1. Nulo</div>
+                          <div class="col border-end d-none d-md-block">2. Informal</div>
                           <div class="col border-end">3. Parcial</div>
-                          <div class="col border-end">4. Formal</div>
-                          <div class="col">5. Medido</div>
+                          <div class="col border-end d-none d-md-block">4. Sólido</div>
+                          <div class="col">5. Excelente</div>
                         </div>
                       </div>
                     </div>
@@ -142,21 +138,28 @@
                 <% end %>
               </div>
 
-              <%# NAVEGACIÓN %>
+              <%# NAVEGACIÓN DINÁMICA %>
               <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
-                <button type="button" class="btn btn-link text-primary fw-bold text-decoration-none d-none" 
+                <button type="button" class="btn btn-link text-primary fw-bold text-decoration-none d-none shadow-none" 
                         data-questionnaire-target="prevBtn" data-action="click->questionnaire#prev">
                   <i class="ri-arrow-left-s-line me-1"></i> Anterior
                 </button>
-                <button type="button" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm ms-auto" 
+                
+                <%# "Siguiente" solo aparece en el Paso 0 %>
+                <button type="button" class="btn btn-primary rounded-pill px-5 py-2 shadow-sm ms-auto" 
                         data-questionnaire-target="nextBtn" data-action="click->questionnaire#next">
-                  Siguiente <i class="ri-arrow-right-s-line ms-1"></i>
+                  Comenzar Diagnóstico <i class="ri-arrow-right-s-line ms-1"></i>
                 </button>
-                <%= f.submit "Ver Gráfica de Resultados", class: "btn btn-success rounded-pill px-4 py-2 shadow-sm d-none", 
+
+                <%= f.submit "Finalizar y Ver Resultados", class: "btn btn-success rounded-pill px-5 py-2 shadow-sm d-none", 
                              data: { questionnaire_target: "submitBtn" } %>
               </div>
             <% end %>
           </div>
+        </div>
+        
+        <div class="text-center mt-4">
+          <p class="text-muted font-12">© 2026 Consilium. Tu información es tratada de forma confidencial.</p>
         </div>
       </div>
     </div>
@@ -164,25 +167,51 @@
 </div>
 
 <style>
-  /* Rating styles */
-  .rating-label { width: 50px; height: 50px; font-weight: 800; border: 2px solid #e2e8f0; color: #94a3b8; transition: all 0.2s ease; cursor: pointer; }
-  @media (min-width: 768px) { .rating-label { width: 60px; height: 60px; font-size: 1.2rem; } }
+  /* --- Estilos de Calificación (Círculos) --- */
+  .rating-label { 
+    width: 52px; height: 52px; font-weight: 800; border: 2px solid #e2e8f0; 
+    color: #94a3b8; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; 
+  }
+  @media (min-width: 768px) { .rating-label { width: 64px; height: 64px; font-size: 1.25rem; } }
+  
   .btn-check:checked + .rating-label { 
     background-color: #6366f1 !important; 
     border-color: #6366f1 !important; 
     color: white !important; 
-    transform: scale(1.1); 
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important; 
+    transform: scale(1.15); 
+    box-shadow: 0 8px 15px rgba(99, 102, 241, 0.35) !important; 
+  }
+
+  .rating-box:hover .rating-label:not(.btn-check:checked + .rating-label) {
+    border-color: #6366f1;
+    color: #6366f1;
+    background-color: rgba(99, 102, 241, 0.05);
   }
   
-  /* Círculos Glow */
-  .auth-fluid-circles { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; width: 100%; height: 100%; }
-  .auth-fluid-circles [class^="circle-"] { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0) 70%); border: 1px solid rgba(99, 102, 241, 0.1); }
-  .circle-1 { width: 500px; height: 500px; } .circle-2 { width: 850px; height: 850px; } .circle-3 { width: 1200px; height: 1200px; }
+  /* --- Círculos de Fondo con Animación Suave --- */
+  .auth-fluid-circles { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; width: 100%; height: 100%; pointer-events: none; }
+  .auth-fluid-circles [class^="circle-"] { 
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+    border-radius: 50%; background: radial-gradient(circle, rgba(99, 102, 241, 0.07) 0%, rgba(99, 102, 241, 0) 70%); 
+    border: 1px solid rgba(99, 102, 241, 0.08); 
+  }
+  .circle-1 { width: 500px; height: 500px; } 
+  .circle-2 { width: 850px; height: 850px; } 
+  .circle-3 { width: 1200px; height: 1200px; }
+  .circle-4 { width: 1550px; height: 1550px; }
   
+  /* --- UI Helpers --- */
   .custom-gradient-progress { background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%); }
   .custom-input { background-color: #f8fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 12px !important; }
+  .custom-input:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important; }
+  
+  .btn-soft-danger { background-color: rgba(250, 92, 124, 0.1); color: #fa5c7c; }
+  .bg-soft-primary { background-color: rgba(99, 102, 241, 0.1); }
+  
   .font-10 { font-size: 10px; } .font-11 { font-size: 11px; } .font-12 { font-size: 12px; }
-  .animate-fade-in { animation: fadeIn 0.4s ease-out; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+  .animate-fade-in { animation: fadeIn 0.45s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+  
+  /* Quitar el outline azul de los botones en Chrome */
+  .btn:focus, .btn-check:focus + .btn { box-shadow: none !important; outline: none !important; }
 </style>
