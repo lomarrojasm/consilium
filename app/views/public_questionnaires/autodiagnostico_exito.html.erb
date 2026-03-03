@@ -89,8 +89,10 @@
         <div class="text-center mt-5 web-only">
           <h5 class="fw-bold text-dark mb-3">¿Cómo transformar estos resultados?</h5>
           <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
-            <%= link_to autodiagnostico_pdf_path(@questionnaire), class: "btn btn-primary btn-lg rounded-pill px-5 shadow-sm", data: { turbo: false } do %>
-              Descargar Reporte PDF <i class="ri-file-pdf-line ms-1"></i>
+            <%= link_to autodiagnostico_pdf_path(@questionnaire.signed_id), 
+                class: "btn btn-primary rounded-pill px-4 shadow-sm", 
+                data: { turbo: false } do %>
+              <i class="ri-file-pdf-line me-1"></i> Descargar Reporte
             <% end %>
 
             <%# Enlace secundario de salida %>

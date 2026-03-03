@@ -3,7 +3,7 @@ class QuestionnaireMailer < ApplicationMailer
     @questionnaire = questionnaire
     
     # Generamos el URL seguro usando signed_id (dura 1 mes por defecto)
-    @download_url = autodiagnostico_pdf_url(@questionnaire.to_signed_id)
+    @download_url = autodiagnostico_pdf_url(@questionnaire.signed_id)
 
     mail(
       to: @questionnaire.email,
