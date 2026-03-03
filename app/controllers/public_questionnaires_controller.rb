@@ -63,8 +63,8 @@ class PublicQuestionnairesController < ApplicationController
     )
 
     grover = Grover.new(html, 
-      display_url: request.base_url,
-      wait_until: 'networkidle2',
+      display_url: "http://localhost:80",
+      wait_until: 'networkidle0',
       print_background: true,
       format: 'A4',
       margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
