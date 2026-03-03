@@ -23,7 +23,7 @@ class PublicQuestionnairesController < ApplicationController
       render :new, status: :unprocessable_entity
     end
   end
-
+  
   # --- NUEVO MÉTODO DE ÉXITO ---
   def exito
     # Simplemente renderizará la vista de agradecimiento
