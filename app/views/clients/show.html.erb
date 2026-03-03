@@ -25,11 +25,12 @@
                     <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown">
                         <i class="ri-more-2-fill"></i>
                     </a>
-                    <div class="dropdown-menu dropdown-menu-end">
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0">
                         <%= link_to edit_client_path(@client), class: "dropdown-item" do %>
-                            <i class="ri-edit-line me-1"></i> Editar Cliente
+                            <i class="ri-edit-line me-1 text-muted"></i> Editar Cliente
                         <% end %>
                         <% if current_user.role == "admin" %>
+                            <div class="dropdown-divider"></div>
                             <button class="dropdown-item text-danger" onclick="confirmDeleteClient()">
                                 <i class="ri-delete-bin-line me-1"></i> Eliminar
                             </button>
@@ -37,16 +38,18 @@
                     </div>
                 </div>
 
-                <% if @client.avatar.attached? %>
-                    <%= image_tag url_for(@client.avatar), class: "rounded-circle avatar-lg img-thumbnail shadow-sm" %>
-                <% else %>
-                    <%= image_tag "icono_consilium.jpg", class: "rounded-circle avatar-lg img-thumbnail shadow-sm" %>
-                <% end %>
+                <div class="position-relative d-inline-block mb-2">
+                  <% if @client.avatar.attached? %>
+                      <%= image_tag url_for(@client.avatar), class: "rounded-circle avatar-lg img-thumbnail shadow-sm", style: "width: 96px; height: 96px; object-fit: cover;" %>
+                  <% else %>
+                      <%= image_tag "icono_consilium.jpg", class: "rounded-circle avatar-lg img-thumbnail shadow-sm", style: "width: 96px; height: 96px; object-fit: cover;" %>
+                  <% end %>
+                </div>
 
-                <h4 class="mb-0 mt-2 text-primary"><%= @client.company_name %></h4>
+                <h4 class="mb-0 mt-2 text-primary fw-bold"><%= @client.company_name %></h4>
                 <p class="text-muted font-13 fw-bold mb-2"><%= @client.trade_name %></p>
                 
-                <div class="badge bg-soft-primary text-primary border border-primary border-opacity-25 px-2 py-1 mb-3">
+                <div class="badge badge-outline-primary px-2 py-1 mb-3">
                     RFC: <%= @client.rfc %>
                 </div>
 
@@ -58,7 +61,7 @@
                     
                     <h5 class="font-12 text-uppercase text-muted fw-bold mb-2">Ubicación Fiscal</h5>
                     <p class="text-muted font-12 mb-0">
-                        <i class="ri-map-pin-2-line me-1"></i>
+                        <i class="ri-map-pin-2-line me-1 text-danger"></i>
                         <%= "#{@client.tax_street} #{@client.tax_no_ext}, #{@client.tax_suburb}, CP #{@client.tax_cp}" %><br>
                         <%= "#{@client.tax_city}, #{@client.tax_town_hall}, #{@client.country}" %>
                     </p>
@@ -66,18 +69,17 @@
             </div>
         </div>
 
-        <%# CONTACTOS CLAVE (Diseño Compacto) %>
+        <%# DIRECTORIO CLAVE %>
         <div class="card shadow-sm border-0">
             <div class="card-body">
-                <h4 class="header-title mb-3"><i class="ri-contacts-book-2-line me-1"></i> Directorio Clave</h4>
+                <h4 class="header-title mb-3"><i class="ri-contacts-book-2-line me-1 text-primary"></i> Directorio Clave</h4>
                 
-                <%# Contacto Principal (Destacado) %>
-                <div class="bg-light p-2 rounded mb-3 border-start border-3 border-primary">
-                    <h6 class="m-0 text-primary font-13"><%= @client.sponsor_name %></h6>
+                <div class="bg-light p-2 rounded mb-3 border-start border-3 border-primary shadow-none">
+                    <h6 class="m-0 text-primary fw-bold font-13"><%= @client.sponsor_name %></h6>
                     <small class="text-muted d-block"><%= @client.sponsor_position %> (Sponsor)</small>
                     <div class="mt-1">
-                        <%= mail_to @client.sponsor_email, class: "btn btn-xs btn-light" do %><i class="ri-mail-line"></i><% end %>
-                        <%= phone_to @client.sponsor_cel, class: "btn btn-xs btn-light" do %><i class="ri-phone-line"></i><% end %>
+                        <%= mail_to @client.sponsor_email, class: "btn btn-xs btn-white border shadow-none" do %><i class="ri-mail-line text-info"></i><% end %>
+                        <%= phone_to @client.sponsor_cel, class: "btn btn-xs btn-white border shadow-none" do %><i class="ri-phone-line text-success"></i><% end %>
                     </div>
                 </div>
 
@@ -91,8 +93,8 @@
                     ].each do |contact| %>
                         <% next if contact[:name].blank? %>
                         <div class="inbox-item py-2 border-bottom border-light">
-                            <p class="inbox-item-author mb-0 font-13 fw-bold"><%= contact[:name] %></p>
-                            <p class="inbox-item-text mb-0 font-11"><%= contact[:pos] %></p>
+                            <p class="inbox-item-author mb-0 font-13 fw-bold text-dark"><%= contact[:name] %></p>
+                            <p class="inbox-item-text mb-0 font-11 text-muted"><%= contact[:pos] %></p>
                             <p class="inbox-item-date">
                                 <%= mail_to contact[:email], class: "text-info me-1" do %><i class="ri-mail-line"></i><% end %>
                                 <%= phone_to contact[:cel], class: "text-success" do %><i class="ri-whatsapp-line"></i><% end %>
@@ -104,44 +106,44 @@
         </div>
     </div>
 
-    <%# --- COLUMNA DERECHA: DASHBOARD Y TABS --- %>
+    <%# --- COLUMNA DERECHA --- %>
     <div class="col-xl-8 col-lg-7">
         
-        <%# TARJETAS DE DIMENSIONAMIENTO (KPIs) %>
+        <%# TARJETAS KPI %>
         <div class="row">
             <div class="col-md-3">
-                <div class="card shadow-sm border-0 text-center py-2">
+                <div class="card shadow-sm border-0 text-center">
                     <div class="card-body">
                         <i class="ri-calendar-line font-24 text-primary"></i>
                         <h3 class="my-1"><%= @client.operation_year %></h3>
-                        <p class="text-muted mb-0 font-12 text-uppercase">Años Operando</p>
+                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold">Años Operando</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card shadow-sm border-0 text-center py-2">
+                <div class="card shadow-sm border-0 text-center">
                     <div class="card-body">
                         <i class="ri-group-line font-24 text-info"></i>
                         <h3 class="my-1"><%= @client.total_employee %></h3>
-                        <p class="text-muted mb-0 font-12 text-uppercase">Empleados</p>
+                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold">Empleados</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card shadow-sm border-0 text-center py-2">
+                <div class="card shadow-sm border-0 text-center">
                     <div class="card-body">
                         <i class="ri-map-pin-line font-24 text-success"></i>
                         <h3 class="my-1"><%= @client.total_location %></h3>
-                        <p class="text-muted mb-0 font-12 text-uppercase">Sucursales</p>
+                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold">Sucursales</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card shadow-sm border-0 text-center py-2">
+                <div class="card shadow-sm border-0 text-center">
                     <div class="card-body">
                         <i class="ri-service-line font-24 text-warning"></i>
-                        <h3 class="my-1" style="font-size: 1.2rem;"><%= truncate(@client.product_service, length: 15) %></h3>
-                        <p class="text-muted mb-0 font-12 text-uppercase">Productos</p>
+                        <h3 class="my-1 text-truncate px-1" style="font-size: 1.1rem;"><%= @client.product_service %></h3>
+                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold">Productos</p>
                     </div>
                 </div>
             </div>
@@ -171,7 +173,7 @@
                     <%# TAB: PROYECTOS %>
                     <div class="tab-pane show active" id="projects">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4 class="header-title mb-0 text-primary">Portafolio de Proyectos</h4>
+                            <h4 class="header-title mb-0 text-primary fw-bold">Portafolio de Proyectos</h4>
                             <% if current_user.role == 'admin' %>
                                 <%= link_to new_client_project_path(@client), class: "btn btn-sm btn-primary shadow-sm" do %>
                                     <i class="ri-add-line me-1"></i> Nuevo Proyecto
@@ -183,29 +185,29 @@
                             <% if @client.projects.any? %>
                                 <% @client.projects.each do |project| %>
                                     <div class="col-md-6">
-                                        <div class="card border shadow-none mb-3">
+                                        <div class="card border shadow-none mb-3 hover-shadow-sm transition-all">
                                             <div class="card-body">
                                                 <div class="dropdown float-end">
                                                     <a href="#" class="dropdown-toggle arrow-none text-muted" data-bs-toggle="dropdown">
                                                         <i class="ri-more-fill"></i>
                                                     </a>
-                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                    <div class="dropdown-menu dropdown-menu-end shadow border-0">
                                                         <%= link_to "Gestionar", client_project_path(@client, project), class: "dropdown-item" %>
                                                         <%= link_to "Editar", edit_client_project_path(@client, project), class: "dropdown-item" %>
                                                     </div>
                                                 </div>
-                                                <h5 class="mt-0"><%= link_to project.name, client_project_path(@client, project), class: "text-title" %></h5>
+                                                <h5 class="mt-0 fw-bold"><%= link_to project.name, client_project_path(@client, project), class: "text-title" %></h5>
                                                 <div class="badge bg-soft-<%= project.status_color %> text-<%= project.status_color %> border border-<%= project.status_color %> border-opacity-25 mb-3">
                                                     <%= project.status&.humanize&.upcase %>
                                                 </div>
-                                                <p class="text-muted font-13"><%= truncate(project.details, length: 80) %></p>
+                                                <p class="text-muted font-13 mb-3"><%= truncate(project.details, length: 80) %></p>
                                                 
                                                 <div class="mt-2">
                                                     <div class="d-flex justify-content-between mb-1">
-                                                        <span class="font-12">Progreso</span>
-                                                        <span class="font-12 fw-bold"><%= project.progress_percentage %>%</span>
+                                                        <span class="font-12 fw-bold">Avance</span>
+                                                        <span class="font-12 fw-bold text-<%= project.status_color %>"><%= project.progress_percentage %>%</span>
                                                     </div>
-                                                    <div class="progress progress-sm">
+                                                    <div class="progress progress-sm" style="height: 6px;">
                                                         <div class="progress-bar bg-<%= project.status_color %>" style="width: <%= project.progress_percentage %>%"></div>
                                                     </div>
                                                 </div>
@@ -216,7 +218,7 @@
                             <% else %>
                                 <div class="col-12 text-center py-5">
                                     <i class="ri-clipboard-line font-40 text-muted opacity-25"></i>
-                                    <p class="text-muted mt-2">No hay proyectos activos para este cliente.</p>
+                                    <p class="text-muted mt-2">No hay proyectos registrados.</p>
                                 </div>
                             <% end %>
                         </div>
@@ -226,7 +228,7 @@
                     <div class="tab-pane" id="context">
                         <div class="row">
                             <div class="col-md-6 border-end">
-                                <h5 class="text-uppercase font-12 fw-bold text-muted mb-3"><i class="ri-error-warning-line me-1 text-danger"></i> Diagnóstico Inicial</h5>
+                                <h5 class="text-uppercase font-11 fw-bold text-muted mb-3"><i class="ri-error-warning-line me-1 text-danger"></i> Diagnóstico Inicial</h5>
                                 <div class="timeline-alt pb-0">
                                     <div class="timeline-item">
                                         <i class="ri-record-circle-line text-danger timeline-icon"></i>
@@ -240,34 +242,22 @@
                                         <div class="timeline-item-info">
                                             <h6 class="mt-0 mb-1 fw-bold">Objetivo del Proyecto</h6>
                                             <p class="text-muted font-13"><%= @client.project_objective %></p>
-                                            <small class="text-danger fw-bold">Deadline: <%= @client.deadline %></small>
+                                            <small class="badge badge-outline-danger">Deadline: <%= @client.deadline %></small>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <h5 class="text-uppercase font-12 fw-bold text-muted mt-4 mb-3"><i class="ri-global-line me-1 text-primary"></i> Presencia Digital</h5>
-                                <p class="font-13 mb-1"><strong>Web:</strong> <%= @client.web_page.present? ? link_to(@client.web_page, "https://#{@client.web_page}", target: "_blank") : "No registrada" %></p>
-                                <div class="mt-2">
-                                    <% @client.social_network.to_s.split("\n").each do |net| %>
-                                        <span class="badge badge-soft-primary me-1"><%= net.strip %></span>
-                                    <% end %>
                                 </div>
                             </div>
 
                             <div class="col-md-6">
-                                <h5 class="text-uppercase font-12 fw-bold text-muted mb-3"><i class="ri-cpu-line me-1 text-info"></i> Infraestructura Tecnológica</h5>
+                                <h5 class="text-uppercase font-11 fw-bold text-muted mb-3"><i class="ri-cpu-line me-1 text-info"></i> Infraestructura Tecnológica</h5>
                                 <div class="table-responsive">
-                                    <table class="table table-sm table-borderless font-13">
-                                        <tr><td class="fw-bold">ERP / Admin:</td><td><%= @client.erp_system %></td></tr>
-                                        <tr><td class="fw-bold">Contabilidad:</td><td><%= @client.accounting_system %></td></tr>
-                                        <tr><td class="fw-bold">RH / Nómina:</td><td><%= @client.rrhh_system %></td></tr>
-                                        <tr><td class="fw-bold">CRM / Ventas:</td><td><%= @client.crm_system %></td></tr>
-                                        <tr><td class="fw-bold">Documentos:</td><td><%= @client.storage_system %></td></tr>
+                                    <table class="table table-sm table-borderless font-13 mb-0">
+                                        <tr><td class="fw-bold text-muted" style="width: 40%;">ERP / Admin:</td><td><%= @client.erp_system %></td></tr>
+                                        <tr><td class="fw-bold text-muted">Contabilidad:</td><td><%= @client.accounting_system %></td></tr>
+                                        <tr><td class="fw-bold text-muted">RH / Nómina:</td><td><%= @client.rrhh_system %></td></tr>
+                                        <tr><td class="fw-bold text-muted">CRM / Ventas:</td><td><%= @client.crm_system %></td></tr>
+                                        <tr><td class="fw-bold text-muted">Documentos:</td><td><%= @client.storage_system %></td></tr>
                                     </table>
-                                </div>
-                                <div class="bg-light p-2 rounded mt-2">
-                                    <h6 class="font-12 fw-bold m-0 text-primary">Enlace Interno Consilium</h6>
-                                    <p class="font-12 mb-0"><%= @client.internal_responsible_name %> (<%= @client.internal_responsible_contact %>)</p>
                                 </div>
                             </div>
                         </div>
@@ -275,29 +265,40 @@
                         <%# TABLA DE USUARIOS DEL SISTEMA %>
                         <div class="mt-4 pt-3 border-top">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="header-title m-0">Usuarios con Acceso</h5>
+                                <h5 class="header-title m-0 text-dark fw-bold">Usuarios con Acceso</h5>
+                                <%# BOTÓN MODAL CONFIGURADO %>
                                 <% if current_user.role == 'admin' %>
-                                    <%= link_to new_user_invitation_path(client_id: @client.id), class: "btn btn-xs btn-outline-primary" do %>
-                                        <i class="ri-user-add-line"></i> Invitar
-                                    <% end %>
+                                    <button type="button" class="btn btn-xs btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
+                                        <i class="ri-user-add-line me-1"></i> Invitar Usuario
+                                    </button>
                                 <% end %>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-sm table-centered table-nowrap mb-0 font-12">
                                     <thead class="table-light">
-                                        <tr><th>Nombre</th><th>Rol</th><th>Estatus</th></tr>
+                                        <tr>
+                                          <th>Nombre del Usuario</th>
+                                          <th>Rol</th>
+                                          <th>Estatus</th>
+                                          <th class="text-end">Acciones</th>
+                                        </tr>
                                     </thead>
                                     <tbody>
                                         <% @client.users.each do |user| %>
                                             <tr>
-                                                <td class="fw-bold"><%= user.full_name %></td>
-                                                <td><span class="badge bg-soft-secondary text-secondary"><%= user.role %></span></td>
+                                                <td class="fw-bold text-dark"><%= user.full_name %></td>
+                                                <td><span class="badge badge-outline-secondary"><%= user.role&.humanize %></span></td>
                                                 <td>
-                                                    <% if user.invitation_accepted_at %>
-                                                        <span class="text-success"><i class="ri-checkbox-circle-fill"></i> Activo</span>
-                                                    <% else %>
-                                                        <span class="text-warning"><i class="ri-time-line"></i> Pendiente</span>
-                                                    <% end %>
+                                                    <span class="badge bg-<%= user.invitation_accepted_at ? 'success' : 'warning' %>-lighten text-<%= user.invitation_accepted_at ? 'success' : 'warning' %>">
+                                                        <%= user.invitation_accepted_at ? 'Activo' : 'Pendiente' %>
+                                                    </span>
+                                                </td>
+                                                <td class="text-end">
+                                                  <% if current_user.role == 'admin' %>
+                                                      <%= link_to user_path(user), class: "btn btn-xs btn-light shadow-none", data: { bs_toggle: "tooltip" }, title: "Ver Perfil" do %>
+                                                          <i class="ri-eye-line text-muted"></i>
+                                                      <% end %>
+                                                  <% end %>
                                                 </td>
                                             </tr>
                                         <% end %>
@@ -307,50 +308,41 @@
                         </div>
                     </div>
 
-                    <%# TAB: COMUNICACIÓN (CHATS) %>
+                    <%# TAB: COMUNICACIÓN %>
                     <div class="tab-pane" id="communication">
-                        <div class="bg-soft-primary p-3 rounded mb-4">
-                            <h5 class="mt-0 font-14"><i class="ri-chat-voice-line me-1"></i> Nueva Conversación</h5>
+                        <div class="bg-soft-primary p-3 rounded mb-4 border border-primary border-opacity-10">
+                            <h5 class="mt-0 font-14 fw-bold text-primary"><i class="ri-chat-voice-line me-1"></i> Iniciar Conversación</h5>
                             <div class="d-flex flex-wrap gap-2">
                                 <% @client.users.where.not(id: current_user.id).each do |user| %>
-                                    <%= button_to client_conversations_path(@client), params: { recipient_id: user.id }, class: "btn btn-sm btn-white border shadow-sm rounded-pill" do %>
-                                        <i class="ri-message-3-line text-success"></i> <%= user.first_name %>
+                                    <%= button_to client_conversations_path(@client), params: { recipient_id: user.id }, class: "btn btn-sm btn-white border shadow-sm rounded-pill font-12" do %>
+                                        <i class="ri-message-3-line text-success me-1"></i> <%= user.first_name %>
                                     <% end %>
                                 <% end %>
                             </div>
                         </div>
-
                         <div class="list-group list-group-flush">
                             <% if @conversations.any? %>
                                 <% @conversations.each do |conversation| %>
                                     <% other_user = (conversation.sender == current_user) ? conversation.recipient : conversation.sender %>
                                     <% last_msg = conversation.messages.chronological.last %>
-                                    <div class="list-group-item d-flex align-items-center border-bottom border-light px-0">
+                                    <div class="list-group-item d-flex align-items-center px-0 py-2">
                                         <div class="avatar-xs me-2">
-                                            <span class="avatar-title rounded-circle bg-soft-info text-info font-12 fw-bold">
-                                                <%= other_user.first_name[0] %>
-                                            </span>
+                                            <span class="avatar-title rounded-circle bg-soft-info text-info font-12 fw-bold"><%= other_user.first_name[0] %></span>
                                         </div>
                                         <div class="flex-grow-1 overflow-hidden">
-                                            <h6 class="m-0"><%= link_to other_user.full_name, client_conversation_messages_path(@client, conversation), class: "text-body" %></h6>
-                                            <small class="text-muted text-truncate d-block">
-                                                <%= last_msg ? truncate(last_msg.body, length: 50) : "Sin mensajes aún" %>
-                                            </small>
+                                            <h6 class="m-0 font-13"><%= link_to other_user.full_name, client_conversation_messages_path(@client, conversation), class: "text-body fw-bold" %></h6>
+                                            <small class="text-muted text-truncate d-block font-12"><%= last_msg ? truncate(last_msg.body, length: 60) : "Sin mensajes" %></small>
                                         </div>
                                         <div class="text-end">
-                                            <small class="font-10 text-muted"><%= last_msg ? time_ago_in_words(last_msg.messaged_at) : "" %></small>
+                                            <small class="font-10 text-muted d-block"><%= last_msg ? time_ago_in_words(last_msg.messaged_at) : "" %></small>
                                             <% if current_user.role == 'admin' %>
-                                                <%= button_to client_conversation_path(@client, conversation), method: :delete, class: "btn btn-xs btn-link text-danger p-0 ms-1", form: { onsubmit: "confirmarEliminacionChat(event, this)" } do %>
-                                                    <i class="ri-delete-bin-line"></i>
-                                                <% end %>
+                                                <%= button_to client_conversation_path(@client, conversation), method: :delete, class: "btn btn-xs btn-link text-danger p-0", form: { onsubmit: "confirmarEliminacionChat(event, this)" } do %><i class="ri-delete-bin-line"></i><% end %>
                                             <% end %>
                                         </div>
                                     </div>
                                 <% end %>
                             <% else %>
-                                <div class="text-center py-5">
-                                    <p class="text-muted">No hay hilos de conversación activos.</p>
-                                </div>
+                                <div class="text-center py-5"><p class="text-muted font-13">No hay conversaciones activas.</p></div>
                             <% end %>
                         </div>
                     </div>
@@ -360,11 +352,60 @@
     </div>
 </div>
 
+<%# --- MODAL DE INVITACIÓN (VINCULADO A ESTE CLIENTE) --- %>
+<div class="modal fade" id="inviteUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0 text-start">
+      <div class="modal-header bg-primary p-3 text-white">
+        <h5 class="modal-title"><i class="ri-user-add-line me-1"></i> Invitar Usuario a <%= @client.company_name %></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <%= form_for(User.new, url: user_invitation_path, html: { method: :post, class: "p-3" }) do |f| %>
+        <%= f.hidden_field :client_id, value: @client.id %>
+        <div class="modal-body p-0 text-start">
+          <div class="row g-2 mb-3">
+            <div class="col-md-6 text-start">
+              <label class="form-label font-13 fw-bold text-dark">Nombre</label>
+              <%= f.text_field :first_name, class: "form-control", placeholder: "Ej. Juan", required: true %>
+            </div>
+            <div class="col-md-6 text-start">
+              <label class="form-label font-13 fw-bold text-dark">Apellido</label>
+              <%= f.text_field :last_name, class: "form-control", placeholder: "Ej. Pérez", required: true %>
+            </div>
+          </div>
+          <div class="mb-3 text-start">
+            <label class="form-label font-13 fw-bold text-dark">Correo Electrónico</label>
+            <%= f.email_field :email, class: "form-control", placeholder: "usuario@dominio.com", required: true %>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6 text-start">
+              <label class="form-label font-13 fw-bold text-dark">Rol de Sistema</label>
+              <%= f.select :role, [['Usuario (Estándar)', 'user'], ['Administrador', 'admin']], {}, class: "form-select" %>
+            </div>
+            <div class="col-md-6 text-start">
+              <label class="form-label font-13 fw-bold text-dark">Empresa</label>
+              <input type="text" class="form-control bg-light" value="<%= @client.company_name %>" disabled>
+            </div>
+          </div>
+          <div class="mb-0 text-start">
+            <label class="form-label font-13 fw-bold text-dark">Puesto / Cargo</label>
+            <%= f.text_field :job_title, class: "form-control", placeholder: "Ej. Gerente Comercial" %>
+          </div>
+        </div>
+        <div class="modal-footer px-0 pb-0 pt-3">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <%= f.submit "Enviar Invitación", class: "btn btn-primary px-4 shadow-sm" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
 <script>
   function confirmDeleteClient() {
     Swal.fire({
       title: '¿Eliminar Cliente?',
-      text: "Se borrará permanentemente '<%= @client.company_name %>' y toda su información fiscal y de contacto.",
+      text: "Esta acción borrará permanentemente a '<%= @client.company_name %>' y toda su información.",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#fa5c7c',
@@ -374,7 +415,6 @@
       reverseButtons: true
     }).then((result) => {
       if (result.isConfirmed) {
-        // Ejecutar eliminación (Ajustar según ruta real)
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '<%= client_path(@client) %>';
@@ -389,7 +429,7 @@
     event.preventDefault();
     Swal.fire({
       title: '¿Eliminar chat?',
-      text: "Esta acción no se puede deshacer.",
+      text: "Se borrará el historial de mensajes.",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#fa5c7c',

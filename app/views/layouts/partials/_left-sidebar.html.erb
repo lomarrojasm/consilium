@@ -63,6 +63,14 @@
             <span> Clientes </span>
           <% end %>
         </li>
+        <li class="side-nav-title side-nav-item">Configuración</li>
+
+        <li class="side-nav-item">
+          <%= link_to users_path, class: "side-nav-link" do %>
+            <i class="ri-group-line"></i>
+            <span> Usuarios del Sistema </span>
+          <% end %>
+        </li>
       <% else %>
         <li class="side-nav-item">
           <a href="<%= client_dashboard_path %>" class="side-nav-link">

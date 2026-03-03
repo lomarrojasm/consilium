@@ -9,14 +9,14 @@
                         <i class="ri-calendar-todo-line me-1"></i> Ver Cronograma
                     <% end %>
                     
-                    <% if can_edit_project?(@project) %>
+                    <%# SEGURIDAD: Solo Admin o Líder gestionan Equipo y Configuración del Proyecto %>
+                    <% if ['admin', 'lider'].include?(current_project_role) %>
                         <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#membersModal">
                             <i class="ri-group-line me-1"></i> Equipo
                         </button>
                         <%= link_to edit_client_project_path(@client, @project), class: "btn btn-light shadow-sm" do %>
                             <i class="ri-settings-3-line"></i>
                         <% end %>
-                        <%# BOTÓN DE ELIMINAR CON SWEETALERT %>
                         <button type="button" class="btn btn-outline-danger shadow-sm" onclick="confirmDeleteProject()">
                             <i class="ri-delete-bin-line"></i>
                         </button>
@@ -47,7 +47,6 @@
                             <span class="badge bg-info-lighten text-info border border-info"><%= @project.status&.humanize&.upcase || "SIN ESTATUS" %></span>
                         </div>
                     </div>
-                    <%# NUEVO: PRESUPUESTO ANTES DEL COSTO REAL %>
                     <div class="col-md-2 mt-3 mt-md-0 border-start border-white border-opacity-25">
                         <p class="mb-0 opacity-75 font-12 text-uppercase fw-bold">Presupuesto</p>
                         <h3 class="text-white my-0"><%= number_to_currency(@project.budget || 0) %></h3>
@@ -131,7 +130,7 @@
     </div>
 </div>
 
-<%# --- TABLA DE ACTIVIDADES (Acordeones Contraídos) --- %>
+<%# --- TABLA DE ACTIVIDADES --- %>
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -140,7 +139,8 @@
                 <%= link_to comments_client_project_path(@client, @project), class: "btn btn-sm btn-outline-primary" do %>
                     <i class="ri-chat-history-line me-1"></i> Bitácora (<%= @project.comments.count %>)
                 <% end %>
-                <% if can_edit_project?(@project) %>
+                <%# SEGURIDAD: Solo Analistas o superiores pueden crear tareas %>
+                <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
                     <%= link_to new_client_project_activity_path(@client, @project), class: "btn btn-sm btn-primary" do %>
                         <i class="ri-add-line"></i> Nueva Tarea
                     <% end %>
@@ -152,12 +152,9 @@
             <% @stages.each do |stage| %>
                 <div class="card mb-2 border shadow-none">
                     <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom py-2">
-                        <%# Cambiamos a la clase 'collapsed' para que inicie cerrado %>
                         <a class="text-dark d-flex align-items-center flex-grow-1 collapsed" data-bs-toggle="collapse" href="#stage-<%= stage.id %>">
                             <i class="ri-folder-6-line me-2 text-primary font-20"></i> 
                             <h5 class="m-0 font-15 fw-bold me-3"><%= stage.name %></h5>
-                            
-                            <%# BARRA DE PROGRESO DE LA ETAPA RE-INSERTADA %>
                             <div class="d-none d-md-flex align-items-center flex-grow-1" style="max-width: 200px;">
                                 <div class="progress progress-sm w-100 me-2" style="height: 6px;">
                                     <div class="progress-bar bg-success" role="progressbar" style="width: <%= stage.progress_percentage %>%;"></div>
@@ -166,24 +163,24 @@
                             </div>
                         </a>
                         
-                        <div class="d-flex align-items-center gap-3">
-                            <% if can_edit_project?(@project) %>
-                                <div class="dropdown">
-                                    <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown"><i class="ri-more-2-fill text-muted"></i></a>
-                                    <div class="dropdown-menu dropdown-menu-end shadow border-0">
-                                        <%= link_to edit_client_project_stage_path(@client, @project, stage), class: "dropdown-item" do %>
-                                            <i class="ri-edit-line me-1"></i> Editar Etapa
-                                        <% end %>
+                        <%# SEGURIDAD: Senior puede editar. Solo Líder/Admin borran etapa %>
+                        <% if ['admin', 'lider', 'senior'].include?(current_project_role) %>
+                            <div class="dropdown">
+                                <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown"><i class="ri-more-2-fill text-muted"></i></a>
+                                <div class="dropdown-menu dropdown-menu-end shadow border-0">
+                                    <%= link_to edit_client_project_stage_path(@client, @project, stage), class: "dropdown-item" do %>
+                                        <i class="ri-edit-line me-1"></i> Editar Etapa
+                                    <% end %>
+                                    <% if ['admin', 'lider'].include?(current_project_role) %>
                                         <%= button_to client_project_stage_path(@client, @project, stage), method: :delete, class: "dropdown-item text-danger", form: { onsubmit: "return confirm('¿Borrar etapa?');" } do %>
                                             <i class="ri-delete-bin-line me-1"></i> Eliminar
                                         <% end %>
-                                    </div>
+                                    <% end %>
                                 </div>
-                            <% end %>
-                        </div>
+                            </div>
+                        <% end %>
                     </div>
 
-                    <%# Quitamos la clase 'show' para que esté contraído por defecto %>
                     <div id="stage-<%= stage.id %>" class="collapse">
                         <div class="card-body p-0">
                             <div class="table-responsive">
@@ -205,7 +202,8 @@
                                         <% stage.activities.order(:month, :week).each do |activity| %>
                                             <tr>
                                                 <td class="text-center">
-                                                    <% if can_edit_project?(@project) %>
+                                                    <%# SEGURIDAD: Solo Analistas o superiores interactúan con el Checkbox %>
+                                                    <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
                                                         <div class="form-check form-checkbox-success d-inline-block">
                                                             <input type="checkbox" class="form-check-input" 
                                                                    <%= 'checked' if activity.completed %> 
@@ -250,7 +248,8 @@
                                                             <% end %>
                                                         <% end %>
                                                         
-                                                        <% if can_edit_project?(@project) %>
+                                                        <%# SEGURIDAD: Solo Analistas o superiores suben evidencia %>
+                                                        <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
                                                             <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary" 
                                                                     onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>')" 
                                                                     data-bs-toggle="tooltip" title="Subir Evidencia">
@@ -260,16 +259,19 @@
                                                     </div>
                                                 </td>
                                                 <td class="text-end">
-                                                    <% if can_edit_project?(@project) %>
+                                                    <%# SEGURIDAD: Solo Analistas o superiores editan tareas. Solo Líder/Admin eliminan %>
+                                                    <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
                                                         <div class="dropdown">
                                                             <a href="#" class="text-muted dropdown-toggle arrow-none" data-bs-toggle="dropdown"><i class="ri-more-fill"></i></a>
                                                             <div class="dropdown-menu dropdown-menu-end shadow border-0">
                                                                 <%= link_to edit_client_project_activity_path(@client, @project, activity), class: "dropdown-item font-13" do %>
                                                                     <i class="ri-edit-line me-1"></i> Editar
                                                                 <% end %>
-                                                                <%= link_to client_project_activity_path(@client, @project, activity), 
-                                                                    data: { turbo_method: :delete, turbo_confirm: "¿Eliminar actividad?" }, class: "dropdown-item text-danger font-13" do %>
-                                                                    <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                                                <% if ['admin', 'lider'].include?(current_project_role) %>
+                                                                    <%= link_to client_project_activity_path(@client, @project, activity), 
+                                                                        data: { turbo_method: :delete, turbo_confirm: "¿Eliminar actividad?" }, class: "dropdown-item text-danger font-13" do %>
+                                                                        <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                                                    <% end %>
                                                                 <% end %>
                                                             </div>
                                                         </div>
@@ -286,7 +288,8 @@
             <% end %>
         </div>
         
-        <% if can_edit_project?(@project) %>
+        <%# SEGURIDAD: Senior o superiores agregan etapas %>
+        <% if ['admin', 'lider', 'senior'].include?(current_project_role) %>
             <div class="text-center mb-4">
                 <%= link_to new_client_project_stage_path(@client, @project), class: "btn btn-outline-primary btn-sm border-dashed w-100 py-2" do %>
                     <i class="ri-add-circle-line me-1"></i> Agregar Nueva Etapa de Proyecto
@@ -302,9 +305,12 @@
         <div class="card border shadow-none">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
                 <h5 class="card-title m-0 font-14"><i class="ri-folder-zip-line me-1 text-primary"></i> Repositorio de Documentos</h5>
-                <%= form_with(model: [@client, @project], local: true, html: { multipart: true, class: "d-flex gap-2" }) do |f| %>
-                    <%= f.file_field :files, multiple: true, class: "form-control form-control-sm", style: "width: 250px;" %>
-                    <button type="submit" class="btn btn-sm btn-primary"><i class="ri-upload-cloud-2-line"></i></button>
+                <%# SEGURIDAD: Solo Analistas o superiores suben al repositorio general %>
+                <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
+                    <%= form_with(model: [@client, @project], local: true, html: { multipart: true, class: "d-flex gap-2" }) do |f| %>
+                        <%= f.file_field :files, multiple: true, class: "form-control form-control-sm", style: "width: 250px;" %>
+                        <button type="submit" class="btn btn-sm btn-primary"><i class="ri-upload-cloud-2-line"></i></button>
+                    <% end %>
                 <% end %>
             </div>
             <div class="card-body p-3">
@@ -326,8 +332,11 @@
                                             <%= link_to rails_blob_path(file, disposition: "attachment"), class: "dropdown-item font-12" do %>
                                                 <i class="ri-download-line me-1"></i> Descargar
                                             <% end %>
-                                            <%= button_to delete_file_client_project_path(@client, @project, attachment_id: file.id), method: :delete, class: "dropdown-item text-danger font-12", form: { onsubmit: "return confirm('¿Eliminar archivo?');" } do %>
-                                                <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                            <%# SEGURIDAD: Solo Líder o Admin pueden borrar archivos del repositorio %>
+                                            <% if ['admin', 'lider'].include?(current_project_role) %>
+                                                <%= button_to delete_file_client_project_path(@client, @project, attachment_id: file.id), method: :delete, class: "dropdown-item text-danger font-12", form: { onsubmit: "return confirm('¿Eliminar archivo?');" } do %>
+                                                    <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                                <% end %>
                                             <% end %>
                                         </div>
                                     </div>
@@ -357,26 +366,29 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="bg-light p-3 rounded mb-4">
-                    <h6 class="fw-bold mb-3 font-13">Agregar Miembro</h6>
-                    <%= form_with(url: client_project_project_members_path(@client, @project), scope: :project_member, local: true) do |f| %>
-                        <div class="form-floating mb-3">
-                            <%= f.collection_select :user_id, @eligible_users, :id, :full_name, { prompt: "" }, { class: "form-select", required: true } %>
-                            <label>Seleccionar Usuario</label>
-                        </div>
-                        <div class="row g-2 align-items-center">
-                            <div class="col-8">
-                                <div class="form-floating">
-                                    <%= f.select :role, [['Líder', 'lider'], ['Senior', 'senior'], ['Analista', 'analista'], ['Espectador', 'espectador']], {}, class: "form-select" %>
-                                    <label>Rol asignado</label>
+                <%# SEGURIDAD: Solo Admin/Líder ve el formulario de agregar miembros %>
+                <% if ['admin', 'lider'].include?(current_project_role) %>
+                    <div class="bg-light p-3 rounded mb-4">
+                        <h6 class="fw-bold mb-3 font-13">Agregar Miembro</h6>
+                        <%= form_with(url: client_project_project_members_path(@client, @project), scope: :project_member, local: true) do |f| %>
+                            <div class="form-floating mb-3">
+                                <%= f.collection_select :user_id, @eligible_users, :id, :full_name, { prompt: "" }, { class: "form-select", required: true } %>
+                                <label>Seleccionar Usuario</label>
+                            </div>
+                            <div class="row g-2 align-items-center">
+                                <div class="col-8">
+                                    <div class="form-floating">
+                                        <%= f.select :role, [['Líder', 'lider'], ['Senior', 'senior'], ['Analista', 'analista'], ['Espectador', 'espectador']], {}, class: "form-select" %>
+                                        <label>Rol asignado</label>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <%= f.submit "Añadir", class: "btn btn-primary w-100 py-2 h-100" %>
                                 </div>
                             </div>
-                            <div class="col-4">
-                                <%= f.submit "Añadir", class: "btn btn-primary w-100 py-2 h-100" %>
-                            </div>
-                        </div>
-                    <% end %>
-                </div>
+                        <% end %>
+                    </div>
+                <% end %>
 
                 <h6 class="fw-bold mb-2 font-13 text-muted uppercase">Miembros Actuales</h6>
                 <div class="list-group list-group-flush">
@@ -397,8 +409,11 @@
                                     <small class="text-muted"><%= membership.role&.humanize %></small>
                                 </div>
                             </div>
-                            <%= button_to client_project_project_member_path(@client, @project, membership), method: :delete, class: "btn btn-xs btn-outline-danger border-0", form: { onsubmit: "return confirm('¿Quitar del equipo?');" } do %>
-                                <i class="ri-close-line"></i>
+                            <%# Solo Admin/Líder quita miembros %>
+                            <% if ['admin', 'lider'].include?(current_project_role) %>
+                                <%= button_to client_project_project_member_path(@client, @project, membership), method: :delete, class: "btn btn-xs btn-outline-danger border-0", form: { onsubmit: "return confirm('¿Quitar del equipo?');" } do %>
+                                    <i class="ri-close-line"></i>
+                                <% end %>
                             <% end %>
                         </div>
                     <% end %>
@@ -408,7 +423,7 @@
     </div>
 </div>
 
-<%# Modal Carga Evidencia (CORREGIDO CON TOKEN) %>
+<%# Modal Carga Evidencia %>
 <div class="modal fade" id="uploadEvidenceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content shadow-lg border-0">
@@ -428,11 +443,9 @@
         <div class="modal-body p-4">
           <p class="mb-1 text-muted font-12 uppercase fw-bold">Actividad:</p>
           <h5 id="modalActivityName" class="text-primary mt-0 mb-4"></h5>
-          
           <div class="alert alert-info border-0 font-13 mb-4">
             <i class="ri-information-line me-1"></i> Para marcar esta tarea como terminada, por favor adjunta el archivo de evidencia correspondiente.
           </div>
-
           <div class="mb-3">
             <label class="form-label font-13 fw-bold">Archivo de Evidencia</label>
             <%= f.file_field :evidence, class: "form-control", required: true %>
@@ -447,40 +460,34 @@
   </div>
 </div>
 
+<%# --- SCRIPTS --- %>
 <script>
-    // Función para confirmar eliminación del proyecto con SweetAlert2
     function confirmDeleteProject() {
         Swal.fire({
             title: '¿Eliminar Proyecto?',
-            text: "Esta acción borrará permanentemente el proyecto '<%= @project.name %>', todas sus etapas, tareas y archivos adjuntos. ¡No se puede deshacer!",
+            text: "Esta acción borrará permanentemente el proyecto '<%= @project.name %>', sus etapas, tareas y archivos. ¡No se puede deshacer!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#fa5c7c', // Color Danger de Hyper
+            confirmButtonColor: '#fa5c7c',
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Sí, eliminar todo',
             cancelButtonText: 'Cancelar',
             reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
-                // Creamos un formulario dinámico para enviar el DELETE vía Turbo/Rails
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '<%= client_project_path(@client, @project) %>';
-
-                // Input para el método DELETE
                 const methodInput = document.createElement('input');
                 methodInput.type = 'hidden';
                 methodInput.name = '_method';
                 methodInput.value = 'delete';
                 form.appendChild(methodInput);
-
-                // Token CSRF de Rails
                 const csrfInput = document.createElement('input');
                 csrfInput.type = 'hidden';
                 csrfInput.name = 'authenticity_token';
                 csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
                 form.appendChild(csrfInput);
-
                 document.body.appendChild(form);
                 form.submit();
             }

@@ -1,63 +1,128 @@
-<div class="row justify-content-center">
-  <div class="col-lg-6">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="header-title mb-3">Editar Usuario</h4>
+<div class="container-fluid">
+  <%# --- BREADCRUMBS --- %>
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Editar Perfil de Usuario</h4>
+        <ol class="breadcrumb m-0">
+          <li class="breadcrumb-item"><%= link_to "Usuarios", users_path %></li>
+          <li class="breadcrumb-item active">Editar Usuario</li>
+        </ol>
+      </div>
+    </div>
+  </div>
 
-        <%= form_with(model: @user, local: true) do |f| %>
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
           
-          <% if @user.errors.any? %>
-            <div class="alert alert-danger">
-              <ul class="mb-0">
-                <% @user.errors.full_messages.each do |msg| %>
-                  <li><%= msg %></li>
-                <% end %>
-              </ul>
-            </div>
+          <%= form_with(model: @user, local: true, class: "needs-validation") do |f| %>
+            <div class="row">
+              
+              <%# --- COLUMNA IZQUIERDA: AVATAR Y ESTADO --- %>
+              <div class="col-xl-4 border-end">
+                <div class="text-center p-3">
+                  <div class="position-relative d-inline-block mb-3">
+                    <% if @user.avatar.attached? %>
+                      <%= image_tag @user.avatar, class: "rounded-circle img-thumbnail shadow-sm", style: "width: 120px; height: 120px; object-fit: cover;" %>
+                    <% else %>
+                      <div class="avatar-xl d-inline-block">
+                        <span class="avatar-title bg-soft-primary text-primary rounded-circle font-24 fw-bold">
+                          <%= @user.first_name[0] %><%= @user.last_name[0] %>
+                        </span>
+                      </div>
+                    <% end %>
+                  </div>
+
+                  <h4 class="mb-1"><%= @user.full_name %></h4>
+                  <p class="text-muted font-13 mb-3"><%= @user.job_title %></p>
+
+                  <div class="mb-4 text-start">
+                    <label class="form-label font-12 fw-bold text-uppercase">Cambiar Foto</label>
+                    <%= f.file_field :avatar, class: "form-control form-control-sm" %>
+                  </div>
+
+                  <hr>
+
+                  <div class="bg-light p-2 rounded">
+                    <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0">
+                      <label class="form-check-label fw-bold font-13" for="user_active">Estatus de Cuenta</label>
+                      <div class="ms-auto">
+                        <%= f.check_box :active, class: "form-check-input ms-0", style: "cursor: pointer;" %>
+                      </div>
+                    </div>
+                    <small class="text-muted d-block mt-1">Si se desactiva, el usuario no podrá iniciar sesión.</small>
+                  </div>
+                </div>
+              </div>
+
+              <%# --- COLUMNA DERECHA: DATOS --- %>
+              <div class="col-xl-8">
+                <div class="p-3">
+                  <h5 class="text-uppercase mt-0 mb-3 text-primary"><i class="ri-contacts-line me-1"></i> Información Personal</h5>
+                  
+                  <% if @user.errors.any? %>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                      <ul class="mb-0">
+                        <% @user.errors.full_messages.each do |msg| %>
+                          <li><%= msg %></li>
+                        <% end %>
+                      </ul>
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                  <% end %>
+
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <%= f.label :first_name, "Nombre", class: "form-label fw-bold" %>
+                      <%= f.text_field :first_name, class: "form-control", placeholder: "Nombre del usuario" %>
+                    </div>
+                    <div class="col-md-6">
+                      <%= f.label :last_name, "Apellido", class: "form-label fw-bold" %>
+                      <%= f.text_field :last_name, class: "form-control", placeholder: "Apellido del usuario" %>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <%= f.label :email, "Correo Electrónico Corporativo", class: "form-label fw-bold" %>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="ri-mail-line"></i></span>
+                      <%= f.email_field :email, class: "form-control", placeholder: "usuario@consilium.com", required: true %>
+                    </div>
+                  </div>
+
+                  <h5 class="text-uppercase mt-4 mb-3 text-primary"><i class="ri-shield-user-line me-1"></i> Configuración de Acceso</h5>
+
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <%= f.label :job_title, "Puesto / Cargo", class: "form-label fw-bold" %>
+                      <%= f.text_field :job_title, class: "form-control", placeholder: "Ej. Director General" %>
+                    </div>
+                    <div class="col-md-6">
+                      <%= f.label :role, "Rol en el Sistema", class: "form-label fw-bold" %>
+                      <%# REGLA APLICADA: Solo Admin y User %>
+                      <%= f.select :role, [['Administrador (Poder Total)', 'admin'], ['Usuario (Acceso Estándar)', 'user']], {}, { class: "form-select" } %>
+                    </div>
+                  </div>
+
+                  <div class="mb-4">
+                    <%= f.label :client_id, "Empresa / Cliente Asociado", class: "form-label fw-bold" %>
+                    <%= f.collection_select :client_id, Client.all, :id, :company_name, { include_blank: "Staff Interno (Consilium)" }, { class: "form-select" } %>
+                  </div>
+
+                  <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <%= link_to "Cancelar", users_path, class: "btn btn-light px-4" %>
+                    <%= f.submit "Guardar Cambios", class: "btn btn-primary px-4 shadow-sm" %>
+                  </div>
+
+                </div>
+              </div> <%# /col-xl-8 %>
+            </div> <%# /row %>
           <% end %>
 
-          <div class="row mb-3">
-            <div class="col-6">
-              <%= f.label :first_name, "Nombre", class: "form-label" %>
-              <%= f.text_field :first_name, class: "form-control" %>
-            </div>
-            <div class="col-6">
-              <%= f.label :last_name, "Apellido", class: "form-label" %>
-              <%= f.text_field :last_name, class: "form-control" %>
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <%= f.label :email, "Correo Electrónico", class: "form-label" %>
-            <%= f.email_field :email, class: "form-control", required: true %>
-          </div>
-
-          <div class="row mb-3">
-            <div class="col-6">
-              <%= f.label :job_title, "Puesto / Título", class: "form-label" %>
-              <%= f.text_field :job_title, class: "form-control" %>
-            </div>
-            <div class="col-6">
-              <%= f.label :role, "Rol de acceso", class: "form-label" %>
-              <%= f.select :role, User.roles.keys.map { |r| [r.humanize, r] }, {}, { class: "form-select" } %>
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <div class="form-check">
-                <%= f.check_box :active, class: "form-check-input" %>
-                <%= f.label :active, "Usuario Activo", class: "form-check-label" %>
-            </div>
-          </div>
-
-          <div class="d-grid mb-0 text-center">
-            <%= f.submit "Actualizar Usuario", class: "btn btn-primary" %>
-          </div>
-
-        <% end %>
-
-        <div class="text-center mt-3">
-            <%= link_to "Cancelar y volver", client_path(@user.client_id), class: "text-muted" %>
-        </div>
-
-      </div> </div> </div> </div>
+        </div> <%# /card-body %>
+      </div> <%# /card %>
+    </div> <%# /col-lg-10 %>
+  </div>
+</div>

@@ -1,5 +1,7 @@
 class Users::InvitationsController < Devise::InvitationsController
   before_action :configure_permitted_parameters
+  # Solo el admin puede llegar al formulario de invitar y enviar la invitación
+  before_action :authorize_admin!, only: [:new, :create]
 
   # GET /resource/invitation/new
   def new

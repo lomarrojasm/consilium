@@ -3,7 +3,9 @@ class ActivitiesController < ApplicationController
   before_action :set_context
 
   #Autorozacoión de usuarios
-  before_action :authorize_project_member!
+  # Todos pueden ver el proyecto, pero solo el Líder/Senior puede crear/editar actividades
+  before_action :authorize_project_member!, only: [:index, :show]
+  before_action :authorize_lider_or_senior!, only: [:new, :create, :edit, :update, :destroy]
 
   def new
   @activity = @project.activities.build

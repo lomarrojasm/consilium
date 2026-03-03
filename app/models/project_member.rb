@@ -7,5 +7,5 @@ class ProjectMember < ApplicationRecord
   validates :user_id, uniqueness: { scope: :project_id, message: "ya es parte del equipo" }
   
   # Roles internos del proyecto (opcional, pero útil para costos)
-  enum :role, { lider: 'Líder', senior: 'Senior', analista: 'Analista', espectador: 'Espectador' }
+  enum :role, { lider: 'Líder', senior: 'Senior', analista: 'Analista', espectador: 'Espectador' }, default: 'espectador'
 end

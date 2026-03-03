@@ -9,6 +9,11 @@ class UsersController < ApplicationController
   def show
   end
 
+  def index
+    # Cargamos todos los usuarios, incluyendo su cliente para evitar consultas N+1
+    @users = User.includes(:client).all.order(created_at: :desc)
+  end
+
   # GET /users/1/edit
   def edit
   end
@@ -21,8 +26,8 @@ class UsersController < ApplicationController
     end
 
     if @user.update(user_params)
-      # Redireccionamos al cliente al que pertenece el usuario
-      redirect_to client_path(@user.client_id), notice: 'Usuario actualizado correctamente.'
+      # Si viene de la administración general, regresamos al index de users
+      redirect_to users_path, notice: 'Usuario actualizado correctamente.'
     else
       render :edit, status: :unprocessable_entity
     end
