@@ -5,7 +5,7 @@
       <div class="page-title-box">
         <div class="page-title-right">
           <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
-            <i class="ri-user-add-line me-1"></i> Invitar Miembro
+            <i class="ri-user-add-line me-1"></i> Invitar Usuario
           </button>
         </div>
         <h4 class="page-title">Administración de Usuarios</h4>
@@ -15,41 +15,60 @@
 
   <%# --- WIDGETS DE ESTADO --- %>
   <div class="row">
-    <div class="col-md-6 col-xl-3">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <div class="row align-items-center">
-            <div class="col-6">
-              <h5 class="text-muted fw-normal mt-0">Total Equipo</h5>
-              <h3 class="my-2 py-1"><%= @users.count %></h3>
-            </div>
-            <div class="col-6 text-end">
-              <div class="avatar-sm bg-primary-lighten rounded">
-                <i class="ri-group-line font-24 avatar-title text-primary"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <div class="row align-items-center">
-            <div class="col-6">
-              <h5 class="text-muted fw-normal mt-0">Confirmados</h5>
-              <h3 class="my-2 py-1 text-success"><%= @users.where.not(invitation_accepted_at: nil).count %></h3>
-            </div>
-            <div class="col-6 text-end">
-              <div class="avatar-sm bg-success-lighten rounded">
-                <i class="ri-user-check-line font-24 avatar-title text-success"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+    <%# TOTAL DE USUARIOS %>
+    <div class="col-md-6 col-xl-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-6">
+                        <h5 class="text-muted fw-normal mt-0 text-truncate" title="Total de Usuarios">Total Usuarios</h5>
+                        <h3 class="my-2 py-1"><%= @users.count %></h3>
+                        <p class="mb-0 text-muted">
+                            <span class="text-primary me-2"><i class="ri-team-line"></i></span>
+                            <span class="text-nowrap">Registrados</span>
+                        </p>
+                    </div>
+                </div>
+            </div> <%# end card-body %>
+        </div> <%# end card %>
+    </div> <%# end col %>
+
+    <%# USUARIOS ACTIVOS %>
+    <div class="col-md-6 col-xl-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-6">
+                        <h5 class="text-muted fw-normal mt-0 text-truncate" title="Usuarios Activos">Usuarios Activos</h5>
+                        <h3 class="my-2 py-1 text-success"><%= @users.where.not(invitation_accepted_at: nil).count %></h3>
+                        <p class="mb-0 text-muted">
+                            <span class="text-success me-2"><i class="ri ri-checkbox-circle-line"></i></span>
+                            <span class="text-nowrap">Confirmados</span>
+                        </p>
+                    </div>
+                </div>
+            </div> <%# end card-body %>
+        </div> <%# end card %>
+    </div> <%# end col %>
+
+    <%# INVITACIONES PENDIENTES %>
+    <div class="col-md-6 col-xl-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-6">
+                        <h5 class="text-muted fw-normal mt-0 text-truncate" title="Invitaciones Pendientes">Pendientes</h5>
+                        <h3 class="my-2 py-1 text-warning"><%= @users.where(invitation_accepted_at: nil).count %></h3>
+                        <p class="mb-0 text-muted">
+                            <span class="text-warning me-2"><i class="ri-mail-send-line"></i></span>
+                            <span class="text-nowrap">Por aceptar</span>
+                        </p>
+                    </div>
+                </div>
+            </div> <%# end card-body %>
+        </div> <%# end card %>
+    </div> <%# end col %>
+</div>
 
   <%# --- TABLA DE USUARIOS --- %>
   <div class="row">
@@ -57,7 +76,7 @@
       <div class="card border-0 shadow-sm">
         <div class="card-body">
           <div class="table-responsive">
-            <table class="table table-centered table-hover dt-responsive nowrap w-100">
+            <table class="table table-centered table-hover dt-responsive nowrap w-100" id="users-datatable">
               <thead class="table-light">
                 <tr>
                   <th>Usuario</th>
@@ -193,3 +212,25 @@
     </div>
   </div>
 </div>
+
+
+<% content_for :javascript do %>
+    <%= javascript_include_tag 'pages/clients/users-table.js', defer: true %>
+    <script>
+        function confirmarEliminacion(event, formulario) {
+            event.preventDefault();
+            Swal.fire({
+                title: '¿Eliminar cliente?',
+                text: "No podrás recuperar sus datos y proyectos asociados.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#fa5c7c',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) { formulario.submit(); }
+            });
+        }
+    </script>
+<% end %>

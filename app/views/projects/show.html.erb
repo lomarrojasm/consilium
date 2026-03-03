@@ -318,23 +318,41 @@
                     <% if @project.files.attached? %>
                         <% @project.files.each do |file| %>
                             <div class="col-md-3 col-sm-6 mb-2">
-                                <div class="p-2 border rounded d-flex align-items-center justify-content-between bg-light bg-opacity-25">
+                                <div class="p-2 border rounded d-flex align-items-center justify-content-between bg-light bg-opacity-25 shadow-none">
                                     <div class="d-flex align-items-center overflow-hidden">
-                                        <i class="ri-file-line font-24 text-secondary me-2"></i>
+                                        <%# Icono con enlace para Previsualizar/Ver directamente %>
+                                        <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", class: "text-secondary me-2" do %>
+                                            <i class="ri-file-line font-24"></i>
+                                        <% end %>
                                         <div class="overflow-hidden">
-                                            <h6 class="font-12 mb-0 text-truncate" title="<%= file.filename %>"><%= file.filename %></h6>
-                                            <small class="text-muted"><%= number_to_human_size(file.byte_size) %></small>
+                                            <%# Nombre del archivo clickable para ver %>
+                                            <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", class: "text-body d-block" do %>
+                                                <h6 class="font-12 mb-0 text-truncate fw-bold" title="<%= file.filename %>"><%= file.filename %></h6>
+                                            <% end %>
+                                            <small class="text-muted font-11"><%= number_to_human_size(file.byte_size) %></small>
                                         </div>
                                     </div>
+                                    
                                     <div class="dropdown">
                                         <a href="#" class="dropdown-toggle arrow-none text-muted" data-bs-toggle="dropdown"><i class="ri-more-v-line"></i></a>
                                         <div class="dropdown-menu dropdown-menu-end shadow border-0">
-                                            <%= link_to rails_blob_path(file, disposition: "attachment"), class: "dropdown-item font-12" do %>
-                                                <i class="ri-download-line me-1"></i> Descargar
+                                            <%# OPCIÓN 1: VER (Inline) %>
+                                            <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", class: "dropdown-item font-12" do %>
+                                                <i class="ri-eye-line me-1 text-primary"></i> Ver en línea
                                             <% end %>
-                                            <%# SEGURIDAD: Solo Líder o Admin pueden borrar archivos del repositorio %>
+                                            
+                                            <%# OPCIÓN 2: DESCARGAR (Attachment) %>
+                                            <%= link_to rails_blob_path(file, disposition: "attachment"), class: "dropdown-item font-12" do %>
+                                                <i class="ri-download-line me-1 text-success"></i> Descargar
+                                            <% end %>
+
+                                            <%# SEGURIDAD: Solo Líder o Admin pueden borrar archivos %>
                                             <% if ['admin', 'lider'].include?(current_project_role) %>
-                                                <%= button_to delete_file_client_project_path(@client, @project, attachment_id: file.id), method: :delete, class: "dropdown-item text-danger font-12", form: { onsubmit: "return confirm('¿Eliminar archivo?');" } do %>
+                                                <div class="dropdown-divider"></div>
+                                                <%= button_to delete_file_client_project_path(@client, @project, attachment_id: file.id), 
+                                                    method: :delete, 
+                                                    class: "dropdown-item text-danger font-12", 
+                                                    form: { onsubmit: "return confirm('¿Eliminar este archivo permanentemente?');" } do %>
                                                     <i class="ri-delete-bin-line me-1"></i> Eliminar
                                                 <% end %>
                                             <% end %>
