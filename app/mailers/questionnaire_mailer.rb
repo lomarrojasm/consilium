@@ -5,6 +5,8 @@ class QuestionnaireMailer < ApplicationMailer
   def diagnostic_report(questionnaire)
     @questionnaire = questionnaire
     @company_name = @questionnaire.company_name
+    # IMPORTANTE: Definimos aquí lo que la vista recorre con 'each'
+    @questions = ApplicationController.helpers.get_autodiagnostico_questions
 
     # 1. Renderizamos el HTML usando el contexto de ApplicationController.
     # Esto inyecta automáticamente los helpers de rutas y evita el error de "nil"
@@ -14,7 +16,9 @@ class QuestionnaireMailer < ApplicationMailer
       layout: 'pdf',
       assigns: { 
         questionnaire: @questionnaire, 
-        company_name: @company_name 
+        company_name: @company_name,
+        # PASAMOS LA COLECCIÓN QUE FALTA PARA EVITAR EL ERROR NIL:
+        questions: @questions 
       }
     )
 
