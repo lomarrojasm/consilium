@@ -55,19 +55,28 @@ class PublicQuestionnairesController < ApplicationController
 
   # --- 3. GENERACIÓN DE PDF ---
   def download_pdf
-    @questionnaire = ProspectQuestionnaire.find(params[:id])
-    set_scores_from_answers
+    # 1. SEGURIDAD: Usamos find_signed para que nadie pueda adivinar IDs de otros reportes
+    # Si prefieres usar IDs normales, cambia a: @questionnaire = ProspectQuestionnaire.find(params[:id])
+    @questionnaire = ProspectQuestionnaire.find_signed!(params[:id])
+    
+    # 2. LÓGICA DE DATOS: Ejecutamos tus métodos para calcular promedios
+    set_scores_from_answers 
 
+    # 3. EL FIX PARA EL ERROR NIL: Cargamos las preguntas que la vista intenta recorrer
+    # Esto evita el error "undefined method each_with_index for nil"
+    @questions = helpers.get_autodiagnostico_questions 
+
+    # 4. RENDERIZADO DEL HTML
     html = render_to_string(
       template: 'public_questionnaires/autodiagnostico_exito',
       layout: 'pdf', 
       formats: [:html]
     )
 
-    # 1. LA VARIABLE DEBE ESTAR AQUÍ: Justo después del HTML y antes de Grover
+    # 5. CONFIGURACIÓN DE URL BASE (Para Docker/Producción)
     base_url_for_pdf = Rails.env.production? ? "http://127.0.0.1:80" : request.base_url
 
-    # 2. SE LA PASAMOS A GROVER
+    # 6. GENERACIÓN CON GROVER
     grover = Grover.new(html, 
       display_url: base_url_for_pdf,
       wait_until: 'networkidle0',
@@ -80,15 +89,19 @@ class PublicQuestionnairesController < ApplicationController
 
     pdf = grover.to_pdf
 
+    # 7. ENTREGA DEL ARCHIVO
     send_data pdf, 
               filename: "Reporte_Consilium_#{@questionnaire.company_name.parameterize}.pdf", 
               type: 'application/pdf',
               disposition: 'attachment'
+
+  rescue ActiveSupport::MessageVerifier::InvalidSignature
+    redirect_to root_path, alert: "El enlace de descarga es inválido o ha expirado."
   rescue => e
-    # Agregamos esto para que, si falla, el error exacto se guarde en los logs
+    # Captura de errores para depuración
     logger.error "Error generando PDF: #{e.message}"
     logger.error e.backtrace.join("\n")
-    redirect_to autodiagnostico_exito_path(@questionnaire), alert: "Hubo un problema al generar el PDF. Por favor, intenta de nuevo."
+    redirect_to autodiagnostico_exito_path(@questionnaire), alert: "Hubo un problema al generar el PDF."
   end
 
   private
