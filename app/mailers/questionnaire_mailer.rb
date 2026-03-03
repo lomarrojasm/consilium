@@ -28,7 +28,7 @@ class QuestionnaireMailer < ApplicationMailer
 
     mail(
       to: @questionnaire.email, # Asegúrate de que tu modelo tenga el campo :email
-      bcc: "omar.rojas@ligoconsulting.com"
+      bcc: "omar.rojas@ligoconsulting.com",
       subject: "Tu Diagnóstico Empresarial Consilium - #{@company_name}"
     )
   end

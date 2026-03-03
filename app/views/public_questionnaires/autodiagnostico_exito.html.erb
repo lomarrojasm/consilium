@@ -89,6 +89,10 @@
             <%= link_to autodiagnostico_pdf_path(@questionnaire), class: "btn btn-primary btn-lg rounded-pill px-5 shadow-sm", data: { turbo: false } do %>
               Descargar Reporte PDF <i class="ri-file-pdf-line ms-1"></i>
             <% end %>
+
+            <%# Enlace secundario de salida %>
+            <%= link_to "Finalizar y Salir", new_user_session_path, class: "text-muted font-12 fw-bold text-decoration-none" %>
+            
           </div>
         </div>
 
