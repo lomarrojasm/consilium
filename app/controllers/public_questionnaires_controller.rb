@@ -62,15 +62,18 @@ class PublicQuestionnairesController < ApplicationController
       formats: [:html]
     )
 
+    # 1. LA VARIABLE DEBE ESTAR AQUÍ: Justo después del HTML y antes de Grover
+    base_url_for_pdf = Rails.env.production? ? "http://localhost:80" : request.base_url
+
+    # 2. SE LA PASAMOS A GROVER
     grover = Grover.new(html, 
       display_url: base_url_for_pdf,
       wait_until: 'networkidle0',
       print_background: true,
       format: 'A4',
       margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
-      # El viewport obliga a Bootstrap a usar el diseño de escritorio (side-by-side)
       viewport: { width: 1024, height: 1400 },
-      launch_args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+      launch_args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     )
 
     pdf = grover.to_pdf
@@ -79,6 +82,11 @@ class PublicQuestionnairesController < ApplicationController
               filename: "Reporte_Consilium_#{@questionnaire.company_name.parameterize}.pdf", 
               type: 'application/pdf',
               disposition: 'attachment'
+  rescue => e
+    # Agregamos esto para que, si falla, el error exacto se guarde en los logs
+    logger.error "Error generando PDF: #{e.message}"
+    logger.error e.backtrace.join("\n")
+    redirect_to autodiagnostico_exito_path(@questionnaire), alert: "Hubo un problema al generar el PDF. Por favor, intenta de nuevo."
   end
 
   private
