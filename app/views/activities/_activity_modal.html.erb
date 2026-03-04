@@ -1,0 +1,142 @@
+<%# app/views/activities/_activity_modal.html.erb %>
+
+<%# --- CABECERA DEL MODAL --- %>
+<div class="modal-header bg-primary text-white">
+    <h5 class="modal-title font-16 fw-bold">
+        <i class="ri-history-line me-1"></i> Seguimiento: <%= activity.name %>
+    </h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body p-4">
+    <div class="row">
+        <%# --- COLUMNA IZQUIERDA: TIMELINE (HISTORIAL) --- %>
+        <div class="col-md-6 border-end">
+            <h5 class="mb-3 font-13 fw-bold text-uppercase text-muted">Historial de Actividad</h5>
+            <div class="timeline-alt pb-0" style="max-height: 450px; overflow-y: auto;" data-simplebar>
+                <% if activity.activity_logs.any? %>
+                    <% activity.activity_logs.order(created_at: :desc).each do |log| %>
+                        <div class="timeline-item">
+                            <%# Color de icono según el estado del log %>
+                            <% status_class = case log.status 
+                                when 'approved' then 'success'
+                                when 'rejected' then 'danger'
+                                else 'warning'
+                               end %>
+                            <i class="ri-record-circle-line text-<%= status_class %> timeline-icon"></i>
+                            
+                            <div class="timeline-item-info">
+                                <small class="float-end text-muted"><%= time_ago_in_words(log.created_at) %></small>
+                                <h6 class="mt-0 mb-1 fw-bold"><%= log.user.full_name %></h6>
+                                <p class="text-muted font-13 mb-2"><%= log.comment %></p>
+                                
+                                <%# MOSTRAR ARCHIVOS ADJUNTOS DEL LOG %>
+                                <% if log.attachments.attached? %>
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                        <% log.attachments.each do |file| %>
+                                            <%= link_to rails_blob_path(file, disposition: "attachment"), class: "btn btn-xs btn-light border d-flex align-items-center py-1" do %>
+                                                <% if file.image? %>
+                                                    <i class="ri-image-line me-1 text-primary"></i>
+                                                <% else %>
+                                                    <i class="ri-file-line me-1 text-primary"></i>
+                                                <% end %>
+                                                <span class="font-10 text-truncate" style="max-width: 100px;"><%= file.filename %></span>
+                                            <% end %>
+                                        <% end %>
+                                    </div>
+                                <% end %>
+                                
+                                <span class="badge badge-soft-<%= status_class %> font-10">
+                                    <%= log.status == 'rejected' ? 'RECHAZADO' : log.status.upcase %>
+                                </span>
+                            </div>
+                        </div>
+                    <% end %>
+                <% else %>
+                    <div class="text-center py-5">
+                        <i class="ri-chat-history-line font-24 text-muted opacity-25"></i>
+                        <p class="text-muted font-13 mt-2">No hay registros de seguimiento para esta actividad.</p>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+
+        <%# --- COLUMNA DERECHA: GESTIÓN Y FORMULARIO --- %>
+        <div class="col-md-6 ps-md-4">
+            <h5 class="mb-3 font-13 fw-bold text-uppercase text-muted">Gestionar Estatus</h5>
+            
+            <%# IMPORTANTE: multipart: true para que los archivos suban al controlador %>
+            <%= form_with url: update_status_client_project_activity_path(@client, @project, activity), 
+                          method: :patch, 
+                          local: true, 
+                          multipart: true do |f| %>
+                
+                <div class="alert alert-soft-secondary border-0 mb-3 font-12">
+                    <strong>Descripción:</strong> <%= activity.description.presence || "Sin descripción adicional." %>
+                </div>
+
+                <%# Selector de Resultado Triple %>
+                <div class="mb-3">
+                    <label class="form-label font-13 fw-bold">Actualizar Resultado</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="status" id="st_approve" value="approved" <%= 'checked' if activity.status == 'approved' %>>
+                        <label class="btn btn-outline-success py-2" for="st_approve">
+                            <i class="ri-checkbox-circle-line d-block font-18"></i> Aprobar
+                        </label>
+
+                        <input type="radio" class="btn-check" name="status" id="st_pending" value="pending" <%= 'checked' if activity.status == 'pending' || activity.status.nil? %>>
+                        <label class="btn btn-outline-warning py-2" for="st_pending">
+                            <i class="ri-time-line d-block font-18"></i> Pendiente
+                        </label>
+
+                        <input type="radio" class="btn-check" name="status" id="st_deny" value="rejected" <%= 'checked' if activity.status == 'rejected' %>>
+                        <label class="btn btn-outline-danger py-2" for="st_deny">
+                            <i class="ri-close-circle-line d-block font-18"></i> Denegar
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label font-13 fw-bold">Justificación / Comentarios</label>
+                    <%= f.text_area :comment, class: "form-control", rows: 4, placeholder: "Escribe la razón del cambio de estado...", required: true %>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label font-13 fw-bold">Adjuntar Evidencias (Fotos o PDF)</label>
+                    <%# Usamos file_field_tag con 'attachments[]' para permitir múltiples archivos %>
+                    <%= file_field_tag "attachments[]", multiple: true, class: "form-control" %>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-6">
+                        <button type="button" class="btn btn-light w-100" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                    <div class="col-6">
+                        <%= f.submit "Guardar Cambios", class: "btn btn-primary w-100 shadow-sm" %>
+                    </div>
+                </div>
+            <% end %>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Timeline Estilos Internos */
+    .timeline-alt { padding: 5px 0; }
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        padding-bottom: 25px;
+        border-left: 2px solid #eef2f7;
+    }
+    .timeline-icon {
+        position: absolute;
+        left: -9px;
+        top: 0;
+        background: #fff;
+        font-size: 16px;
+        z-index: 2;
+    }
+    .timeline-item:last-child { border-left: none; }
+    .btn-xs { padding: 0.15rem 0.4rem; font-size: 0.7rem; }
+</style>

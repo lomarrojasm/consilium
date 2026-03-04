@@ -1,3 +1,5 @@
+<%# app/views/projects/show.html.erb %>
+
 <%# --- ENCABEZADO Y ACCIONES --- %>
 <div class="row">
     <div class="col-12">
@@ -9,7 +11,6 @@
                         <i class="ri-calendar-todo-line me-1"></i> Ver Cronograma
                     <% end %>
                     
-                    <%# SEGURIDAD: Solo Admin o Líder gestionan Equipo y Configuración del Proyecto %>
                     <% if ['admin', 'lider'].include?(current_project_role) %>
                         <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#membersModal">
                             <i class="ri-group-line me-1"></i> Equipo
@@ -139,7 +140,6 @@
                 <%= link_to comments_client_project_path(@client, @project), class: "btn btn-sm btn-outline-primary" do %>
                     <i class="ri-chat-history-line me-1"></i> Bitácora (<%= @project.comments.count %>)
                 <% end %>
-                <%# SEGURIDAD: Solo Analistas o superiores pueden crear tareas %>
                 <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
                     <%= link_to new_client_project_activity_path(@client, @project), class: "btn btn-sm btn-primary" do %>
                         <i class="ri-add-line"></i> Nueva Tarea
@@ -163,7 +163,6 @@
                             </div>
                         </a>
                         
-                        <%# SEGURIDAD: Senior puede editar. Solo Líder/Admin borran etapa %>
                         <% if ['admin', 'lider', 'senior'].include?(current_project_role) %>
                             <div class="dropdown">
                                 <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown"><i class="ri-more-2-fill text-muted"></i></a>
@@ -190,7 +189,7 @@
                                             <th style="width: 40px;">Status</th>
                                             <th>Mes</th>
                                             <th>Sem.</th>
-                                            <th>Actividad</th>
+                                            <th>Actividad (Timeline)</th>
                                             <th>Responsable</th>
                                             <th>Área</th>
                                             <th>Doc. Ref</th>
@@ -200,25 +199,27 @@
                                     </thead>
                                     <tbody>
                                         <% stage.activities.order(:month, :week).each do |activity| %>
-                                            <tr>
+                                            <tr class="<%= 'bg-light-subtle' if activity.status == 'rejected' %>">
                                                 <td class="text-center">
-                                                    <%# SEGURIDAD: Solo Analistas o superiores interactúan con el Checkbox %>
-                                                    <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
-                                                        <div class="form-check form-checkbox-success d-inline-block">
-                                                            <input type="checkbox" class="form-check-input" 
-                                                                   <%= 'checked' if activity.completed %> 
-                                                                   onclick="<%= activity.evidence.attached? ? "toggleActivity(this)" : "openUploadModal('#{activity.id}', '#{activity.name}')" %>">
-                                                        </div>
+                                                    <%# Indicador visual del nuevo Status %>
+                                                    <% case activity.status %>
+                                                    <% when 'approved' %>
+                                                        <i class="ri-checkbox-circle-fill font-20 text-success" data-bs-toggle="tooltip" title="Aprobada"></i>
+                                                    <% when 'rejected' %>
+                                                        <i class="ri-close-circle-fill font-20 text-danger" data-bs-toggle="tooltip" title="Denegada/Rechazada"></i>
                                                     <% else %>
-                                                        <i class="ri-checkbox-circle-fill font-18 <%= activity.completed ? 'text-success' : 'text-light' %>"></i>
+                                                        <i class="ri-time-line font-20 text-warning" data-bs-toggle="tooltip" title="Pendiente de revisión"></i>
                                                     <% end %>
                                                 </td>
                                                 <td><span class="text-muted font-12 fw-bold">Mes <%= activity.month %></span></td>
                                                 <td><span class="badge badge-outline-secondary px-1">S<%= activity.week %></span></td>
                                                 <td style="white-space: normal; min-width: 250px;">
-                                                    <span class="<%= 'text-decoration-line-through text-muted italic' if activity.completed %> font-13 fw-medium">
-                                                        <%= activity.name %>
-                                                    </span>
+                                                    <%# Disparador del Modal de Seguimiento %>
+                                                    <a href="javascript:void(0);" 
+                                                       onclick="verSeguimientoActividad('<%= activity.id %>')"
+                                                       class="<%= 'text-decoration-line-through text-muted italic' if activity.completed %> font-13 fw-medium text-body hover-primary">
+                                                        <i class="ri-history-line me-1 text-primary"></i> <%= activity.name %>
+                                                    </a>
                                                 </td>
                                                 <td>
                                                     <% if activity.responsible.present? %>
@@ -248,7 +249,6 @@
                                                             <% end %>
                                                         <% end %>
                                                         
-                                                        <%# SEGURIDAD: Solo Analistas o superiores suben evidencia %>
                                                         <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
                                                             <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary" 
                                                                     onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>')" 
@@ -259,7 +259,6 @@
                                                     </div>
                                                 </td>
                                                 <td class="text-end">
-                                                    <%# SEGURIDAD: Solo Analistas o superiores editan tareas. Solo Líder/Admin eliminan %>
                                                     <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
                                                         <div class="dropdown">
                                                             <a href="#" class="text-muted dropdown-toggle arrow-none" data-bs-toggle="dropdown"><i class="ri-more-fill"></i></a>
@@ -288,7 +287,6 @@
             <% end %>
         </div>
         
-        <%# SEGURIDAD: Senior o superiores agregan etapas %>
         <% if ['admin', 'lider', 'senior'].include?(current_project_role) %>
             <div class="text-center mb-4">
                 <%= link_to new_client_project_stage_path(@client, @project), class: "btn btn-outline-primary btn-sm border-dashed w-100 py-2" do %>
@@ -305,7 +303,6 @@
         <div class="card border shadow-none">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
                 <h5 class="card-title m-0 font-14"><i class="ri-folder-zip-line me-1 text-primary"></i> Repositorio de Documentos</h5>
-                <%# SEGURIDAD: Solo Analistas o superiores suben al repositorio general %>
                 <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
                     <%= form_with(model: [@client, @project], local: true, html: { multipart: true, class: "d-flex gap-2" }) do |f| %>
                         <%= f.file_field :files, multiple: true, class: "form-control form-control-sm", style: "width: 250px;" %>
@@ -320,12 +317,10 @@
                             <div class="col-md-3 col-sm-6 mb-2">
                                 <div class="p-2 border rounded d-flex align-items-center justify-content-between bg-light bg-opacity-25 shadow-none">
                                     <div class="d-flex align-items-center overflow-hidden">
-                                        <%# Icono con enlace para Previsualizar/Ver directamente %>
                                         <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", class: "text-secondary me-2" do %>
                                             <i class="ri-file-line font-24"></i>
                                         <% end %>
                                         <div class="overflow-hidden">
-                                            <%# Nombre del archivo clickable para ver %>
                                             <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", class: "text-body d-block" do %>
                                                 <h6 class="font-12 mb-0 text-truncate fw-bold" title="<%= file.filename %>"><%= file.filename %></h6>
                                             <% end %>
@@ -336,17 +331,12 @@
                                     <div class="dropdown">
                                         <a href="#" class="dropdown-toggle arrow-none text-muted" data-bs-toggle="dropdown"><i class="ri-more-v-line"></i></a>
                                         <div class="dropdown-menu dropdown-menu-end shadow border-0">
-                                            <%# OPCIÓN 1: VER (Inline) %>
                                             <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", class: "dropdown-item font-12" do %>
                                                 <i class="ri-eye-line me-1 text-primary"></i> Ver en línea
                                             <% end %>
-                                            
-                                            <%# OPCIÓN 2: DESCARGAR (Attachment) %>
                                             <%= link_to rails_blob_path(file, disposition: "attachment"), class: "dropdown-item font-12" do %>
                                                 <i class="ri-download-line me-1 text-success"></i> Descargar
                                             <% end %>
-
-                                            <%# SEGURIDAD: Solo Líder o Admin pueden borrar archivos %>
                                             <% if ['admin', 'lider'].include?(current_project_role) %>
                                                 <div class="dropdown-divider"></div>
                                                 <%= button_to delete_file_client_project_path(@client, @project, attachment_id: file.id), 
@@ -384,7 +374,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <%# SEGURIDAD: Solo Admin/Líder ve el formulario de agregar miembros %>
                 <% if ['admin', 'lider'].include?(current_project_role) %>
                     <div class="bg-light p-3 rounded mb-4">
                         <h6 class="fw-bold mb-3 font-13">Agregar Miembro</h6>
@@ -427,7 +416,6 @@
                                     <small class="text-muted"><%= membership.role&.humanize %></small>
                                 </div>
                             </div>
-                            <%# Solo Admin/Líder quita miembros %>
                             <% if ['admin', 'lider'].include?(current_project_role) %>
                                 <%= button_to client_project_project_member_path(@client, @project, membership), method: :delete, class: "btn btn-xs btn-outline-danger border-0", form: { onsubmit: "return confirm('¿Quitar del equipo?');" } do %>
                                     <i class="ri-close-line"></i>
@@ -476,6 +464,19 @@
       <% end %>
     </div>
   </div>
+</div>
+
+<%# MODAL GRANDE DE SEGUIMIENTO Y TIMELINE (NUEVO) %>
+<div class="modal fade" id="activityDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0" id="modalActivityDetailContent">
+            <%# El contenido se carga dinámicamente %>
+            <div class="modal-body text-center p-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Cargando historial de actividad...</p>
+            </div>
+        </div>
+    </div>
 </div>
 
 <%# --- SCRIPTS --- %>
@@ -528,4 +529,32 @@
             headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }
         }).then(() => window.location.reload());
     }
+
+    // FUNCIÓN PARA CARGAR EL TIMELINE Y GESTIÓN EN MODAL XL
+    function verSeguimientoActividad(activityId) {
+    // CAMBIO: Ahora apuntamos a /tracking
+    const url = `/clients/<%= @client.id %>/projects/<%= @project.id %>/activities/${activityId}/tracking`; 
+    
+    const contentArea = document.getElementById('modalActivityDetailContent');
+    const modalElement = document.getElementById('activityDetailModal');
+    const modal = new bootstrap.Modal(modalElement);
+
+    fetch(url, { headers: { 'Accept': 'text/html' } })
+    .then(response => response.text())
+    .then(html => {
+        contentArea.innerHTML = html;
+        modal.show();
+    });
+}
 </script>
+
+<style>
+    /* Estilos adicionales para mejorar la interacción en la tabla */
+    .hover-primary:hover {
+        color: #727cf5 !important;
+        text-decoration: underline !important;
+    }
+    .bg-light-subtle {
+        background-color: rgba(250, 92, 124, 0.05) !important;
+    }
+</style>

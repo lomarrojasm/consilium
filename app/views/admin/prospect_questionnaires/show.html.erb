@@ -5,11 +5,12 @@
         <div class="d-flex gap-2">
             <%# BOTÓN DE DESCARGA PDF (Solo visible si es Autodiagnóstico) %>
             <% if @questionnaire.answers && @questionnaire.answers['a1'].present? %>
-                <%= link_to autodiagnostico_pdf_path(@questionnaire), 
-                            class: "btn btn-sm btn-danger rounded-pill shadow-sm", 
-                            data: { turbo: false } do %>
-                    <i class="ri-file-pdf-2-line me-1"></i> Descargar Reporte PDF
-                <% end %>
+                <%= link_to autodiagnostico_pdf_path(id: @questionnaire.signed_id), 
+                        class: "btn btn-sm btn-danger rounded-pill shadow-sm", 
+                        target: "_blank", 
+                        data: { turbo: false } do %>
+                <i class="ri-file-pdf-2-line me-1"></i> Descargar Reporte PDF
+            <% end %>
             <% end %>
 
             <%# BOTÓN VOLVER %>

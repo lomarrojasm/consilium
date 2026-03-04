@@ -46,7 +46,7 @@
             
             <%# Botón PDF (Solo si tiene respuestas cuantitativas 'a1') %>
             <% if lead.answers && lead.answers['a1'].present? %>
-                <%= link_to autodiagnostico_pdf_path(lead), 
+                <%= link_to autodiagnostico_pdf_path(id: lead.signed_id), 
                             class: "btn btn-sm btn-outline-danger rounded-pill px-2",
                             title: "Descargar Reporte PDF",
                             data: { turbo: false, bs_toggle: "tooltip" } do %>

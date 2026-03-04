@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_04_182746) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_04_211614) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -63,10 +63,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_04_182746) do
     t.float "analyst_hours"
     t.bigint "user_id", null: false
     t.bigint "responsible_id"
+    t.string "status"
+    t.string "default"
+    t.string "pending"
     t.index ["area"], name: "index_activities_on_area"
     t.index ["responsible_id"], name: "index_activities_on_responsible_id"
     t.index ["stage_id"], name: "index_activities_on_stage_id"
     t.index ["user_id"], name: "index_activities_on_user_id"
+  end
+
+  create_table "activity_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "activity_id", null: false
+    t.bigint "user_id", null: false
+    t.string "status"
+    t.text "comment"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["activity_id"], name: "index_activity_logs_on_activity_id"
+    t.index ["user_id"], name: "index_activity_logs_on_user_id"
   end
 
   create_table "clients", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -449,6 +463,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_04_182746) do
   add_foreign_key "activities", "stages"
   add_foreign_key "activities", "users"
   add_foreign_key "activities", "users", column: "responsible_id"
+  add_foreign_key "activity_logs", "activities"
+  add_foreign_key "activity_logs", "users"
   add_foreign_key "conversation_participants", "conversations"
   add_foreign_key "conversation_participants", "users"
   add_foreign_key "conversations", "clients"

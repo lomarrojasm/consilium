@@ -2,6 +2,11 @@ class Activity < ApplicationRecord
   include TimelineRecordable # <--- Para Timeline
   belongs_to :stage
   belongs_to :user, optional: true # optional por si permites que el sistema complete tareas automáticamente
+  has_many :activity_logs, dependent: :destroy
+  has_many_attached :evidence_files # Para subir archivos de ejemplo/detalles
+
+  # Enumeramos los estados para facilitar la lógica
+  enum :status, { pending: 'pending', approved: 'approved', rejected: 'rejected' }
 
 
   # El responsable de la ejecución

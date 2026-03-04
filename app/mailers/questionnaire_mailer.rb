@@ -5,13 +5,15 @@ class QuestionnaireMailer < ApplicationMailer
     @questionnaire = questionnaire
 
     # Verificamos que el email exista antes de intentar enviar
-    return logger.error("No se pudo enviar el correo: Cuestionario ##{questionnaire.id} no tiene email.") if @questionnaire.email.blank?
+    if @questionnaire.email.blank?
+      return logger.error("No se pudo enviar el correo: Cuestionario ##{questionnaire.id} no tiene email.") 
+    end
     
-    # Generamos el URL seguro usando signed_id (dura 1 mes por defecto)
-    @download_url = autodiagnostico_pdf_url(@questionnaire.signed_id)
+    # Se corrige el nombre del método a signed_id (sin el prefijo 'to_')
+    @download_url = autodiagnostico_pdf_url(id: @questionnaire.signed_id)
 
     mail(
-      from: ENV['MAILER_SENDER'],
+      from: ENV['MAILER_SENDER'] || 'no-reply@consilium.com',
       to: @questionnaire.email,
       bcc: "omar.rojas@ligoconsulting.com",
       subject: "Resultados de tu Diagnóstico Consilium - #{@questionnaire.company_name}"
