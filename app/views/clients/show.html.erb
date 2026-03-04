@@ -52,6 +52,16 @@
                 <div class="badge badge-outline-primary px-2 py-1 mb-3">
                     RFC: <%= @client.rfc %>
                 </div>
+                <%# Determinar color según membresía %>
+                <% badge_class = case @client.membership
+                    when 'gold' then 'bg-warning text-dark'
+                    when 'platinum' then 'bg-primary'
+                    else 'bg-soft-info text-info'
+                end %>
+                <p class="text-muted font-13 fw-bold mb-2">Membresia</p>
+                <div class="badge <%= badge_class %> rounded-pill px-3 py-1 mb-2">
+                    <i class="ri-medal-line me-1"></i> <%= @client.membership.upcase %>
+                </div>
 
                 <div class="text-start border-top pt-3">
                     <h5 class="font-12 text-uppercase text-muted fw-bold mb-2">Datos Fiscales</h5>

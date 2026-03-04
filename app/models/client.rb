@@ -13,6 +13,8 @@ class Client < ApplicationRecord
   # --- Muchas Conversaciones ---
   has_many :conversations, dependent: :destroy
 
+  enum :membership, { basica: 0, gold: 1, platinum: 2 }, default: :basica
+
   # VALIDACIONES
   # Validamos solo lo esencial para no trabar el registro, 
   # pero el RFC debe ser único para evitar duplicados.

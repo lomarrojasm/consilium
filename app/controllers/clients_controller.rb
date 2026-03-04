@@ -120,6 +120,7 @@ class ClientsController < ApplicationController
         :web_page,
         :social_network,
         :avatar,
+        :membership,
 
         # --- Dirección Fiscal ---
         :tax_street, 
