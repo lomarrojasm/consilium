@@ -52,15 +52,15 @@
                 <div class="badge badge-outline-primary px-2 py-1 mb-3">
                     RFC: <%= @client.rfc %>
                 </div>
-                <%# Determinar color según membresía %>
+
+                <p class="text-muted font-13 fw-bold mb-2">Membresia</p>
                 <% badge_class = case @client.membership
                     when 'gold' then 'bg-warning text-dark'
                     when 'platinum' then 'bg-primary'
                     else 'bg-soft-info text-info'
                 end %>
-                <p class="text-muted font-13 fw-bold mb-2">Membresia</p>
                 <div class="badge <%= badge_class %> rounded-pill px-3 py-1 mb-2">
-                    <i class="ri-medal-line me-1"></i> <%= @client.membership.upcase %>
+                    <i class="ri-medal-line me-1"></i> <%= @client.membership&.upcase %>
                 </div>
 
                 <div class="text-start border-top pt-3">
@@ -118,7 +118,6 @@
 
     <%# --- COLUMNA DERECHA --- %>
     <div class="col-xl-8 col-lg-7">
-        
         <%# TARJETAS KPI %>
         <div class="row">
             <div class="col-md-3">
@@ -276,7 +275,6 @@
                         <div class="mt-4 pt-3 border-top">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h5 class="header-title m-0 text-dark fw-bold">Usuarios con Acceso</h5>
-                                <%# BOTÓN MODAL CONFIGURADO %>
                                 <% if current_user.role == 'admin' %>
                                     <button type="button" class="btn btn-xs btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
                                         <i class="ri-user-add-line me-1"></i> Invitar Usuario
@@ -333,20 +331,53 @@
                         <div class="list-group list-group-flush">
                             <% if @conversations.any? %>
                                 <% @conversations.each do |conversation| %>
-                                    <% other_user = (conversation.sender == current_user) ? conversation.recipient : conversation.sender %>
                                     <% last_msg = conversation.messages.chronological.last %>
                                     <div class="list-group-item d-flex align-items-center px-0 py-2">
-                                        <div class="avatar-xs me-2">
-                                            <span class="avatar-title rounded-circle bg-soft-info text-info font-12 fw-bold"><%= other_user.first_name[0] %></span>
-                                        </div>
-                                        <div class="flex-grow-1 overflow-hidden">
-                                            <h6 class="m-0 font-13"><%= link_to other_user.full_name, client_conversation_messages_path(@client, conversation), class: "text-body fw-bold" %></h6>
-                                            <small class="text-muted text-truncate d-block font-12"><%= last_msg ? truncate(last_msg.body, length: 60) : "Sin mensajes" %></small>
-                                        </div>
+                                        
+                                        <% if conversation.is_group? %>
+                                            <%# DISEÑO SEGURO PARA GRUPOS %>
+                                            <div class="avatar-xs me-2">
+                                                <span class="avatar-title rounded-circle bg-soft-warning text-warning font-12 fw-bold">G</span>
+                                            </div>
+                                            <div class="flex-grow-1 overflow-hidden">
+                                                <h6 class="m-0 font-13">
+                                                    <%= link_to conversation.name, client_conversation_messages_path(@client, conversation), class: "text-body fw-bold" %>
+                                                </h6>
+                                                <small class="text-muted text-truncate d-block font-12">
+                                                    <%= last_msg ? truncate(last_msg.body, length: 60) : "#{conversation.users.count} miembros" %>
+                                                </small>
+                                            </div>
+                                        <% else %>
+                                            <%# DISEÑO SEGURO PARA CHATS INDIVIDUALES %>
+                                            <% other_user = (conversation.sender == current_user) ? conversation.recipient : conversation.sender %>
+                                            <% if other_user %>
+                                                <div class="avatar-xs me-2">
+                                                    <% if other_user.avatar.attached? %>
+                                                        <%= image_tag url_for(other_user.avatar), class: "rounded-circle", height: "24", width: "24", style: "object-fit: cover;" %>
+                                                    <% else %>
+                                                        <span class="avatar-title rounded-circle bg-soft-info text-info font-12 fw-bold"><%= other_user.first_name[0] %></span>
+                                                    <% end %>
+                                                </div>
+                                                <div class="flex-grow-1 overflow-hidden">
+                                                    <h6 class="m-0 font-13">
+                                                        <%= link_to other_user.full_name, client_conversation_messages_path(@client, conversation), class: "text-body fw-bold" %>
+                                                    </h6>
+                                                    <small class="text-muted text-truncate d-block font-12">
+                                                        <%= last_msg ? truncate(last_msg.body, length: 60) : "Sin mensajes" %>
+                                                    </small>
+                                                </div>
+                                            <% end %>
+                                        <% end %>
+
                                         <div class="text-end">
                                             <small class="font-10 text-muted d-block"><%= last_msg ? time_ago_in_words(last_msg.messaged_at) : "" %></small>
-                                            <% if current_user.role == 'admin' %>
-                                                <%= button_to client_conversation_path(@client, conversation), method: :delete, class: "btn btn-xs btn-link text-danger p-0", form: { onsubmit: "confirmarEliminacionChat(event, this)" } do %><i class="ri-delete-bin-line"></i><% end %>
+                                            <% if current_user.role == 'admin' || (conversation.is_group? && conversation.sender_id == current_user.id) %>
+                                                <%= button_to client_conversation_path(@client, conversation), 
+                                                            method: :delete, 
+                                                            class: "btn btn-xs btn-link text-danger p-0", 
+                                                            data: { turbo_confirm: "¿Eliminar por completo esta conversación?" } do %>
+                                                    <i class="ri-delete-bin-line"></i>
+                                                <% end %>
                                             <% end %>
                                         </div>
                                     </div>
@@ -362,7 +393,7 @@
     </div>
 </div>
 
-<%# --- MODAL DE INVITACIÓN (VINCULADO A ESTE CLIENTE) --- %>
+<%# --- MODAL DE INVITACIÓN --- %>
 <div class="modal fade" id="inviteUserModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content shadow-lg border-0 text-start">
@@ -433,19 +464,5 @@
         form.submit();
       }
     });
-  }
-
-  function confirmarEliminacionChat(event, formulario) {
-    event.preventDefault();
-    Swal.fire({
-      title: '¿Eliminar chat?',
-      text: "Se borrará el historial de mensajes.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#fa5c7c',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Eliminar',
-      reverseButtons: true
-    }).then((result) => { if (result.isConfirmed) formulario.submit(); });
   }
 </script>
