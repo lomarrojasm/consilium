@@ -26,6 +26,28 @@ class Message < ApplicationRecord
     # 1. Validamos que el mensaje pertenezca a una conversación
     if self.conversation.present?
       chat = self.conversation
+
+
+      # Obtenemos los destinatarios dependiendo de si es grupo o 1 a 1
+      destinatarios = if chat.is_group?
+                        chat.users.where.not(id: self.user_id)
+                      else
+                        [(chat.sender_id == self.user_id) ? chat.recipient : chat.sender].compact
+                      end
+
+      destinatarios.each do |destinatario|
+        cache_key = "chat_#{chat.id}_user_#{destinatario.id}_online"
+        esta_conectado = Rails.cache.exist?(cache_key)
+
+        unless esta_conectado
+          Notification.create(
+            recipient: destinatario,
+            actor: self.user,
+            notifiable: self,
+            action: "messaged"
+          )
+        end
+      end
       
       # 2. Lógica para encontrar al "otro" participante:
       # Si yo (self.user) soy el que inició el chat (sender), notifico al destinatario (recipient).

@@ -1,20 +1,13 @@
 <%# app/views/messages/index.html.erb %>
 <meta name="current-user-id" content="<%= current_user.id %>">
-<meta name="user-role" content="<%= current_user.role %>">
 
-<%# 1. ENCABEZADO Y BREADCRUMBS %>
+<%# 1. ENCABEZADO %>
 <div class="row">
     <div class="col-12">
         <div class="page-title-box">
             <div class="page-title-right">
                 <ol class="breadcrumb m-0">
-                    <% if current_user.role == "admin" %>
-                        <li class="breadcrumb-item"><%= link_to "Consilium", root_path %></li>
-                        <li class="breadcrumb-item"><%= link_to "Clientes", clients_path %></li>
-                        <li class="breadcrumb-item"><%= link_to @client.company_name, client_path(@client) %></li>
-                    <% else %>
-                        <li class="breadcrumb-item"><%= link_to "Consilium", client_dashboard_path %></li>
-                    <% end %>
+                    <li class="breadcrumb-item"><%= link_to "Consilium", root_path %></li>
                     <li class="breadcrumb-item active">Chat Corporativo</li>
                 </ol>
             </div>
@@ -24,85 +17,113 @@
 </div>
 
 <div class="row">
-    <%# --- COLUMNA IZQUIERDA: PANEL DE CONTACTOS --- %>
+    <%# --- COLUMNA IZQUIERDA: SIDEBAR --- %>
     <div class="col-xxl-3 col-xl-4">
         <div class="card shadow-sm border-0">
-            <%# El controlador 'presence' maneja los puntos de conexión vía ActionCable %>
             <div class="card-body" data-controller="presence">
                 <h4 class="header-title mb-1 text-primary">
                     <i class="ri-community-line me-1"></i> 
                     <%= @client.company_name %>
                 </h4>
-                <% if current_user.role == 'admin' %>
-                    <span class="badge badge-outline-secondary font-10 mb-3">Vista de Administrador</span>
+
+                <% if current_user.role == 'admin' || @company_users.include?(current_user) %>
+                    <div class="mb-3 mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary w-100 d-flex align-items-center justify-content-center shadow-none" data-bs-toggle="modal" data-bs-target="#newGroupModal">
+                            <i class="ri-group-line me-1 font-16"></i> Nuevo Grupo de Trabajo
+                        </button>
+                    </div>
                 <% end %>
-                
-                <%# Buscador de contactos (Frontend only) %>
+
                 <div class="mb-3">
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-light text-muted">
-                            <i class="ri-search-line"></i>
-                        </span>
-                        <input type="text" class="form-control border-light bg-light" 
-                            placeholder="Buscar compañero..." 
-                            id="contact-search" 
-                            onkeyup="filterContacts()"
-                            autocomplete="off"
-                            data-ms-editor="false">
+                        <span class="input-group-text bg-light border-light text-muted"><i class="ri-search-line"></i></span>
+                        <input type="text" class="form-control border-light bg-light" placeholder="Buscar chat..." id="contact-search" onkeyup="filterContacts()">
                     </div>
                 </div>
 
-                <%# Lista de Usuarios %>
-                <div class="p-0" style="max-height: 600px; overflow-y: auto;" data-simplebar>
-                    <div id="contacts-list" data-controller="presence">
-                        <% if @company_users.any? %>
-                            <% @company_users.each do |user| %>
-                                <%# --- DEFINICIÓN DE VARIABLES NECESARIAS --- %>
-                                <%# Buscamos si ya existe conversación para mostrar el icono %>
-                                <% existing_conv = @active_conversations.find { |c| c.sender_id == user.id || c.recipient_id == user.id } %>
-                                
-                                <%# ESTA ES LA LÍNEA QUE FALTABA: Definir el path del chat %>
-                                <% chat_path = start_chat_client_conversations_path(@client, recipient_id: user.id) %>
+                <div class="p-0" style="max-height: 550px; overflow-y: auto;" data-simplebar>
+                    <div id="contacts-list">
+                        
+                        <%# SECCIÓN DE GRUPOS %>
+                        <% if @group_conversations&.any? %>
+                            <h6 class="font-11 text-muted text-uppercase mt-2 mb-2 px-2">Grupos</h6>
+                            <% @group_conversations.each do |group| %>
+                                <%# Lógica de mensajes no leídos para grupos %>
+                                <% participant = group.conversation_participants.find_by(user: current_user) %>
+                                <% unread_count = participant&.unread_messages_count || 0 %>
 
-                                <a href="<%= chat_path %>" 
-                                class="contact-item text-body d-block p-2 rounded mb-1 transition-all <%= 'active-chat border-start border-2 border-primary' if user == @chat_partner %>"
-                                data-name="<%= user.first_name.downcase %> <%= user.last_name.downcase %>"
-                                id="user-contact-<%= user.id %>">
-                                    
+                                <div class="d-flex align-items-center chat-row position-relative mb-1" id="sidebar-conv-<%= group.id %>">
+                                    <a href="<%= client_conversation_messages_path(@client, group) %>" 
+                                       class="contact-item flex-grow-1 text-body d-block p-2 rounded transition-all <%= 'active-chat border-start border-2 border-primary' if group == @conversation %>"
+                                       data-name="<%= group.name.downcase %>">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2">
+                                                <span class="avatar-title rounded-circle bg-warning text-white font-14 fw-bold shadow-sm">G</span>
+                                            </div>
+                                            <div class="flex-grow-1 overflow-hidden">
+                                                <h5 class="mt-0 mb-0 font-14 fw-semibold text-truncate">
+                                                    <%= group.name %>
+                                                    <span class="badge bg-danger rounded-pill ms-1 <%= 'd-none' if unread_count == 0 %>" id="unread-count-<%= group.id %>">
+                                                        <%= unread_count %>
+                                                    </span>
+                                                </h5>
+                                                <p class="mb-0 text-muted font-11 text-truncate"><%= group.users.count %> miembros</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <% if current_user.role == 'admin' || group.sender_id == current_user.id %>
+                                        <%= button_to client_conversation_path(@client, group), method: :delete, form: { data: { turbo_confirm: "¿Eliminar grupo para todos?" }, class: "d-inline" }, class: "btn-delete-sidebar text-danger border-0 bg-transparent p-0 me-2" do %>
+                                            <i class="ri-delete-bin-line"></i>
+                                        <% end %>
+                                    <% end %>
+                                </div>
+                            <% end %>
+                            <hr class="my-2 border-dashed">
+                        <% end %>
+
+                        <%# SECCIÓN DE CHATS INDIVIDUALES %>
+                        <h6 class="font-11 text-muted text-uppercase mt-2 mb-2 px-2">Mensajes Directos</h6>
+                        <% @company_users.each do |user| %>
+                            <% conv_ind = @active_conversations.find { |c| !c.is_group? && (c.sender_id == user.id || c.recipient_id == user.id) } %>
+                            <%# Lógica de mensajes no leídos para individuales %>
+                            <% unread_count = 0 %>
+                            <% if conv_ind %>
+                                <% participant = conv_ind.conversation_participants.find_by(user: current_user) %>
+                                <% unread_count = participant&.unread_messages_count || 0 %>
+                            <% end %>
+
+                            <div class="d-flex align-items-center chat-row position-relative mb-1" id="sidebar-user-<%= user.id %>">
+                                <a href="<%= start_chat_client_conversations_path(@client, recipient_id: user.id) %>" 
+                                   class="contact-item flex-grow-1 text-body d-block p-2 rounded transition-all <%= 'active-chat border-start border-2 border-primary' if user == @chat_partner && !@conversation.is_group? %>"
+                                   data-name="<%= user.first_name.downcase %>">
                                     <div class="d-flex align-items-center">
                                         <div class="flex-shrink-0 position-relative">
                                             <% if user.avatar.attached? %>
                                                 <%= image_tag url_for(user.avatar), class: "rounded-circle", height: "38", width: "38", style: "object-fit: cover;" %>
                                             <% else %>
                                                 <div class="avatar-sm">
-                                                    <span class="avatar-title rounded-circle bg-soft-primary text-primary font-13 fw-bold">
-                                                        <%= user.first_name[0] %><%= user.last_name[0] %>
-                                                    </span>
+                                                    <span class="avatar-title rounded-circle bg-soft-primary text-primary font-13 fw-bold"><%= user.first_name[0] %></span>
                                                 </div>
                                             <% end %>
-
-                                            <%# PUNTO DE PRESENCIA: Clases iniciales según DB %>
-                                            <span class="user-presence-dot <%= user.online ? 'bg-success' : 'bg-secondary' %> border border-white rounded-circle" 
-                                                id="presence-dot-<%= user.id %>"></span>
+                                            <span class="user-presence-dot <%= user.online ? 'bg-success' : 'bg-secondary' %> border border-white rounded-circle" id="presence-dot-<%= user.id %>"></span>
                                         </div>
-
                                         <div class="flex-grow-1 ms-2 overflow-hidden">
                                             <h5 class="mt-0 mb-0 font-14 fw-semibold text-truncate">
-                                                <%= user.first_name %> <%= user.last_name %>
-                                                <% if existing_conv %>
-                                                    <small class="ri-message-3-line text-success ms-1"></small>
-                                                <% end %>
+                                                <%= user.full_name %>
+                                                <span class="badge bg-danger rounded-pill ms-1 <%= 'd-none' if unread_count == 0 %>" id="unread-count-<%= conv_ind&.id %>">
+                                                    <%= unread_count %>
+                                                </span>
                                             </h5>
-                                            <%# TEXTO DE PRESENCIA CON ID ÚNICO %>
-                                            <p class="mt-0 mb-0 text-muted font-11 text-truncate" id="presence-text-<%= user.id %>">
-                                                <%= user.online ? 'En línea' : 'Desconectado' %>
-                                            </p>
+                                            <p class="mb-0 text-muted font-11 text-truncate" id="presence-text-<%= user.id %>"><%= user.online ? 'En línea' : 'Desconectado' %></p>
                                         </div>
                                     </div>
                                 </a>
-                            <% end %>
-                        <% else %>
-                            <div class="text-center p-3 text-muted font-13">No se encontraron compañeros.</div>
+                                <% if conv_ind && current_user.role == 'admin' %>
+                                    <%= button_to client_conversation_path(@client, conv_ind), method: :delete, form: { data: { turbo_confirm: "¿Borrar historial?" }, class: "d-inline" }, class: "btn-delete-sidebar text-danger border-0 bg-transparent p-0 me-2" do %>
+                                        <i class="ri-delete-bin-line"></i>
+                                    <% end %>
+                                <% end %>
+                            </div>
                         <% end %>
                     </div>
                 </div>
@@ -111,106 +132,56 @@
     </div>
 
     <%# --- COLUMNA DERECHA: VENTANA DE CHAT --- %>
-    <div class="col-xxl-9 col-xl-8">
-        <div class="card shadow-sm border-0 h-100 mb-0" 
-             data-controller="chat" 
-             data-chat-id-value="<%= @conversation.id %>">
+    <%# El ID 'chat-window-container' permite que Turbo Stream lo actualice tras borrar %>
+    <div class="col-xxl-9 col-xl-8" id="chat-window-container">
+        <div class="card shadow-sm border-0 h-100 mb-0" data-controller="chat" data-chat-id-value="<%= @conversation.id %>">
             
-            <% other_user = (@conversation.sender == current_user) ? @conversation.recipient : @conversation.sender %>
-
-            <div class="card-header border-bottom border-dashed py-3">
-                <div class="d-flex align-items-center gap-2">
-                    <%# Info del Partner %>
-                    <div class="d-flex align-items-center me-auto">
+            <div class="card-header border-bottom border-dashed py-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
                         <div class="avatar-sm me-2">
-                            <% if other_user.avatar.attached? %>
-                                <%= image_tag url_for(other_user.avatar), class: "rounded-circle", height: "36", width: "36", style: "object-fit: cover;" %>
+                            <% if @conversation.is_group? %>
+                                <span class="avatar-title rounded-circle bg-warning text-white font-16 shadow-sm"><i class="ri-group-fill"></i></span>
                             <% else %>
-                                <span class="avatar-title rounded-circle bg-info text-white font-14"><%= other_user.first_name[0] %></span>
+                                <% if @chat_partner&.avatar&.attached? %>
+                                    <%= image_tag url_for(@chat_partner.avatar), class: "rounded-circle", height: "36", width: "36", style: "object-fit: cover;" %>
+                                <% else %>
+                                    <span class="avatar-title rounded-circle bg-info text-white font-14 fw-bold"><%= @chat_partner&.first_name&.at(0) %></span>
+                                <% end %>
                             <% end %>
                         </div>
                         <div>
-                            <h5 class="mt-0 mb-0 font-15 fw-bold"><%= other_user.full_name %></h5>
-                            <p class="mt-1 lh-1 mb-0 text-muted font-12"><%= other_user.role&.humanize %></p>
+                            <h5 class="mt-0 mb-0 font-15 fw-bold"><%= @conversation.is_group? ? @conversation.name : @chat_partner&.full_name %></h5>
+                            <p class="mt-1 lh-1 mb-0 text-muted font-12">
+                                <%= @conversation.is_group? ? "#{@conversation.users.count} participantes" : @chat_partner&.role&.humanize %>
+                            </p>
                         </div>
                     </div>
 
-                    <%# BUSCADOR UNIVERSAL (En tiempo real) %>
-                    <div class="d-flex align-items-center">
-                        <%# Honeypot invisible para engañar a gestores de password %>
-                        <div style="display:none;"><input type="text"><input type="password"></div>
-
-                        <%= form_with url: client_conversation_messages_path(@client, @conversation), 
-                                      method: :get, 
-                                      html: { data: { chat_target: "searchForm" }, autocomplete: "off" } do |f| %>
-                            <div class="input-group input-group-sm">
-                                <%= f.search_field :q, 
-                                    value: params[:q], 
-                                    class: "form-control border-light bg-light-subtle", 
-                                    placeholder: "Buscar mensaje o archivo...", 
-                                    style: "width: 280px;",
-                                    id: "q_#{SecureRandom.hex(4)}",
-                                    autocomplete: "new-password", 
-                                    data: { 
-                                        chat_target: "searchInput",
-                                        action: "input->chat#search",
-                                        "ms-editor": "false" 
-                                    } %>
-                                <div class="input-group-text bg-light border-light text-muted">
-                                    <i class="ri-search-line font-16"></i>
-                                </div>
-                            </div>
-                        <% end %>
-                    </div>
+                    <%# Buscador de mensajes %>
+                    <%= form_with url: client_conversation_messages_path(@client, @conversation), method: :get, html: { data: { chat_target: "searchForm" }, autocomplete: "off" } do |f| %>
+                        <div class="input-group input-group-sm">
+                            <%= f.search_field :q, class: "form-control border-light bg-light-subtle", placeholder: "Buscar mensaje...", data: { action: "input->chat#search" } %>
+                            <span class="input-group-text bg-light border-light text-muted"><i class="ri-search-line"></i></span>
+                        </div>
+                    <% end %>
                 </div>
             </div>
         
-            <%# LISTA DE MENSAJES %>
             <div class="card-body p-0">
-                <ul class="conversation-list px-3 py-3 chat-conversation" 
-                    data-chat-target="messages"
-                    style="height: 550px; overflow-y: auto;"
-                    data-simplebar>
+                <ul class="conversation-list px-3 py-3 chat-conversation" data-chat-target="messages" style="height: 550px; overflow-y: auto;" data-simplebar>
                     <%= render partial: "message", collection: @messages, as: :msg, locals: { client: @client, conversation: @conversation } %>
                 </ul>
             </div>
 
-            <%# FORMULARIO DE ENVÍO %>
-            <div class="card-body bg-light bg-opacity-50 border-top">
-                <% is_participant = (@conversation.sender == current_user || @conversation.recipient == current_user) %>
-                <% if is_participant || current_user.role == 'admin' %>
-                    
-                    <%# Preview de Adjuntos %>
-                    <div id="attachment-preview" data-chat-target="preview" class="d-flex flex-wrap gap-2 mb-2"></div>
-
-                    <%= form_with(model: [@client, @conversation, @message], 
-                                 data: { chat_target: "form", action: "submit->chat#send" }, 
-                                 class: "chat-form-container") do |f| %>
-                        <div class="d-flex align-items-center">
-                            <div class="me-2">
-                                <label for="chat-attachment" class="btn btn-light mb-0 cursor-pointer text-muted shadow-none border-0">
-                                    <i class="ri-attachment-2 font-20"></i>
-                                </label>
-                                <%= f.file_field :attachments, multiple: true, class: "d-none", id: "chat-attachment",
-                                    data: { chat_target: "fileInput", action: "change->chat#previewFiles" } %>
-                            </div>
-
-                            <div class="flex-grow-1 me-2">
-                                <%= f.text_field :body, 
-                                    class: "form-control border-0 bg-white shadow-none", 
-                                    placeholder: "Escribe un mensaje...", 
-                                    autocomplete: "off",
-                                    data: { chat_target: "input" } %>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary px-3 shadow-none">
-                                <i class='ri-send-plane-2-fill'></i>
-                            </button>
-                        </div>
-                    <% end %>
-                <% else %>
-                    <div class="alert alert-soft-warning mb-0 text-center font-13">
-                        <i class="ri-lock-line me-1"></i> Estás viendo este chat en modo de solo lectura.
+            <div class="card-body bg-light border-top">
+                <div id="attachment-preview" data-chat-target="preview" class="d-flex flex-wrap gap-2 mb-2"></div>
+                <%= form_with(model: [@client, @conversation, @message], data: { chat_target: "form", action: "submit->chat#send" }) do |f| %>
+                    <div class="d-flex align-items-center">
+                        <%= f.file_field :attachments, multiple: true, class: "d-none", id: "chat-file", data: { action: "change->chat#previewFiles" } %>
+                        <label for="chat-file" class="btn btn-light mb-0 me-2 shadow-none border-0 bg-white"><i class="ri-attachment-2 font-18"></i></label>
+                        <%= f.text_field :body, class: "form-control border-0 shadow-none bg-white", placeholder: "Escribe un mensaje...", data: { chat_target: "input" }, autocomplete: "off" %>
+                        <button type="submit" class="btn btn-primary ms-2 shadow-none"><i class='ri-send-plane-2-fill'></i></button>
                     </div>
                 <% end %>
             </div>
@@ -218,42 +189,52 @@
     </div>
 </div>
 
+<%# --- MODAL NUEVO GRUPO --- %>
+<div class="modal fade" id="newGroupModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title font-15"><i class="ri-group-add-line me-1"></i> Crear Grupo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <%= form_with url: create_group_client_conversations_path(@client), method: :post do |f| %>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label font-12 fw-bold">Nombre del Grupo</label>
+                        <%= f.text_field :group_name, class: "form-control form-control-sm", required: true, placeholder: "Ej. Equipo Comercial" %>
+                    </div>
+                    <label class="form-label font-12 fw-bold">Seleccionar Miembros</label>
+                    <div class="bg-light p-2 rounded border" style="max-height: 200px; overflow-y: auto;">
+                        <% @company_users.each do |user| %>
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="user_ids[]" value="<%= user.id %>" id="u_<%= user.id %>">
+                                <label class="form-check-label font-13" for="u_<%= user.id %>"><%= user.full_name %></label>
+                            </div>
+                        <% end %>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <%= f.submit "Crear Chat Grupal", class: "btn btn-primary w-100 btn-sm shadow-none" %>
+                </div>
+            <% end %>
+        </div>
+    </div>
+</div>
+
 <style>
-    /* Estilos del Panel Lateral */
-    .contact-item { transition: all 0.2s ease; border-left: 3px solid transparent; }
-    .contact-item:hover { background-color: #f8f9fa; }
-    .active-chat { background-color: rgba(62, 96, 213, 0.1) !important; }
-    
-    /* Punto de Presencia */
-    .user-presence-dot {
-        position: absolute; bottom: 0; right: 0;
-        width: 10px; height: 10px;
-        transition: background-color 0.3s ease;
-    }
-    .user-presence-dot.bg-success {
-        box-shadow: 0 0 0 2px rgba(10, 207, 151, 0.2);
-        animation: pulse-green 2s infinite;
-    }
-    @keyframes pulse-green {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.2); }
-        100% { transform: scale(1); }
-    }
-    
-    /* Scroll */
+    .chat-row .btn-delete-sidebar { opacity: 0; transition: all 0.2s; position: absolute; right: 5px; z-index: 5; }
+    .chat-row:hover .btn-delete-sidebar { opacity: 1; }
+    .active-chat { background-color: rgba(62, 96, 213, 0.08) !important; }
+    .user-presence-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; }
     .chat-conversation .simplebar-content { display: flex; flex-direction: column; }
 </style>
 
 <script>
-    /** Filtra la lista de contactos localmente */
     function filterContacts() {
-        const input = document.getElementById('contact-search');
-        const filter = input.value.toLowerCase();
-        const contacts = document.querySelectorAll('.contact-item');
-
-        contacts.forEach(contact => {
-            const name = contact.getAttribute('data-name');
-            contact.style.display = name.includes(filter) ? "" : "none";
+        const filter = document.getElementById('contact-search').value.toLowerCase();
+        document.querySelectorAll('.contact-item').forEach(item => {
+            const name = item.getAttribute('data-name');
+            item.closest('.chat-row').style.display = name.includes(filter) ? "" : "none";
         });
     }
 </script>

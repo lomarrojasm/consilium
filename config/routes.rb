@@ -25,8 +25,6 @@ Rails.application.routes.draw do
   # Rutas para editar usuarios administrativamente
   resources :users, only: [:show, :edit, :update]
 
-  
-
   # Ruta Principal (Al entrar a localhost:3000)
   root to: 'dashboards#projects'
 
@@ -49,13 +47,18 @@ Rails.application.routes.draw do
       get 'timeline'
     end
 
+    # --- RUTAS DE CHAT ACTUALIZADAS ---
     resources :conversations do
-      get :start_chat, on: :collection
+      collection do
+        get :start_chat
+        post :create_group # <--- RUTA NUEVA PARA CHATS GRUPALES
+      end
       resources :messages, only: [:index, :create, :update, :destroy]
     end
+    
     # Anidamos projects DENTRO de clients
     resources :projects do
-     # 1. Acción personalizada para COMENTARIOS (Esto es lo que te falta)
+     # 1. Acción personalizada para COMENTARIOS
       member do
         post :add_comment
         get :comments
@@ -113,15 +116,6 @@ Rails.application.routes.draw do
   # =========================================================================
   # 2. RUTAS DE LA PLANTILLA HYPER (Solo Referencia Visual)
   # =========================================================================
-  # Estas rutas sirven para que puedas ver los ejemplos HTML del tema.
-  # He comentado las que chocaban con tu lógica real.
-
-  # --- Dashboards (COMENTADO: Ya lo manejamos arriba con resources) ---
-  # get "dashboards/analytics"
-  # get "dashboards/crm"
-  # get "dashboards/index"
-  # get "dashboards/projects"
-  # get "dashboards/wallet"
 
   # --- Apps ---
   get "apps/calendar"
@@ -142,7 +136,6 @@ Rails.application.routes.draw do
   get "apps/tasks/kanban", to: 'apps#tasks_kanban'
 
   # --- CRM Plantilla ---
-  # get "crm/clients"  <-- COMENTADO: Usar ruta real 'clients_path' (resources :clients)
   get "crm/management"
   get "crm/orders-list", to: 'crm#orders_list'
   get "crm/projects"
@@ -169,7 +162,6 @@ Rails.application.routes.draw do
   get "pages/timeline"
 
   # --- Auth Pages (Plantilla Visual) ---
-  # Nota: No uses estos paths en tu lógica, usa los helpers de Devise (new_user_session_path, etc)
   get "auth/confirm-mail", to: 'auth#confirm_mail'
   get "auth/confirm-mail-2", to: 'auth#confirm_mail_2'
   get "auth/lock-screen", to: 'auth#lock_screen'
@@ -191,7 +183,6 @@ Rails.application.routes.draw do
   get "landing", to: 'landing#index', as: :landing_index
 
   # --- Layouts Examples ---
-  # Agregamos 'as: :nombre_especifico' para que coincida con el sidebar
   get "layouts/vertical", to: 'layouts_eg#vertical', as: :layouts_eg_vertical
   get "layouts/compact", to: 'layouts_eg#compact', as: :layouts_eg_compact
   get "layouts/detached", to: 'layouts_eg#detached', as: :layouts_eg_detached
@@ -286,16 +277,13 @@ Rails.application.routes.draw do
   # Health Check
   get "up" => "rails/health#show", as: :rails_health_check
 
-
   # Ruta para la pantalla de "Hasta luego"
   get 'logout-success', to: 'pages#logout_success', as: :logout_success
 
-
-  #Ruta para clientes
+  # Ruta para clientes
   get 'portal', to: 'client_portal#index', as: :client_dashboard
 
-
   # Ruta para editar fechas del timeline
-    patch 'timeline/update_event', to: 'timeline_events#update', as: :update_timeline_event 
+  patch 'timeline/update_event', to: 'timeline_events#update', as: :update_timeline_event 
   
 end

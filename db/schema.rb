@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_04_005058) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_04_182746) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -137,12 +137,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_04_005058) do
     t.integer "membership", default: 0
   end
 
-  create_table "conversations", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
-    t.bigint "client_id", null: false
-    t.bigint "sender_id", null: false
-    t.bigint "recipient_id", null: false
+  create_table "conversation_participants", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "conversation_id", null: false
+    t.bigint "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "last_read_at"
+    t.index ["conversation_id"], name: "index_conversation_participants_on_conversation_id"
+    t.index ["user_id"], name: "index_conversation_participants_on_user_id"
+  end
+
+  create_table "conversations", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "client_id", null: false
+    t.bigint "sender_id"
+    t.bigint "recipient_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "is_group", default: false
+    t.string "name"
     t.index ["client_id"], name: "index_conversations_on_client_id"
     t.index ["recipient_id"], name: "index_conversations_on_recipient_id"
     t.index ["sender_id"], name: "index_conversations_on_sender_id"
@@ -437,6 +449,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_04_005058) do
   add_foreign_key "activities", "stages"
   add_foreign_key "activities", "users"
   add_foreign_key "activities", "users", column: "responsible_id"
+  add_foreign_key "conversation_participants", "conversations"
+  add_foreign_key "conversation_participants", "users"
   add_foreign_key "conversations", "clients"
   add_foreign_key "conversations", "users", column: "recipient_id"
   add_foreign_key "conversations", "users", column: "sender_id"
