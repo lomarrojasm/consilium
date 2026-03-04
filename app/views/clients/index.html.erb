@@ -46,10 +46,24 @@
                             <%= image_tag "icono_consilium.jpg", class: "rounded-circle avatar-xs shadow-sm border" %>
                         <% end %>
                     </td>
-                    <td>
-                        <div class="d-flex flex-column">
-                            <%= link_to client.company_name, client_path(client), class: "fw-bold text-dark" %>
-                            <small class="text-muted"><%= client.trade_name %></small>
+                    <td class="fw-bold">
+                        <div class="d-flex align-items-center">
+                            <% case client.membership %>
+                            <% when 'gold' %>
+                            <%# Ícono de Medalla Dorada y Texto en color Warning (Oro) %>
+                            <i class="ri-medal-2-fill text-warning me-2 font-18" title="Cliente Gold"></i>
+                            <%= link_to client.company_name, client_path(client), class: "text-warning" %>
+                            
+                            <% when 'platinum' %>
+                            <%# Ícono de Corona Platinum y Texto en color Primary (Indigo/Platinum) %>
+                            <i class="ri-vip-crown-fill text-primary me-2 font-18" title="Cliente Platinum"></i>
+                            <%= link_to client.company_name, client_path(client), class: "text-primary fw-bolder" %>
+                            
+                            <% else %>
+                            <%# Ícono de Edificio Estándar y Texto normal %>
+                            <i class="ri-building-line text-muted me-2 font-16"></i>
+                            <%= link_to client.company_name, client_path(client), class: "text-body" %>
+                            <% end %>
                         </div>
                     </td>
                     <td class="text-center">
