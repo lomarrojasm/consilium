@@ -37,6 +37,16 @@ servers:
     env:
       clear:
         SOLID_QUEUE_IN_PUMA: "false"
+        SOLID_QUEUE_QUEUES: "*"
+  
+  # 3. El Scheduler (El reloj que lee recurring.yml)
+  scheduler:
+    hosts:
+      - 74.208.227.22
+    cmd: bundle exec rails solid_queue:scheduler:start
+    env:
+      clear:
+        SOLID_QUEUE_IN_PUMA: "false"
 
 # Credenciales
 registry:
