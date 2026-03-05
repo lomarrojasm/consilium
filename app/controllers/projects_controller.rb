@@ -156,7 +156,7 @@ class ProjectsController < ApplicationController
 
   # Se incluye responsible_id en los parámetros permitidos
   def project_params
-    params.require(:project).permit(:name, :start_date, :end_date, :budget, :status, :details, :include_template, :responsible_id, files: [])
+    params.require(:project).permit(:name, :start_date, :end_date, :budget, :status, :details, :include_template, :responsible_id, :sequential_stages, files: [])
   end
   
   def authorize_project_member!

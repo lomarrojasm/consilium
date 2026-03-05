@@ -69,8 +69,26 @@
 </div>
 
 <div class="row">
-    <%# --- DESCRIPCIÓN --- %>
+    <%# --- COLUMNA IZQUIERDA: DESCRIPCIÓN Y EQUIPO --- %>
     <div class="col-md-8">
+        <%# CONFIGURACIÓN ADMIN: VISUALIZACIÓN SECUENCIAL %>
+        <% if current_user.role == 'admin' %>
+            <div class="card mb-3 border-dashed shadow-none border-primary bg-light bg-opacity-10">
+                <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="m-0 fw-bold text-primary"><i class="ri-eye-off-line me-1"></i> Control de Etapas Secuenciales</h6>
+                        <small class="text-muted">Si está activo, el cliente solo verá la siguiente etapa cuando la actual supere el 90%.</small>
+                    </div>
+                    <%= form_with(model: [@client, @project], local: true, class: "d-inline") do |f| %>
+                        <div class="form-check form-switch">
+                            <%= f.check_box :sequential_stages, class: "form-check-input", onchange: "this.form.submit()" %>
+                            <label class="form-check-label fw-bold"><%= @project.sequential_stages ? "Activo" : "Inactivo" %></label>
+                        </div>
+                    <% end %>
+                </div>
+            </div>
+        <% end %>
+
         <div class="card shadow-none border mb-3">
             <div class="card-body" style="min-height: 160px;">
                 <h5 class="text-uppercase mt-0 mb-2 font-12 fw-bold text-muted">Descripción del Proyecto</h5>
@@ -79,7 +97,7 @@
         </div>
     </div>
 
-    <%# --- RESPONSABLE Y EQUIPO --- %>
+    <%# --- COLUMNA DERECHA: RESPONSABLES --- %>
     <div class="col-md-4">
         <div class="card shadow-none border mb-2">
             <div class="card-body py-2">
@@ -131,7 +149,7 @@
     </div>
 </div>
 
-<%# --- TABLA DE ACTIVIDADES --- %>
+<%# --- PLAN DE TRABAJO --- %>
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -149,141 +167,163 @@
         </div>
 
         <div class="accordion custom-accordion mb-4" id="projectStages">
-            <% @stages.each do |stage| %>
-                <div class="card mb-2 border shadow-none">
-                    <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom py-2">
-                        <a class="text-dark d-flex align-items-center flex-grow-1 collapsed" data-bs-toggle="collapse" href="#stage-<%= stage.id %>">
-                            <i class="ri-folder-6-line me-2 text-primary font-20"></i> 
-                            <h5 class="m-0 font-15 fw-bold me-3"><%= stage.name %></h5>
-                            <div class="d-none d-md-flex align-items-center flex-grow-1" style="max-width: 200px;">
-                                <div class="progress progress-sm w-100 me-2" style="height: 6px;">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: <%= stage.progress_percentage %>%;"></div>
-                                </div>
-                                <span class="font-12 fw-bold text-success"><%= stage.progress_percentage %>%</span>
-                            </div>
-                        </a>
-                        
-                        <% if ['admin', 'lider', 'senior'].include?(current_project_role) %>
-                            <div class="dropdown">
-                                <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown"><i class="ri-more-2-fill text-muted"></i></a>
-                                <div class="dropdown-menu dropdown-menu-end shadow border-0">
-                                    <%= link_to edit_client_project_stage_path(@client, @project, stage), class: "dropdown-item" do %>
-                                        <i class="ri-edit-line me-1"></i> Editar Etapa
-                                    <% end %>
-                                    <% if ['admin', 'lider'].include?(current_project_role) %>
-                                        <%= button_to client_project_stage_path(@client, @project, stage), method: :delete, class: "dropdown-item text-danger", form: { onsubmit: "return confirm('¿Borrar etapa?');" } do %>
-                                            <i class="ri-delete-bin-line me-1"></i> Eliminar
-                                        <% end %>
-                                    <% end %>
-                                </div>
-                            </div>
-                        <% end %>
-                    </div>
+            <% @stages.each_with_index do |stage, index| %>
+                <% 
+                   # Lógica de visibilidad y desbloqueo
+                   is_unlocked = @project.stage_unlocked?(stage)
+                   is_admin = current_user.role == 'admin'
+                   should_show = is_admin || is_unlocked
+                %>
 
-                    <div id="stage-<%= stage.id %>" class="collapse">
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-centered table-nowrap table-hover mb-0">
-                                    <thead class="table-light text-muted font-12 uppercase">
-                                        <tr>
-                                            <th style="width: 40px;">Status</th>
-                                            <th>Mes</th>
-                                            <th>Sem.</th>
-                                            <th>Actividad (Timeline)</th>
-                                            <th>Responsable</th>
-                                            <th>Área</th>
-                                            <th>Doc. Ref</th>
-                                            <th class="text-center">Evidencia</th>
-                                            <th class="text-end">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <% stage.activities.order(:month, :week).each do |activity| %>
-                                            <tr class="<%= 'bg-light-subtle' if activity.status == 'rejected' %>">
-                                                <td class="text-center">
-                                                    <%# Indicador visual del nuevo Status %>
-                                                    <% case activity.status %>
-                                                    <% when 'approved' %>
-                                                        <i class="ri-checkbox-circle-fill font-20 text-success" data-bs-toggle="tooltip" title="Aprobada"></i>
-                                                    <% when 'rejected' %>
-                                                        <i class="ri-close-circle-fill font-20 text-danger" data-bs-toggle="tooltip" title="Denegada/Rechazada"></i>
-                                                    <% else %>
-                                                        <i class="ri-time-line font-20 text-warning" data-bs-toggle="tooltip" title="Pendiente de revisión"></i>
-                                                    <% end %>
-                                                </td>
-                                                <td><span class="text-muted font-12 fw-bold">Mes <%= activity.month %></span></td>
-                                                <td><span class="badge badge-outline-secondary px-1">S<%= activity.week %></span></td>
-                                                <td style="white-space: normal; min-width: 250px;">
-                                                    <%# Disparador del Modal de Seguimiento %>
-                                                    <a href="javascript:void(0);" 
-                                                       onclick="verSeguimientoActividad('<%= activity.id %>')"
-                                                       class="<%= 'text-decoration-line-through text-muted italic' if activity.completed %> font-13 fw-medium text-body hover-primary">
-                                                        <i class="ri-history-line me-1 text-primary"></i> <%= activity.name %>
-                                                    </a>
-                                                </td>
-                                                <td>
-                                                    <% if activity.responsible.present? %>
-                                                        <div class="d-flex align-items-center">
-                                                            <% if activity.responsible.avatar.attached? %>
-                                                                <%= image_tag url_for(activity.responsible.avatar), class: "rounded-circle me-2", style: "width: 24px; height: 24px; object-fit: cover;" %>
-                                                            <% else %>
-                                                                <div class="avatar-xs me-2" style="width: 24px; height: 24px;">
-                                                                    <span class="avatar-title rounded-circle bg-soft-info text-info font-10 fw-bold">
-                                                                        <%= activity.responsible.first_name[0] %><%= activity.responsible.last_name[0] %>
-                                                                    </span>
-                                                                </div>
-                                                            <% end %>
-                                                            <span class="font-12"><%= activity.responsible.first_name %></span>
-                                                        </div>
-                                                    <% else %>
-                                                        <span class="text-muted font-11 italic">No asignado</span>
-                                                    <% end %>
-                                                </td>
-                                                <td><span class="badge badge-soft-primary font-10 text-uppercase"><%= activity.area %></span></td>
-                                                <td><code class="text-primary font-11"><%= activity.document_ref %></code></td>
-                                                <td class="text-center">
-                                                    <div class="d-flex align-items-center justify-content-center gap-2">
-                                                        <% if activity.evidence.attached? %>
-                                                            <%= link_to rails_blob_path(activity.evidence, disposition: "attachment"), class: "text-success", target: "_blank", data: { bs_toggle: "tooltip" }, title: "Descargar" do %>
-                                                                <i class="ri-file-check-line font-20"></i>
-                                                            <% end %>
-                                                        <% end %>
-                                                        
-                                                        <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
-                                                            <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary" 
-                                                                    onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>')" 
-                                                                    data-bs-toggle="tooltip" title="Subir Evidencia">
-                                                                <i class="ri-upload-2-line font-18"></i>
-                                                            </button>
-                                                        <% end %>
-                                                    </div>
-                                                </td>
-                                                <td class="text-end">
-                                                    <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
-                                                        <div class="dropdown">
-                                                            <a href="#" class="text-muted dropdown-toggle arrow-none" data-bs-toggle="dropdown"><i class="ri-more-fill"></i></a>
-                                                            <div class="dropdown-menu dropdown-menu-end shadow border-0">
-                                                                <%= link_to edit_client_project_activity_path(@client, @project, activity), class: "dropdown-item font-13" do %>
-                                                                    <i class="ri-edit-line me-1"></i> Editar
-                                                                <% end %>
-                                                                <% if ['admin', 'lider'].include?(current_project_role) %>
-                                                                    <%= link_to client_project_activity_path(@client, @project, activity), 
-                                                                        data: { turbo_method: :delete, turbo_confirm: "¿Eliminar actividad?" }, class: "dropdown-item text-danger font-13" do %>
-                                                                        <i class="ri-delete-bin-line me-1"></i> Eliminar
-                                                                    <% end %>
-                                                                <% end %>
-                                                            </div>
-                                                        </div>
-                                                    <% end %>
-                                                </td>
-                                            </tr>
+                <% if should_show %>
+                    <div class="card mb-2 border shadow-none <%= 'border-primary' if is_unlocked && stage.progress_percentage < 100 %>">
+                        <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom py-2">
+                            <a class="text-dark d-flex align-items-center flex-grow-1 <%= 'collapsed' unless index == 0 || (is_unlocked && stage.progress_percentage < 100) %>" 
+                               data-bs-toggle="collapse" href="#stage-<%= stage.id %>">
+                                
+                                <%# Icono dinámico según estatus de la etapa %>
+                                <% if stage.progress_percentage > 90 %>
+                                    <i class="ri-checkbox-circle-fill me-2 text-success font-20"></i>
+                                <% elsif is_unlocked %>
+                                    <i class="ri-play-circle-line me-2 text-primary font-20"></i>
+                                <% else %>
+                                    <i class="ri-lock-line me-2 text-muted font-20"></i>
+                                <% end %>
+
+                                <h5 class="m-0 font-15 fw-bold me-3">
+                                    <%= stage.name %>
+                                    <% unless is_unlocked %>
+                                        <span class="badge bg-soft-secondary text-muted font-10 ms-1 fw-normal">BLOQUEADA PARA CLIENTE</span>
+                                    <% end %>
+                                </h5>
+
+                                <div class="d-none d-md-flex align-items-center flex-grow-1" style="max-width: 200px;">
+                                    <div class="progress progress-sm w-100 me-2" style="height: 6px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: <%= stage.progress_percentage %>%;"></div>
+                                    </div>
+                                    <span class="font-12 fw-bold text-success"><%= stage.progress_percentage %>%</span>
+                                </div>
+                            </a>
+                            
+                            <% if ['admin', 'lider', 'senior'].include?(current_project_role) %>
+                                <div class="dropdown">
+                                    <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown"><i class="ri-more-2-fill text-muted"></i></a>
+                                    <div class="dropdown-menu dropdown-menu-end shadow border-0">
+                                        <%= link_to edit_client_project_stage_path(@client, @project, stage), class: "dropdown-item" do %>
+                                            <i class="ri-edit-line me-1"></i> Editar Etapa
                                         <% end %>
-                                    </tbody>
-                                </table>
+                                        <% if ['admin', 'lider'].include?(current_project_role) %>
+                                            <%= button_to client_project_stage_path(@client, @project, stage), method: :delete, class: "dropdown-item text-danger", form: { onsubmit: "return confirm('¿Borrar etapa?');" } do %>
+                                                <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                            <% end %>
+                                        <% end %>
+                                    </div>
+                                </div>
+                            <% end %>
+                        </div>
+
+                        <div id="stage-<%= stage.id %>" class="collapse <%= 'show' if index == 0 || (is_unlocked && stage.progress_percentage < 100 && stage.progress_percentage > 0) %>">
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-centered table-nowrap table-hover mb-0">
+                                        <thead class="table-light text-muted font-12 uppercase">
+                                            <tr>
+                                                <th style="width: 40px;">Status</th>
+                                                <th>Mes</th>
+                                                <th>Sem.</th>
+                                                <th>Actividad (Timeline)</th>
+                                                <th>Responsable</th>
+                                                <th>Área</th>
+                                                <th>Doc. Ref</th>
+                                                <th class="text-center">Evidencia</th>
+                                                <th class="text-end">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% stage.activities.order(:month, :week).each do |activity| %>
+                                                <tr class="<%= 'bg-light-subtle' if activity.status == 'rejected' %>">
+                                                    <td class="text-center">
+                                                        <% case activity.status %>
+                                                        <% when 'approved' %>
+                                                            <i class="ri-checkbox-circle-fill font-20 text-success" data-bs-toggle="tooltip" title="Aprobada"></i>
+                                                        <% when 'rejected' %>
+                                                            <i class="ri-close-circle-fill font-20 text-danger" data-bs-toggle="tooltip" title="Denegada/Rechazada"></i>
+                                                        <% else %>
+                                                            <i class="ri-time-line font-20 text-warning" data-bs-toggle="tooltip" title="Pendiente de revisión"></i>
+                                                        <% end %>
+                                                    </td>
+                                                    <td><span class="text-muted font-12 fw-bold">Mes <%= activity.month %></span></td>
+                                                    <td><span class="badge badge-outline-secondary px-1">S<%= activity.week %></span></td>
+                                                    <td style="white-space: normal; min-width: 250px;">
+                                                        <a href="javascript:void(0);" 
+                                                           onclick="verSeguimientoActividad('<%= activity.id %>')"
+                                                           class="<%= 'text-decoration-line-through text-muted italic' if activity.completed %> font-13 fw-medium text-body hover-primary">
+                                                            <i class="ri-history-line me-1 text-primary"></i> <%= activity.name %>
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <% if activity.responsible.present? %>
+                                                            <div class="d-flex align-items-center">
+                                                                <% if activity.responsible.avatar.attached? %>
+                                                                    <%= image_tag url_for(activity.responsible.avatar), class: "rounded-circle me-2", style: "width: 24px; height: 24px; object-fit: cover;" %>
+                                                                <% else %>
+                                                                    <div class="avatar-xs me-2" style="width: 24px; height: 24px;">
+                                                                        <span class="avatar-title rounded-circle bg-soft-info text-info font-10 fw-bold">
+                                                                            <%= activity.responsible.first_name[0] %><%= activity.responsible.last_name[0] %>
+                                                                        </span>
+                                                                    </div>
+                                                                <% end %>
+                                                                <span class="font-12"><%= activity.responsible.first_name %></span>
+                                                            </div>
+                                                        <% else %>
+                                                            <span class="text-muted font-11 italic">No asignado</span>
+                                                        <% end %>
+                                                    </td>
+                                                    <td><span class="font-10 text-uppercase text-secondary"><%= activity.area %></span></td>
+                                                    <td><code class="text-primary font-11"><%= activity.document_ref %></code></td>
+                                                    <td class="text-center">
+                                                        <div class="d-flex align-items-center justify-content-center gap-2">
+                                                            <% if activity.evidence.attached? %>
+                                                                <%= link_to rails_blob_path(activity.evidence, disposition: "attachment"), class: "text-success", target: "_blank", data: { bs_toggle: "tooltip" }, title: "Descargar" do %>
+                                                                    <i class="ri-file-check-line font-20"></i>
+                                                                <% end %>
+                                                            <% end %>
+                                                            <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
+                                                                <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary" 
+                                                                        onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>')" 
+                                                                        data-bs-toggle="tooltip" title="Subir Evidencia">
+                                                                    <i class="ri-upload-2-line font-18"></i>
+                                                                </button>
+                                                            <% end %>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
+                                                            <div class="dropdown">
+                                                                <a href="#" class="text-muted dropdown-toggle arrow-none" data-bs-toggle="dropdown"><i class="ri-more-fill"></i></a>
+                                                                <div class="dropdown-menu dropdown-menu-end shadow border-0">
+                                                                    <%= link_to edit_client_project_activity_path(@client, @project, activity), class: "dropdown-item font-13" do %>
+                                                                        <i class="ri-edit-line me-1"></i> Editar
+                                                                    <% end %>
+                                                                    <% if ['admin', 'lider'].include?(current_project_role) %>
+                                                                        <%= link_to client_project_activity_path(@client, @project, activity), 
+                                                                            data: { turbo_method: :delete, turbo_confirm: "¿Eliminar actividad?" }, class: "dropdown-item text-danger font-13" do %>
+                                                                            <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                                                        <% end %>
+                                                                    <% end %>
+                                                                </div>
+                                                            </div>
+                                                        <% end %>
+                                                    </td>
+                                                </tr>
+                                            <% end %>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                <% end %>
             <% end %>
         </div>
         
@@ -466,11 +506,10 @@
   </div>
 </div>
 
-<%# MODAL GRANDE DE SEGUIMIENTO Y TIMELINE (NUEVO) %>
+<%# MODAL GRANDE DE SEGUIMIENTO Y TIMELINE %>
 <div class="modal fade" id="activityDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content shadow-lg border-0" id="modalActivityDetailContent">
-            <%# El contenido se carga dinámicamente %>
             <div class="modal-body text-center p-5">
                 <div class="spinner-border text-primary" role="status"></div>
                 <p class="mt-2 text-muted">Cargando historial de actividad...</p>
@@ -530,31 +569,31 @@
         }).then(() => window.location.reload());
     }
 
-    // FUNCIÓN PARA CARGAR EL TIMELINE Y GESTIÓN EN MODAL XL
     function verSeguimientoActividad(activityId) {
-    // CAMBIO: Ahora apuntamos a /tracking
-    const url = `/clients/<%= @client.id %>/projects/<%= @project.id %>/activities/${activityId}/tracking`; 
-    
-    const contentArea = document.getElementById('modalActivityDetailContent');
-    const modalElement = document.getElementById('activityDetailModal');
-    const modal = new bootstrap.Modal(modalElement);
+        const url = `/clients/<%= @client.id %>/projects/<%= @project.id %>/activities/${activityId}/tracking`; 
+        const contentArea = document.getElementById('modalActivityDetailContent');
+        const modalElement = document.getElementById('activityDetailModal');
+        const modal = new bootstrap.Modal(modalElement);
 
-    fetch(url, { headers: { 'Accept': 'text/html' } })
-    .then(response => response.text())
-    .then(html => {
-        contentArea.innerHTML = html;
-        modal.show();
-    });
-}
+        fetch(url, { headers: { 'Accept': 'text/html' } })
+        .then(response => response.text())
+        .then(html => {
+            contentArea.innerHTML = html;
+            modal.show();
+        });
+    }
 </script>
 
 <style>
-    /* Estilos adicionales para mejorar la interacción en la tabla */
     .hover-primary:hover {
         color: #727cf5 !important;
         text-decoration: underline !important;
     }
     .bg-light-subtle {
         background-color: rgba(250, 92, 124, 0.05) !important;
+    }
+    .accordion-button:not(.collapsed) {
+        background-color: transparent;
+        box-shadow: none;
     }
 </style>

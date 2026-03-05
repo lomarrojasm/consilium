@@ -62,6 +62,19 @@ end
     end
   end
 
+  # Determina si una etapa está "desbloqueada" para la vista del cliente
+  def stage_unlocked?(stage)
+    # 1. Si la opción secuencial está apagada, todo está desbloqueado
+    return true unless sequential_stages?
+    
+    # 2. La primera etapa siempre está desbloqueada
+    return true if stage == stages.first
+    
+    # 3. Una etapa se desbloquea si la ANTERIOR tiene > 90% de progreso
+    previous_stage = stages.where("position < ?", stage.position).last
+    previous_stage.present? && previous_stage.progress_percentage > 90
+  end
+
 
 private
 
