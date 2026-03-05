@@ -98,6 +98,11 @@ accessories:
     env:
       clear:
         NETDATA_CHECKPOINT_INCLUDED_CONFIGS: "true"
+        NETDATA_CLOUD_SETTING: "disabled"
+        # Desactiva el registro de nodos
+        NETDATA_REGISTRY_ENABLED: "no"
+        # Fuerza a que no intente conectar con la nube
+        NETDATA_DISABLE_CLOUD: "1"
 
   redis:
     image: redis:7.0
