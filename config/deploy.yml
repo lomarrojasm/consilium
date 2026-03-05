@@ -85,6 +85,20 @@ accessories:
     directories:
       - data:/var/lib/mysql
 
+  netdata:
+    image: netdata/netdata
+    host: 74.208.227.22
+    port: 19999
+    # Estos volúmenes son CRÍTICOS para que Netdata pueda ver 
+    # lo que pasa dentro del servidor Linux y los otros contenedores
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    env:
+      clear:
+        NETDATA_CHECKPOINT_INCLUDED_CONFIGS: "true"
+
   redis:
     image: redis:7.0
     host: 74.208.227.22
