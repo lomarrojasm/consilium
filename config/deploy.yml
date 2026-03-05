@@ -34,6 +34,7 @@ servers:
       - 74.208.227.22
     # Mantengo 'bundle exec' ya que confirmaste que este archivo funcionaba bien antes
     cmd: bundle exec rails solid_queue:start
+    proxy: false
     env:
       clear:
         SOLID_QUEUE_IN_PUMA: "false"
@@ -44,6 +45,7 @@ servers:
     hosts:
       - 74.208.227.22
     cmd: bundle exec rails solid_queue:scheduler:start
+    proxy: false
     env:
       clear:
         SOLID_QUEUE_IN_PUMA: "false"
