@@ -1,7 +1,10 @@
 class AdminReportMailer < ApplicationMailer
+  default from: ENV['MAILER_SENDER']
+  
   def bottleneck_summary(admin_email)
     # Buscamos proyectos activos que tengan al menos una etapa bloqueada
     @projects_with_bottlenecks = Project.activo.select { |p| p.blocked_stages.any? }
+    
 
     mail(
       to: admin_email,
