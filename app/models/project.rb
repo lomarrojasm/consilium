@@ -75,6 +75,16 @@ end
     previous_stage.present? && previous_stage.progress_percentage > 90
   end
 
+  def blocked_stages
+  return [] unless sequential_stages?
+  
+  stages.select do |stage|
+    # Una etapa está bloqueada si no es la primera, no está desbloqueada manualmente
+    # y su antecesora no ha llegado al 90%
+    !stage_unlocked?(stage) && stage != stages.first
+  end
+end
+
 
 private
 

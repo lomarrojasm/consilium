@@ -1,0 +1,30 @@
+<h2 style="color: #727cf5;">Resumen de Proyectos Detenidos</h2>
+<p>Hola, Administrador. Estos proyectos requieren atención porque tienen etapas bloqueadas:</p>
+
+<table style="width: 100%; border-collapse: collapse;">
+  <thead>
+    <tr style="background-color: #f1f3fa;">
+      <th style="padding: 10px; border: 1px solid #dee2e6;">Proyecto</th>
+      <th style="padding: 10px; border: 1px solid #dee2e6;">Etapa Bloqueada</th>
+      <th style="padding: 10px; border: 1px solid #dee2e6;">Progreso Etapa Anterior</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @projects_with_bottlenecks.each do |project| %>
+      <% project.blocked_stages.each do |stage| %>
+        <% previous = project.stages.where("position < ?", stage.position).last %>
+        <tr>
+          <td style="padding: 10px; border: 1px solid #dee2e6;"><strong><%= project.name %></strong></td>
+          <td style="padding: 10px; border: 1px solid #dee2e6;"><%= stage.name %></td>
+          <td style="padding: 10px; border: 1px solid #dee2e6; color: #fa5c7c;">
+            <%= previous&.progress_percentage %>% (Falta > 90% para desbloquear)
+          </td>
+        </tr>
+      <% end %>
+    <% end %>
+  </tbody>
+</table>
+
+<p style="margin-top: 20px;">
+  <%= link_to "Ir al Dashboard de Proyectos", root_url, style: "background-color: #727cf5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;" %>
+</p>
