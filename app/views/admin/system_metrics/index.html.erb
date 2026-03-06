@@ -1,9 +1,3 @@
-<script type="text/javascript">
-  // Configuración para que Netdata no robe el scroll y se integre bien
-  var netdataNoMultichart = true;
-  var netdataNoSparklines = false;
-</script>
-<script type="text/javascript" src="http://74.208.227.22:19999/dashboard.js"></script>
 
 <div class="container-fluid pt-3">
   <div class="row">
@@ -15,44 +9,58 @@
     </div>
   </div>
 
-  <div class="row mb-4">
-    <div class="col-md-4">
-      <div class="card shadow-none border h-100">
-        <div class="card-body text-center">
-          <h5 class="card-title font-14 mb-3 text-uppercase">Carga de CPU</h5>
-          <div data-netdata="system.cpu" 
-               data-chart-library="gauge" 
-               data-gauge-generate-gradient="true"
-               data-width="100%" data-height="160px" 
-               data-after="-300" data-points="60"></div>
+  <div data-controller="system-monitor" class="mt-3">
+  <div class="row">
+    <% 
+      [
+        ['cpu', 'Procesador', 'ri-cpu-line', 'text-primary'],
+        ['ram', 'Memoria RAM', 'ri-database-2-line', 'text-info'],
+        ['disk', 'Disco Principal', 'ri-hard-drive-line', 'text-success']
+      ].each do |target, title, icon, color_class| 
+    %>
+      <div class="col-md-4 mb-4">
+        <div class="card shadow-none border h-100">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h6 class="text-muted text-uppercase font-12 fw-bold m-0">
+                <i class="<%= icon %> <%= color_class %> me-1"></i> <%= title %>
+              </h6>
+              <span class="badge badge-soft-secondary">LIVE</span>
+            </div>
+            
+            <div class="position-relative" style="height: 200px;">
+              <canvas data-system-monitor-target="<%= target %>"></canvas>
+              <div class="position-absolute top-50 start-50 translate-middle text-center usage-pct" style="width: 100%; transform: translate(-50%, -40%) !important;">
+                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card shadow-none border h-100">
-        <div class="card-body text-center">
-          <h5 class="card-title font-14 mb-3 text-uppercase">Uso de RAM</h5>
-          <div data-netdata="system.ram" 
-               data-dimensions="used"
-               data-chart-library="gauge" 
-               data-width="100%" data-height="160px" 
-               data-after="-300" data-points="60"></div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card shadow-none border h-100">
-        <div class="card-body text-center">
-          <h5 class="card-title font-14 mb-3 text-uppercase">Espacio en Disco (/)</h5>
-          <div data-netdata="disk_space./" 
-               data-dimensions="used"
-               data-chart-library="gauge" 
-               data-width="100%" data-height="160px" 
-               data-after="-300" data-points="60"></div>
+    <% end %>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-none bg-light text-muted">
+        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center">
+            <div class="spinner-grow spinner-grow-sm text-success me-2" role="status"></div>
+            <span class="font-13">Monitor de Recursos: <strong>74.208.227.22</strong> activo</span>
+          </div>
+          <span class="font-12">Frecuencia de muestreo: 10s</span>
         </div>
       </div>
     </div>
   </div>
+</div>
+
+<style>
+  .usage-pct h2 { font-size: 2rem; letter-spacing: -1.5px; line-height: 1; }
+  .usage-pct .font-13 { margin-top: 4px; }
+  .card { transition: all 0.2s ease-in-out; border-radius: 10px; }
+  .card:hover { border-color: #3e60d5 !important; }
+</style>
 
   <div data-controller="system-workers">
     <div class="row mb-3">
@@ -132,7 +140,7 @@
           <div class="d-flex flex-wrap gap-2">
             <div class="input-group input-group-sm" style="width: 220px;">
               <span class="input-group-text bg-dark border-secondary text-muted"><i class="ri-search-line"></i></span>
-              <input type="text" class="form-control bg-dark border-secondary text-white" placeholder="Filtrar registros..." 
+              <input type="text" class="form-control bg-dark border-secondary text-white font-12" placeholder="Filtrar registros..." 
                      data-action="input->system-logs#handleSearch" data-system-logs-target="search">
             </div>
             <button data-action="click->system-logs#toggleFilter" data-system-logs-target="filterBtn" class="btn btn-sm btn-outline-warning">
@@ -162,7 +170,6 @@
 </div>
 
 <style>
-  /* Estilos para que el dashboard se vea pro */
   .bg-soft-danger { background-color: rgba(250, 92, 124, 0.1); }
   .bg-soft-info { background-color: rgba(57, 175, 209, 0.1); }
   .font-11 { font-size: 11px; }

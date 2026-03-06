@@ -108,12 +108,14 @@ Rails.application.routes.draw do
 
   namespace :admin do
     resources :prospect_questionnaires, only: [:index, :show, :update, :destroy]
-    get 'system', to: 'system_metrics#index'
+   get 'system', to: 'system_metrics#index'
     get 'system_metrics_data', to: 'system_metrics#chart_data'
     get 'system_logs', to: 'system_metrics#logs'
     get 'system_worker_stats', to: 'system_metrics#worker_stats'
     post 'retry_failed_jobs', to: 'system_metrics#retry_failed_jobs'
     post 'discard_failed_jobs', to: 'system_metrics#discard_all_failed_jobs'
+
+    
   end
 
   # =========================================================================

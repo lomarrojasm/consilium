@@ -7,15 +7,30 @@ module Admin
       # Carga la vista principal
     end
 
-    # 1. Datos para las gráficas (Netdata)
+    # Alimenta las gráficas (Doughnuts)
     def chart_data
       chart = params[:chart] || "system.cpu"
-      url = "http://74.208.227.22:19999/api/v1/data?chart=#{chart}&after=-300&points=60&format=json"
       
-      response = Net::HTTP.get(URI(url))
-      render json: JSON.parse(response)
-    rescue => e
-      render json: { error: e.message }, status: :service_unavailable
+      # Siempre apuntamos a tu servidor de IONOS para ver datos reales
+      url = "http://74.208.227.22:19999/api/v1/data?chart=#{chart}&after=-60&points=1&format=json"
+      
+      begin
+        uri = URI.parse(url)
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.read_timeout = 3 # Evitamos que la app se trabe
+        response = http.get(uri.request_uri)
+        
+        # Si la respuesta es exitosa, parseamos el JSON real
+        if response.is_a?(Net::HTTPSuccess)
+          render json: JSON.parse(response.body)
+        else
+          # Si falla silenciosamente, enviamos estructura nula
+          render json: { labels: ["time", "used", "free"], data: [[Time.now.to_i, 0, 100]] }
+        end
+      rescue => e
+        # Salvavidas por si se cae la red
+        render json: { labels: ["time", "used", "free"], data: [[Time.now.to_i, 0, 100]] }
+      end
     end
 
     # 2. Visor de Logs con codificación segura
