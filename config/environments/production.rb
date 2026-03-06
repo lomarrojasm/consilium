@@ -43,8 +43,27 @@ Rails.application.configure do
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
+  # Configuración de Logs: Doble salida (Consola + Archivo) con rotación mensual
+  if ENV["RAILS_LOG_TO_STDOUT"].present?
+    # 1. Asegura que la carpeta log existe para evitar el error "File Not Found"
+    log_dir = Rails.root.join("log")
+    FileUtils.mkdir_p(log_dir) unless File.directory?(log_dir)
+
+    # 2. Definimos el archivo físico (Guarda 1 respaldo y rota cada mes)
+    file_logger = ActiveSupport::Logger.new(log_dir.join("#{Rails.env}.log"), 1, 'monthly')
+    file_logger.formatter = config.log_formatter
+
+    # 3. Mantenemos la salida a consola para Kamal
+    stdout_logger = ActiveSupport::Logger.new(STDOUT)
+    stdout_logger.formatter = config.log_formatter
+
+    # 4. Broadcast: Escribe en ambos lugares al mismo tiempo
+    config.logger = ActiveSupport::TaggedLogging.new(
+      ActiveSupport::BroadcastLogger.new(stdout_logger, file_logger)
+    )
+  end
+
   config.log_tags = [ :request_id ]
-  config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
 
   # Change to "debug" to log everything (including potentially personally-identifiable information!)
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
