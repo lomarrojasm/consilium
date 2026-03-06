@@ -69,6 +69,62 @@
   </div>
 </div>
 
+
+<div class="row mt-3" data-controller="system-workers">
+  <div class="col-12 text-end mb-3">
+     <button data-action="click->system-workers#retryAll" class="btn btn-sm btn-outline-danger">
+        <i class="ri-restart-line me-1"></i> Reintentar Todas las Fallidas
+     </button>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-none border">
+      <div class="card-header bg-soft-danger">
+        <h6 class="mb-0 text-danger"><i class="ri-error-warning-line me-1"></i> Últimas Fallidas</h6>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-nowrap mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th class="font-11">Job / Error</th>
+                <th class="font-11 text-end">Hora</th>
+              </tr>
+            </thead>
+            <tbody data-system-workers-target="failedList">
+              </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-none border">
+      <div class="card-header bg-soft-info">
+        <h6 class="mb-0 text-info"><i class="ri-time-line me-1"></i> Próximas Pendientes</h6>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-nowrap mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th class="font-11">Clase / Argumentos</th>
+                <th class="font-11 text-end">Creado</th>
+              </tr>
+            </thead>
+            <tbody data-system-workers-target="pendingList">
+              </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
   <div class="row mt-4" data-controller="system-logs">
   <div class="col-12">
     <div class="card shadow-none border">
@@ -91,6 +147,13 @@
           <button data-action="click->system-logs#togglePause" data-system-logs-target="pauseBtn" class="btn btn-sm btn-outline-danger">
             <i class="ri-pause-line"></i> Pausar
           </button>
+
+          <button data-action="click->system-workers#retryAll" class="btn btn-sm btn-outline-primary">
+            <i class="ri-restart-line me-1"></i> Reintentar Todo
+            </button>
+            <button data-action="click->system-workers#discardAll" class="btn btn-sm btn-outline-secondary">
+            <i class="ri-delete-bin-line me-1"></i> Limpiar Historial
+            </button>
 
           <button data-action="click->system-logs#fetchLogs" class="btn btn-sm btn-light border"><i class="ri-refresh-line"></i></button>
         </div>
