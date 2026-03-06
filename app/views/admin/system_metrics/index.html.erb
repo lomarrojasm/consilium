@@ -1,0 +1,56 @@
+<% @page_title = "Estado del Sistema" %>
+
+<%= render 'layouts/partials/page-title', page_title: "Monitoreo de Servidor", sub_title: "Consilium Infraestructura" %>
+
+<div data-controller="system-monitor" class="mt-3">
+  <div class="row">
+    <% 
+      [
+        ['cpu', 'Procesador', 'ri-cpu-line', 'text-primary'],
+        ['ram', 'Memoria RAM', 'ri-database-2-line', 'text-info'],
+        ['disk', 'Disco Principal', 'ri-hard-drive-line', 'text-success']
+      ].each do |target, title, icon, color_class| 
+    %>
+      <div class="col-md-4 mb-4">
+        <div class="card shadow-none border h-100">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h6 class="text-muted text-uppercase font-12 fw-bold m-0">
+                <i class="<%= icon %> <%= color_class %> me-1"></i> <%= title %>
+              </h6>
+              <span class="badge badge-soft-secondary">LIVE</span>
+            </div>
+            
+            <div class="position-relative" style="height: 200px;">
+              <canvas data-system-monitor-target="<%= target %>"></canvas>
+              <div class="position-absolute top-50 start-50 translate-middle text-center usage-pct" style="width: 100%; transform: translate(-50%, -40%) !important;">
+                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-none bg-light text-muted">
+        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center">
+            <div class="spinner-grow spinner-grow-sm text-success me-2" role="status"></div>
+            <span class="font-13">Monitor de Recursos: <strong>74.208.227.22</strong> activo</span>
+          </div>
+          <span class="font-12">Frecuencia de muestreo: 10s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .usage-pct h2 { font-size: 2rem; letter-spacing: -1.5px; line-height: 1; }
+  .usage-pct .font-13 { margin-top: 4px; }
+  .card { transition: all 0.2s ease-in-out; border-radius: 10px; }
+  .card:hover { border-color: #3e60d5 !important; }
+</style>

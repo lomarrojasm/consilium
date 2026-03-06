@@ -108,6 +108,8 @@ Rails.application.routes.draw do
 
   namespace :admin do
     resources :prospect_questionnaires, only: [:index, :show, :update, :destroy]
+    get 'system', to: 'system_metrics#index'
+    get 'system_metrics_data', to: 'system_metrics#chart_data'
   end
 
   # =========================================================================
