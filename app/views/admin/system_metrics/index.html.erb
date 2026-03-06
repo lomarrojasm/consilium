@@ -1,190 +1,134 @@
-<% @page_title = "Estado del Sistema" %>
-
-<%= render 'layouts/partials/page-title', page_title: "Monitoreo de Servidor", sub_title: "Consilium Infraestructura" %>
-
-<div data-controller="system-monitor" class="mt-3">
-  <div class="row">
-    <% 
-      [
-        ['cpu', 'Procesador', 'ri-cpu-line', 'text-primary'],
-        ['ram', 'Memoria RAM', 'ri-database-2-line', 'text-info'],
-        ['disk', 'Disco Principal', 'ri-hard-drive-line', 'text-success']
-      ].each do |target, title, icon, color_class| 
-    %>
-      <div class="col-md-4 mb-4">
-        <div class="card shadow-none border h-100">
-          <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <h6 class="text-muted text-uppercase font-12 fw-bold m-0">
-                <i class="<%= icon %> <%= color_class %> me-1"></i> <%= title %>
-              </h6>
-              <span class="badge badge-soft-secondary">LIVE</span>
-            </div>
-            
-            <div class="position-relative" style="height: 200px;">
-              <canvas data-system-monitor-target="<%= target %>"></canvas>
-              <div class="position-absolute top-50 start-50 translate-middle text-center usage-pct" style="width: 100%; transform: translate(-50%, -40%) !important;">
-                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    <% end %>
-  </div>
-
-  <div class="row mb-4" data-controller="system-workers">
-  <div class="col-12">
-    <div class="card shadow-none border">
-      <div class="card-body py-3">
-        <div class="row align-items-center">
-          <div class="col-md-3 border-end">
-            <div class="d-flex align-items-center">
-              <div class="avatar-sm flex-shrink-0">
-                <span class="avatar-title bg-soft-primary text-primary rounded-circle">
-                  <i class="ri-settings-3-line font-20"></i>
-                </span>
-              </div>
-              <div class="ms-3">
-                <p class="text-muted mb-0 font-13">Estado Workers</p>
-                <span data-system-workers-target="status" class="badge bg-secondary">CARGANDO...</span>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 border-end text-center">
-            <h4 class="mb-0 fw-bold" data-system-workers-target="active">0</h4>
-            <p class="text-muted mb-0 font-12">Procesos Activos</p>
-          </div>
-          <div class="col-md-3 border-end text-center">
-            <h4 class="mb-0 fw-bold" data-system-workers-target="pending">0</h4>
-            <p class="text-muted mb-0 font-12">Tareas Pendientes</p>
-          </div>
-          <div class="col-md-3 text-center">
-            <h4 class="mb-0 fw-bold text-danger" data-system-workers-target="failed">0</h4>
-            <p class="text-muted mb-0 font-12">Tareas Fallidas</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<div class="row mt-3" data-controller="system-workers">
-  <div class="col-12 text-end mb-3">
-     <button data-action="click->system-workers#retryAll" class="btn btn-sm btn-outline-danger">
-        <i class="ri-restart-line me-1"></i> Reintentar Todas las Fallidas
-     </button>
-  </div>
-
-  <div class="col-md-6">
-    <div class="card shadow-none border">
-      <div class="card-header bg-soft-danger">
-        <h6 class="mb-0 text-danger"><i class="ri-error-warning-line me-1"></i> Últimas Fallidas</h6>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-sm table-nowrap mb-0">
-            <thead class="bg-light">
-              <tr>
-                <th class="font-11">Job / Error</th>
-                <th class="font-11 text-end">Hora</th>
-              </tr>
-            </thead>
-            <tbody data-system-workers-target="failedList">
-              </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-6">
-    <div class="card shadow-none border">
-      <div class="card-header bg-soft-info">
-        <h6 class="mb-0 text-info"><i class="ri-time-line me-1"></i> Próximas Pendientes</h6>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-sm table-nowrap mb-0">
-            <thead class="bg-light">
-              <tr>
-                <th class="font-11">Clase / Argumentos</th>
-                <th class="font-11 text-end">Creado</th>
-              </tr>
-            </thead>
-            <tbody data-system-workers-target="pendingList">
-              </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-
-  <div class="row mt-4" data-controller="system-logs">
-  <div class="col-12">
-    <div class="card shadow-none border">
-      <div class="card-header bg-light d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-        <h5 class="card-title mb-0 font-14">
-          <i class="ri-terminal-box-line me-1"></i> Registros de la Aplicación
-        </h5>
-        
-        <div class="d-flex flex-wrap gap-2">
-          <div class="input-group input-group-sm" style="width: 200px;">
-            <span class="input-group-text bg-white border-end-0"><i class="ri-search-line"></i></span>
-            <input type="text" class="form-control border-start-0" placeholder="Buscar..." 
-                   data-action="input->system-logs#handleSearch" data-system-logs-target="search">
-          </div>
-
-          <button data-action="click->system-logs#toggleFilter" data-system-logs-target="filterBtn" class="btn btn-sm btn-outline-warning">
-            <i class="ri-error-warning-line"></i> Errores
-          </button>
-
-          <button data-action="click->system-logs#togglePause" data-system-logs-target="pauseBtn" class="btn btn-sm btn-outline-danger">
-            <i class="ri-pause-line"></i> Pausar
-          </button>
-
-          <button data-action="click->system-workers#retryAll" class="btn btn-sm btn-outline-primary">
-            <i class="ri-restart-line me-1"></i> Reintentar Todo
-            </button>
-            <button data-action="click->system-workers#discardAll" class="btn btn-sm btn-outline-secondary">
-            <i class="ri-delete-bin-line me-1"></i> Limpiar Historial
-            </button>
-
-          <button data-action="click->system-logs#fetchLogs" class="btn btn-sm btn-light border"><i class="ri-refresh-line"></i></button>
-        </div>
-      </div>
-
-      <div class="card-body p-0">
-        <pre data-system-logs-target="container" 
-             style="height: 450px; overflow-y: auto; background-color: #1a1a1a; color: #eaeaea; padding: 15px; font-family: 'Monaco', monospace; font-size: 12px; margin-bottom: 0; white-space: pre-wrap;"></pre>
-      </div>
-    </div>
-  </div>
-</div>
-
+<div class="container-fluid">
   <div class="row">
     <div class="col-12">
-      <div class="card border-0 shadow-none bg-light text-muted">
-        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
-          <div class="d-flex align-items-center">
-            <div class="spinner-grow spinner-grow-sm text-success me-2" role="status"></div>
-            <span class="font-13">Monitor de Recursos: <strong>74.208.227.22</strong> activo</span>
+      <div class="page-title-box">
+        <h4 class="page-title">Monitor de Sistema y Procesos</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-none border">
+        <div class="card-body">
+          <h5 class="card-title font-14">Uso de CPU</h5>
+          <div data-netdata="system.cpu" data-chart-library="gauge" data-height="150" data-after="-300"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-none border">
+        <div class="card-body">
+          <h5 class="card-title font-14">Uso de RAM</h5>
+          <div data-netdata="system.ram" data-chart-library="gauge" data-height="150" data-after="-300"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-none border">
+        <div class="card-body">
+          <h5 class="card-title font-14">Espacio en Disco</h5>
+          <div data-netdata="disk_space./" data-chart-library="gauge" data-height="150" data-after="-300"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div data-controller="system-workers">
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card shadow-none border">
+          <div class="card-body py-3">
+            <div class="row align-items-center text-center">
+              <div class="col-md-3 border-end">
+                <p class="text-muted mb-1 font-13">Estado de Workers</p>
+                <span data-system-workers-target="status" class="badge bg-secondary">CARGANDO...</span>
+              </div>
+              <div class="col-md-3 border-end">
+                <h4 class="mb-0 fw-bold" data-system-workers-target="active">0</h4>
+                <p class="text-muted mb-0 font-12">Procesos Activos</p>
+              </div>
+              <div class="col-md-3 border-end">
+                <h4 class="mb-0 fw-bold" data-system-workers-target="pending">0</h4>
+                <p class="text-muted mb-0 font-12">Tareas Pendientes</p>
+              </div>
+              <div class="col-md-3">
+                <h4 class="mb-0 fw-bold text-danger" data-system-workers-target="failed">0</h4>
+                <p class="text-muted mb-0 font-12">Tareas Fallidas</p>
+              </div>
+            </div>
           </div>
-          <span class="font-12">Frecuencia de muestreo: 10s</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-12 text-end mb-2">
+        <div class="btn-group shadow-sm">
+          <button data-action="click->system-workers#retryAll" class="btn btn-sm btn-outline-primary">
+            <i class="ri-restart-line me-1"></i> Reintentar Todo
+          </button>
+          <button data-action="click->system-workers#discardAll" class="btn btn-sm btn-outline-secondary">
+            <i class="ri-delete-bin-line me-1"></i> Limpiar Historial
+          </button>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card shadow-none border h-100">
+          <div class="card-header bg-soft-danger py-2 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-danger font-13">Últimas Fallidas</h6>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+              <tbody data-system-workers-target="failedList">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card shadow-none border h-100">
+          <div class="card-header bg-soft-info py-2 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-info font-13">Próximas Pendientes</h6>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+              <tbody data-system-workers-target="pendingList">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" data-controller="system-logs">
+    <div class="col-12">
+      <div class="card shadow-none border">
+        <div class="card-header bg-light d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+          <h5 class="card-title mb-0 font-14"><i class="ri-terminal-box-line me-1"></i> Registros de la Aplicación</h5>
+          <div class="d-flex flex-wrap gap-2">
+            <div class="input-group input-group-sm" style="width: 200px;">
+              <span class="input-group-text bg-white border-end-0"><i class="ri-search-line"></i></span>
+              <input type="text" class="form-control border-start-0" placeholder="Buscar..." 
+                     data-action="input->system-logs#handleSearch" data-system-logs-target="search">
+            </div>
+            <button data-action="click->system-logs#toggleFilter" data-system-logs-target="filterBtn" class="btn btn-sm btn-outline-warning">
+              <i class="ri-error-warning-line"></i> Errores
+            </button>
+            <button data-action="click->system-logs#togglePause" data-system-logs-target="pauseBtn" class="btn btn-sm btn-outline-danger">
+              <i class="ri-pause-line"></i> Pausar
+            </button>
+            <button data-action="click->system-logs#fetchLogs" class="btn btn-sm btn-light border"><i class="ri-refresh-line"></i></button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <pre data-system-logs-target="container" 
+               style="height: 400px; overflow-y: auto; background-color: #1a1a1a; color: #eaeaea; padding: 15px; font-family: 'Monaco', monospace; font-size: 11px; margin-bottom: 0; white-space: pre-wrap;"></pre>
         </div>
       </div>
     </div>
   </div>
 </div>
-
-<style>
-  .usage-pct h2 { font-size: 2rem; letter-spacing: -1.5px; line-height: 1; }
-  .usage-pct .font-13 { margin-top: 4px; }
-  .card { transition: all 0.2s ease-in-out; border-radius: 10px; }
-  .card:hover { border-color: #3e60d5 !important; }
-</style>

@@ -4,10 +4,8 @@ export default class extends Controller {
   static targets = ["active", "pending", "failed", "status", "failedList", "pendingList"]
 
   connect() {
-    console.log("👷 Monitor de Workers conectado")
     this.updateStats()
-    // Refrescamos los datos cada 10 segundos
-    this.interval = setInterval(() => this.updateStats(), 10000)
+    this.interval = setInterval(() => this.updateStats(), 10000) // 10 segundos
   }
 
   disconnect() {
@@ -17,22 +15,28 @@ export default class extends Controller {
   async updateStats() {
     try {
       const response = await fetch('/admin/system_worker_stats')
-      if (!response.ok) throw new Error("Error en la red")
+      if (!response.ok) throw new Error("Error en la respuesta del servidor")
       const data = await response.json()
 
-      // 1. Actualizar Contadores Superiores
-      this.activeTarget.textContent = data.active_workers
-      this.pendingTarget.textContent = data.pending
-      this.failedTarget.textContent = data.failed
+      // Actualizar contadores básicos
+      if (this.hasActiveTarget) this.activeTarget.textContent = data.active_workers
+      if (this.hasPendingTarget) this.pendingTarget.textContent = data.pending
+      if (this.hasFailedTarget) this.failedTarget.textContent = data.failed
       
-      // 2. Actualizar Badge de Estado
-      const isActive = data.active_workers > 0
-      this.statusTarget.className = isActive ? 'badge bg-success' : 'badge bg-danger'
-      this.statusTarget.textContent = isActive ? 'ACTIVO' : 'ALERTA'
+      // Actualizar badge de estado
+      if (this.hasStatusTarget) {
+        const isActive = data.active_workers > 0
+        this.statusTarget.className = isActive ? 'badge bg-success' : 'badge bg-danger'
+        this.statusTarget.textContent = isActive ? 'ACTIVO' : 'ALERTA'
+      }
 
-      // 3. Renderizar Listas Detalladas
-      this.renderList(this.failedListTarget, data.failed_details, 'text-danger', 'Sin errores recientes')
-      this.renderList(this.pendingListTarget, data.pending_details, 'text-info', 'No hay tareas en cola')
+      // Renderizar las tablas de detalles (Esto corrige el error de targets faltantes)
+      if (this.hasFailedListTarget) {
+        this.renderList(this.failedListTarget, data.failed_details, 'text-danger', 'Sin errores recientes')
+      }
+      if (this.hasPendingListTarget) {
+        this.renderList(this.pendingListTarget, data.pending_details, 'text-info', 'Sin tareas pendientes')
+      }
 
     } catch (e) {
       console.error("Error al obtener estadísticas de workers:", e)
@@ -41,16 +45,16 @@ export default class extends Controller {
 
   renderList(target, items, colorClass, emptyMessage) {
     if (!items || items.length === 0) {
-      target.innerHTML = `<tr><td colspan="2" class="text-center text-muted py-3 font-12">${emptyMessage}</td></tr>`
+      target.innerHTML = `<tr><td colspan="2" class="text-center text-muted py-3 font-11">${emptyMessage}</td></tr>`
       return
     }
 
     target.innerHTML = items.map(item => `
       <tr>
-        <td class="ps-3">
+        <td class="ps-3 py-2">
           <div class="fw-bold font-12 text-dark">${item.class}</div>
-          <div class="text-muted font-11 text-truncate" style="max-width: 280px;">
-            ${item.error || item.arguments || 'Sin datos'}
+          <div class="text-muted font-11 text-truncate" style="max-width: 250px;">
+            ${item.error || item.arguments || 'Sin descripción'}
           </div>
         </td>
         <td class="text-end pe-3 align-middle">
@@ -61,49 +65,34 @@ export default class extends Controller {
   }
 
   async retryAll() {
-    if (!confirm("¿Estás seguro de que quieres reintentar todas las tareas fallidas?")) return
-
+    if (!confirm("¿Reintentar todas las tareas fallidas?")) return
     try {
       const response = await fetch('/admin/retry_failed_jobs', {
         method: 'POST',
-        headers: {
+        headers: { 
           'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
           'Accept': 'application/json'
         }
       })
-      
       const data = await response.json()
-      
-      // Feedback al usuario (puedes cambiarlo por un Toast más adelante)
       alert(data.message)
       this.updateStats()
-      
-    } catch (e) {
-      console.error("Error al ejecutar reintento:", e)
-      alert("Hubo un error al intentar reponer las tareas.")
-    }
+    } catch (e) { console.error(e) }
   }
 
   async discardAll() {
-  if (!confirm("¿Estás seguro de que quieres borrar todo el historial de fallos? Esto no se puede deshacer.")) return
-
-  try {
-    const response = await fetch('/admin/discard_failed_jobs', {
-      method: 'POST',
-      headers: {
-        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
-        'Accept': 'application/json'
-      }
-    })
-    
-    const data = await response.json()
-    alert(data.message)
-    this.updateStats() // Refresca los contadores y las tablas
-    
-  } catch (e) {
-    console.error("Error al limpiar historial:", e)
+    if (!confirm("¿Borrar definitivamente el historial de fallos?")) return
+    try {
+      const response = await fetch('/admin/discard_failed_jobs', {
+        method: 'POST',
+        headers: { 
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+          'Accept': 'application/json'
+        }
+      })
+      const data = await response.json()
+      alert(data.message)
+      this.updateStats()
+    } catch (e) { console.error(e) }
   }
-}
-
-
 }
