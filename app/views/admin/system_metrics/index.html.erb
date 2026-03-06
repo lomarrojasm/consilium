@@ -33,6 +33,42 @@
     <% end %>
   </div>
 
+  <div class="row mb-4" data-controller="system-workers">
+  <div class="col-12">
+    <div class="card shadow-none border">
+      <div class="card-body py-3">
+        <div class="row align-items-center">
+          <div class="col-md-3 border-end">
+            <div class="d-flex align-items-center">
+              <div class="avatar-sm flex-shrink-0">
+                <span class="avatar-title bg-soft-primary text-primary rounded-circle">
+                  <i class="ri-settings-3-line font-20"></i>
+                </span>
+              </div>
+              <div class="ms-3">
+                <p class="text-muted mb-0 font-13">Estado Workers</p>
+                <span data-system-workers-target="status" class="badge bg-secondary">CARGANDO...</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3 border-end text-center">
+            <h4 class="mb-0 fw-bold" data-system-workers-target="active">0</h4>
+            <p class="text-muted mb-0 font-12">Procesos Activos</p>
+          </div>
+          <div class="col-md-3 border-end text-center">
+            <h4 class="mb-0 fw-bold" data-system-workers-target="pending">0</h4>
+            <p class="text-muted mb-0 font-12">Tareas Pendientes</p>
+          </div>
+          <div class="col-md-3 text-center">
+            <h4 class="mb-0 fw-bold text-danger" data-system-workers-target="failed">0</h4>
+            <p class="text-muted mb-0 font-12">Tareas Fallidas</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
   <div class="row mt-4" data-controller="system-logs">
   <div class="col-12">
     <div class="card shadow-none border">

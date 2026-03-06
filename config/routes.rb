@@ -111,6 +111,7 @@ Rails.application.routes.draw do
     get 'system', to: 'system_metrics#index'
     get 'system_metrics_data', to: 'system_metrics#chart_data'
     get 'system_logs', to: 'system_metrics#logs'
+    get 'system_worker_stats', to: 'system_metrics#worker_stats'
   end
 
   # =========================================================================

@@ -33,24 +33,43 @@ module Admin
     end
 
    def logs
-  log_path = Rails.root.join("log", "#{Rails.env}.log")
-  
-  # DEBUG en la terminal de Rails
-  puts "🔍 Buscando logs en: #{log_path}"
-  
-  if File.exist?(log_path)
-    # Usamos tail pero nos aseguramos de limpiar caracteres raros que rompen el JSON
-    raw_content = `tail -n 100 #{log_path}`
-    @logs = raw_content.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+    log_path = Rails.root.join("log", "#{Rails.env}.log")
     
-    puts "✅ Se leyeron #{@logs.lines.count} líneas"
-  else
-    @logs = "ERROR: No se encuentra el archivo en #{log_path}"
-    puts "❌ Archivo no encontrado"
-  end
+    # DEBUG en la terminal de Rails
+    puts "🔍 Buscando logs en: #{log_path}"
+    
+    if File.exist?(log_path)
+        # Usamos tail pero nos aseguramos de limpiar caracteres raros que rompen el JSON
+        raw_content = `tail -n 100 #{log_path}`
+        @logs = raw_content.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+        
+        puts "✅ Se leyeron #{@logs.lines.count} líneas"
+    else
+        @logs = "ERROR: No se encuentra el archivo en #{log_path}"
+        puts "❌ Archivo no encontrado"
+    end
 
-  render json: { logs: @logs }
-end
+    render json: { logs: @logs }
+    end
+
+
+    def worker_stats
+        # Procesos activos (heartbeat en los últimos 5 minutos)
+        active_processes = SolidQueue::Process.where(last_heartbeat_at: 5.minutes.ago..).count
+        
+        # Jobs en espera
+        pending_jobs = SolidQueue::Job.count
+        
+        # Jobs fallidos (esta es la métrica más importante)
+        failed_jobs = SolidQueue::FailedExecution.count
+
+        render json: {
+            active_workers: active_processes,
+            pending: pending_jobs,
+            failed: failed_jobs,
+            status: active_processes > 0 ? "running" : "warning"
+        }
+    end
 
   end
 end

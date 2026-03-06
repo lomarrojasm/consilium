@@ -27,3 +27,6 @@ application.register("system-logs", SystemLogsController)
 
 import SystemMonitorController from "./system_monitor_controller"
 application.register("system-monitor", SystemMonitorController)
+
+import SystemWorkersController from "./system_workers_controller"
+application.register("system-workers", SystemWorkersController)
