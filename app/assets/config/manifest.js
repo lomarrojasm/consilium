@@ -17,3 +17,4 @@
 //= link controllers/questionnaire_controller.js
 //= link controllers/chart_controller.js
 //= link controllers/system_monitor_controller.js
+//= link controllers/system_logs_controller.js

@@ -110,6 +110,7 @@ Rails.application.routes.draw do
     resources :prospect_questionnaires, only: [:index, :show, :update, :destroy]
     get 'system', to: 'system_metrics#index'
     get 'system_metrics_data', to: 'system_metrics#chart_data'
+    get 'system_logs', to: 'system_metrics#logs'
   end
 
   # =========================================================================

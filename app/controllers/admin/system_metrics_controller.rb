@@ -31,5 +31,26 @@ module Admin
             render json: { error: e.message }, status: :service_unavailable
         end
     end
+
+   def logs
+  log_path = Rails.root.join("log", "#{Rails.env}.log")
+  
+  # DEBUG en la terminal de Rails
+  puts "🔍 Buscando logs en: #{log_path}"
+  
+  if File.exist?(log_path)
+    # Usamos tail pero nos aseguramos de limpiar caracteres raros que rompen el JSON
+    raw_content = `tail -n 100 #{log_path}`
+    @logs = raw_content.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+    
+    puts "✅ Se leyeron #{@logs.lines.count} líneas"
+  else
+    @logs = "ERROR: No se encuentra el archivo en #{log_path}"
+    puts "❌ Archivo no encontrado"
+  end
+
+  render json: { logs: @logs }
+end
+
   end
 end

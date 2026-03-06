@@ -33,6 +33,41 @@
     <% end %>
   </div>
 
+  <div class="row mt-4" data-controller="system-logs">
+  <div class="col-12">
+    <div class="card shadow-none border">
+      <div class="card-header bg-light d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+        <h5 class="card-title mb-0 font-14">
+          <i class="ri-terminal-box-line me-1"></i> Registros de la Aplicación
+        </h5>
+        
+        <div class="d-flex flex-wrap gap-2">
+          <div class="input-group input-group-sm" style="width: 200px;">
+            <span class="input-group-text bg-white border-end-0"><i class="ri-search-line"></i></span>
+            <input type="text" class="form-control border-start-0" placeholder="Buscar..." 
+                   data-action="input->system-logs#handleSearch" data-system-logs-target="search">
+          </div>
+
+          <button data-action="click->system-logs#toggleFilter" data-system-logs-target="filterBtn" class="btn btn-sm btn-outline-warning">
+            <i class="ri-error-warning-line"></i> Errores
+          </button>
+
+          <button data-action="click->system-logs#togglePause" data-system-logs-target="pauseBtn" class="btn btn-sm btn-outline-danger">
+            <i class="ri-pause-line"></i> Pausar
+          </button>
+
+          <button data-action="click->system-logs#fetchLogs" class="btn btn-sm btn-light border"><i class="ri-refresh-line"></i></button>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <pre data-system-logs-target="container" 
+             style="height: 450px; overflow-y: auto; background-color: #1a1a1a; color: #eaeaea; padding: 15px; font-family: 'Monaco', monospace; font-size: 12px; margin-bottom: 0; white-space: pre-wrap;"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
   <div class="row">
     <div class="col-12">
       <div class="card border-0 shadow-none bg-light text-muted">

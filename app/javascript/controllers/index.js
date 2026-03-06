@@ -22,5 +22,8 @@ application.register("presence", PresenceController)
 import QuestionnaireController from "./questionnaire_controller"
 application.register("questionnaire", QuestionnaireController)
 
+import SystemLogsController from "./system_logs_controller"
+application.register("system-logs", SystemLogsController)
+
 import SystemMonitorController from "./system_monitor_controller"
 application.register("system-monitor", SystemMonitorController)
