@@ -1,34 +1,54 @@
-<div class="container-fluid">
+<script type="text/javascript">
+  // Configuración para que Netdata no robe el scroll y se integre bien
+  var netdataNoMultichart = true;
+  var netdataNoSparklines = false;
+</script>
+<script type="text/javascript" src="http://74.208.227.22:19999/dashboard.js"></script>
+
+<div class="container-fluid pt-3">
   <div class="row">
     <div class="col-12">
-      <div class="page-title-box">
-        <h4 class="page-title">Monitor de Sistema y Procesos</h4>
+      <div class="page-title-box d-flex align-items-center justify-content-between">
+        <h4 class="page-title text-primary"><i class="ri-dashboard-3-line"></i> Consilium: Centro de Comando</h4>
+        <span class="text-muted font-12">IP del Servidor: 74.208.227.22</span>
       </div>
     </div>
   </div>
 
   <div class="row mb-4">
     <div class="col-md-4">
-      <div class="card shadow-none border">
-        <div class="card-body">
-          <h5 class="card-title font-14">Uso de CPU</h5>
-          <div data-netdata="system.cpu" data-chart-library="gauge" data-height="150" data-after="-300"></div>
+      <div class="card shadow-none border h-100">
+        <div class="card-body text-center">
+          <h5 class="card-title font-14 mb-3 text-uppercase">Carga de CPU</h5>
+          <div data-netdata="system.cpu" 
+               data-chart-library="gauge" 
+               data-gauge-generate-gradient="true"
+               data-width="100%" data-height="160px" 
+               data-after="-300" data-points="60"></div>
         </div>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card shadow-none border">
-        <div class="card-body">
-          <h5 class="card-title font-14">Uso de RAM</h5>
-          <div data-netdata="system.ram" data-chart-library="gauge" data-height="150" data-after="-300"></div>
+      <div class="card shadow-none border h-100">
+        <div class="card-body text-center">
+          <h5 class="card-title font-14 mb-3 text-uppercase">Uso de RAM</h5>
+          <div data-netdata="system.ram" 
+               data-dimensions="used"
+               data-chart-library="gauge" 
+               data-width="100%" data-height="160px" 
+               data-after="-300" data-points="60"></div>
         </div>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card shadow-none border">
-        <div class="card-body">
-          <h5 class="card-title font-14">Espacio en Disco</h5>
-          <div data-netdata="disk_space./" data-chart-library="gauge" data-height="150" data-after="-300"></div>
+      <div class="card shadow-none border h-100">
+        <div class="card-body text-center">
+          <h5 class="card-title font-14 mb-3 text-uppercase">Espacio en Disco (/)</h5>
+          <div data-netdata="disk_space./" 
+               data-dimensions="used"
+               data-chart-library="gauge" 
+               data-width="100%" data-height="160px" 
+               data-after="-300" data-points="60"></div>
         </div>
       </div>
     </div>
@@ -41,20 +61,20 @@
           <div class="card-body py-3">
             <div class="row align-items-center text-center">
               <div class="col-md-3 border-end">
-                <p class="text-muted mb-1 font-13">Estado de Workers</p>
-                <span data-system-workers-target="status" class="badge bg-secondary">CARGANDO...</span>
+                <p class="text-muted mb-1 font-13">Estado del Motor</p>
+                <span data-system-workers-target="status" class="badge bg-secondary font-12 px-3 py-1">CARGANDO...</span>
               </div>
               <div class="col-md-3 border-end">
-                <h4 class="mb-0 fw-bold" data-system-workers-target="active">0</h4>
-                <p class="text-muted mb-0 font-12">Procesos Activos</p>
+                <h3 class="mb-0 fw-bold" data-system-workers-target="active">0</h3>
+                <p class="text-muted mb-0 font-12 uppercase">Workers Activos</p>
               </div>
               <div class="col-md-3 border-end">
-                <h4 class="mb-0 fw-bold" data-system-workers-target="pending">0</h4>
-                <p class="text-muted mb-0 font-12">Tareas Pendientes</p>
+                <h3 class="mb-0 fw-bold text-info" data-system-workers-target="pending">0</h3>
+                <p class="text-muted mb-0 font-12 uppercase">Tareas en Cola</p>
               </div>
               <div class="col-md-3">
-                <h4 class="mb-0 fw-bold text-danger" data-system-workers-target="failed">0</h4>
-                <p class="text-muted mb-0 font-12">Tareas Fallidas</p>
+                <h3 class="mb-0 fw-bold text-danger" data-system-workers-target="failed">0</h3>
+                <p class="text-muted mb-0 font-12 uppercase">Tareas Fallidas</p>
               </div>
             </div>
           </div>
@@ -63,40 +83,38 @@
     </div>
 
     <div class="row mb-4">
-      <div class="col-12 text-end mb-2">
-        <div class="btn-group shadow-sm">
-          <button data-action="click->system-workers#retryAll" class="btn btn-sm btn-outline-primary">
-            <i class="ri-restart-line me-1"></i> Reintentar Todo
+      <div class="col-12 text-end mb-3">
+        <div class="btn-group">
+          <button data-action="click->system-workers#retryAll" class="btn btn-sm btn-outline-primary px-3">
+            <i class="ri-restart-line me-1"></i> Reintentar Fallos
           </button>
-          <button data-action="click->system-workers#discardAll" class="btn btn-sm btn-outline-secondary">
-            <i class="ri-delete-bin-line me-1"></i> Limpiar Historial
+          <button data-action="click->system-workers#discardAll" class="btn btn-sm btn-outline-secondary px-3">
+            <i class="ri-delete-bin-line me-1"></i> Limpiar Todo
           </button>
         </div>
       </div>
 
       <div class="col-md-6">
-        <div class="card shadow-none border h-100">
+        <div class="card shadow-none border mb-0" style="min-height: 250px;">
           <div class="card-header bg-soft-danger py-2 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 text-danger font-13">Últimas Fallidas</h6>
+            <h6 class="mb-0 text-danger"><i class="ri-error-warning-line me-1"></i> Incidentes Recientes</h6>
           </div>
           <div class="card-body p-0">
-            <table class="table table-sm mb-0">
-              <tbody data-system-workers-target="failedList">
-                </tbody>
+            <table class="table table-sm table-hover mb-0">
+              <tbody data-system-workers-target="failedList" class="font-12"></tbody>
             </table>
           </div>
         </div>
       </div>
 
       <div class="col-md-6">
-        <div class="card shadow-none border h-100">
+        <div class="card shadow-none border mb-0" style="min-height: 250px;">
           <div class="card-header bg-soft-info py-2 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 text-info font-13">Próximas Pendientes</h6>
+            <h6 class="mb-0 text-info"><i class="ri-time-line me-1"></i> Cola de Espera</h6>
           </div>
           <div class="card-body p-0">
-            <table class="table table-sm mb-0">
-              <tbody data-system-workers-target="pendingList">
-                </tbody>
+            <table class="table table-sm table-hover mb-0">
+              <tbody data-system-workers-target="pendingList" class="font-12"></tbody>
             </table>
           </div>
         </div>
@@ -106,29 +124,52 @@
 
   <div class="row" data-controller="system-logs">
     <div class="col-12">
-      <div class="card shadow-none border">
-        <div class="card-header bg-light d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-          <h5 class="card-title mb-0 font-14"><i class="ri-terminal-box-line me-1"></i> Registros de la Aplicación</h5>
+      <div class="card shadow-none border bg-dark">
+        <div class="card-header bg-dark border-bottom border-secondary d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+          <h5 class="card-title mb-0 font-14 text-white">
+            <i class="ri-terminal-window-line me-1 text-success"></i> rails@hyper:~# tail -f production.log
+          </h5>
           <div class="d-flex flex-wrap gap-2">
-            <div class="input-group input-group-sm" style="width: 200px;">
-              <span class="input-group-text bg-white border-end-0"><i class="ri-search-line"></i></span>
-              <input type="text" class="form-control border-start-0" placeholder="Buscar..." 
+            <div class="input-group input-group-sm" style="width: 220px;">
+              <span class="input-group-text bg-dark border-secondary text-muted"><i class="ri-search-line"></i></span>
+              <input type="text" class="form-control bg-dark border-secondary text-white" placeholder="Filtrar registros..." 
                      data-action="input->system-logs#handleSearch" data-system-logs-target="search">
             </div>
             <button data-action="click->system-logs#toggleFilter" data-system-logs-target="filterBtn" class="btn btn-sm btn-outline-warning">
-              <i class="ri-error-warning-line"></i> Errores
+              <i class="ri-filter-line"></i> Solo Errores
             </button>
             <button data-action="click->system-logs#togglePause" data-system-logs-target="pauseBtn" class="btn btn-sm btn-outline-danger">
-              <i class="ri-pause-line"></i> Pausar
+              <i class="ri-pause-circle-line"></i> Pausar
             </button>
-            <button data-action="click->system-logs#fetchLogs" class="btn btn-sm btn-light border"><i class="ri-refresh-line"></i></button>
+            <button data-action="click->system-logs#fetchLogs" class="btn btn-sm btn-outline-light"><i class="ri-refresh-line"></i></button>
           </div>
         </div>
         <div class="card-body p-0">
           <pre data-system-logs-target="container" 
-               style="height: 400px; overflow-y: auto; background-color: #1a1a1a; color: #eaeaea; padding: 15px; font-family: 'Monaco', monospace; font-size: 11px; margin-bottom: 0; white-space: pre-wrap;"></pre>
+               style="height: 450px; overflow-y: auto; background-color: #0d0d0d; color: #f1f1f1; padding: 20px; font-family: 'Fira Code', 'Monaco', monospace; font-size: 11px; margin-bottom: 0; white-space: pre-wrap; border-radius: 0 0 4px 4px;"></pre>
+        </div>
+        <div class="card-footer bg-dark border-top border-secondary py-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted font-11">Actualización cada 5s • Mostrando últimas 200 líneas</small>
+            <button data-action="click->system-logs#clearLogs" class="btn btn-link btn-sm text-muted p-0 font-11 text-decoration-none">
+              Limpiar vista
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<style>
+  /* Estilos para que el dashboard se vea pro */
+  .bg-soft-danger { background-color: rgba(250, 92, 124, 0.1); }
+  .bg-soft-info { background-color: rgba(57, 175, 209, 0.1); }
+  .font-11 { font-size: 11px; }
+  .font-12 { font-size: 12px; }
+  .font-13 { font-size: 13px; }
+  .font-14 { font-size: 14px; }
+  .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  pre::-webkit-scrollbar { width: 8px; }
+  pre::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+</style>
