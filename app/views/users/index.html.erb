@@ -131,6 +131,17 @@
                           <%= link_to user_path(user), class: "dropdown-item" do %><i class="ri-eye-line me-1 text-muted"></i> Ver Perfil<% end %>
                           <%= link_to edit_user_path(user), class: "dropdown-item" do %><i class="ri-edit-line me-1 text-muted"></i> Editar<% end %>
                           
+                          <%# --- BOTÓN DE IMPERSONAR (Mágico) --- %>
+                          <% if true_user.role == 'admin' && user != true_user %>
+                            <div class="dropdown-divider"></div>
+                            <%= button_to impersonate_user_path(user), 
+                                method: :post, 
+                                class: "dropdown-item text-warning fw-medium",
+                                data: { turbo: false } do %>
+                              <i class="ri-user-shared-line me-1"></i> Entrar como Usuario
+                            <% end %>
+                          <% end %>
+
                           <% unless user.invitation_accepted_at %>
                             <div class="dropdown-divider"></div>
                             <%= button_to resend_invitation_user_path(user), method: :post, class: "dropdown-item text-info" do %>

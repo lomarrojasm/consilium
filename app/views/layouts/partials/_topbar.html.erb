@@ -1,4 +1,25 @@
 <div class="navbar-custom">
+    <%# --- BANNER DE IMPERSONACIÓN (Ajustado para respetar el Sidebar) --- %>
+    <% if user_signed_in? && current_user != true_user %>
+        <div class="alert alert-warning border-0 rounded-0 mb-0 py-1 shadow-sm" style="background-color: #fff4e5; border-bottom: 1px solid #ffeeba !important;">
+            <div class="container-fluid d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-grow spinner-grow-sm text-warning me-2" role="status" style="width: 10px; height: 10px;"></div>
+                    <span class="font-12 fw-bold text-dark">
+                        <i class="ri-shield-user-line me-1"></i> MODO SOPORTE: 
+                        <span class="fw-medium">Activo para <strong><%= current_user.email %></strong></span>
+                    </span>
+                </div>
+                
+                <%= button_to stop_impersonating_users_path, 
+                              method: :post, 
+                              class: "btn btn-xs btn-dark shadow-sm px-2 py-0 fw-bold font-11" do %>
+                    <i class="ri-logout-box-r-line me-1"></i> Volver al Admin
+                <% end %>
+            </div>
+        </div>
+    <% end %>
+
     <div class="topbar container-fluid">
         <div class="d-flex align-items-center gap-lg-2 gap-1">
 
@@ -33,8 +54,6 @@
                     <span></span>
                 </div>
             </button>
-
-            
         </div>
 
         <ul class="topbar-menu d-flex align-items-center gap-3">
@@ -52,7 +71,6 @@
 
             <li class="dropdown notification-list">
                 <a class="nav-link dropdown-toggle arrow-none" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
-                    
                     <i class="mdi mdi-bell-outline noti-icon font-22"></i>
                     
                     <% unread_count = current_user.notifications.unread.count %>
@@ -103,7 +121,6 @@
                     </div>
                 </div>
             </li>
-            
 
             <li class="d-none d-md-inline-block">
                 <a class="nav-link" href="" data-toggle="fullscreen">
@@ -140,56 +157,41 @@
                         <i class="mdi mdi-logout me-1"></i>
                         <span>Cerrar Sesión</span>
                     <% end %>
-                    
                 </div>
             </li>
         </ul>
     </div>
 </div>
 
-
-
 <style>
-
-/* Contenedor del enlace de la campana */
+/* Estilos para que la notificación se vea bien */
 .notification-list .nav-link {
-    position: relative; /* Vital para que el badge se posicione respecto a esto */
+    position: relative;
     padding: 0 15px;
-    display: block;
-    height: 70px; /* Ajusta a la altura de tu navbar */
+    height: 70px;
     display: flex;
     align-items: center;
 }
-
-/* El ícono de la campana */
 .noti-icon {
-    font-size: 24px; /* Tamaño grande y legible */
+    font-size: 24px;
     vertical-align: middle;
-    color: #6c757d; /* Gris estándar */
+    color: #6c757d;
 }
-
-/* El contador rojo (Badge) */
 .noti-icon-badge {
     position: absolute;
-    top: 18px;        /* Ajusta arriba/abajo según altura navbar */
-    right: 8px;       /* Ajusta izquierda/derecha */
-    
+    top: 18px;
+    right: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
-    
-    width: 18px;      /* Ancho fijo para ser círculo perfecto */
-    height: 18px;     /* Alto fijo */
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    
-    background-color: #fa5c7c; /* Rojo/Rosado */
+    background-color: #fa5c7c;
     color: #fff;
     font-size: 10px;
     font-weight: 600;
-    
-    /* El truco visual: Un borde del mismo color del fondo del navbar */
     border: 2px solid #fff; 
     z-index: 10;
 }
-
 </style>

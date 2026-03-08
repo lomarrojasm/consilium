@@ -2,10 +2,27 @@ Rails.application.routes.draw do
   # Health Check
   get "up" => "rails/health#show", as: :rails_health_check
   
-  root to: 'dashboards#projects'
+  # =========================================================================
+  # 0. NAVEGACIÓN DINÁMICA (ROOT)
+  # =========================================================================
+  # Usamos bloques authenticated para que el 'root_path' sea inteligente.
+  # Esto evita que un Cliente intente entrar al Dashboard de Admin al loguearse.
+  
+  authenticated :user, ->(u) { u.role == 'admin' } do
+    root to: 'dashboards#projects', as: :admin_root
+  end
+
+  authenticated :user do
+    root to: 'client_portal#index', as: :client_root
+  end
+
+  # Si no está logueado, el root es el login (o tu página de landing si prefieres)
+  unauthenticated do
+    root to: 'auth#login'
+  end
 
   # =========================================================================
-  # 1. AUTENTICACIÓN Y GESTIÓN DE USUARIOS (Consolidado)
+  # 1. AUTENTICACIÓN Y GESTIÓN DE USUARIOS
   # =========================================================================
   devise_for :users, skip: [:registrations], controllers: { invitations: 'users/invitations' }
 
@@ -14,10 +31,13 @@ Rails.application.routes.draw do
     put 'users' => 'devise/registrations#update', :as => 'user_registration'
   end
 
-  # Unificamos todas las rutas de usuarios en un solo bloque
   resources :users do
     member do
       post :resend_invitation
+      post :impersonate      
+    end
+    collection do
+      post :stop_impersonating 
     end
   end
 
@@ -26,23 +46,18 @@ Rails.application.routes.draw do
   # =========================================================================
   resources :dashboards, only: [:index] do
     collection do
-      get :analytics
-      get :crm
-      get :projects
-      get :wallet
+      get :analytics, :crm, :projects, :wallet
     end
   end
 
   get 'portal', to: 'client_portal#index', as: :client_dashboard
-  get "client_portal/index"
+  # get "client_portal/index" # Esta ya no es necesaria por el alias anterior, pero la mantenemos si la usas en JS
 
   # =========================================================================
   # 3. NÚCLEO: CLIENTES -> PROYECTOS -> ACTIVIDADES
   # =========================================================================
   resources :clients do
-    member do
-      get 'timeline'
-    end
+    member { get 'timeline' }
 
     # --- CHAT ---
     resources :conversations do
@@ -57,22 +72,22 @@ Rails.application.routes.draw do
     resources :projects do
       member do
         post :add_comment
-        get :comments
+        get :comments, :schedule_view
         delete :delete_file
-        get :schedule_view
       end
 
       resources :comments, controller: 'project_comments', only: [:create, :index]
       resources :stages, except: [:index, :show]
 
-      # --- ACTIVIDADES (Corregido y verificado) ---
-      # No incluimos :index ni :show porque se gestionan desde el show del proyecto
+      # --- ACTIVIDADES ---
       resources :activities, only: [:new, :create, :edit, :update, :destroy] do
         member do
           get :tracking
           patch :toggle
           patch :upload_evidence
-          patch :update_status # <--- Esta ruta genera: update_status_client_project_activity_path
+          patch :update_status
+          patch :toggle_user_approval  # <--- Nueva
+          patch :toggle_admin_approval # <--- Nueva
         end
       end
 
@@ -84,16 +99,13 @@ Rails.application.routes.draw do
   # 4. NOTIFICACIONES Y OTROS
   # =========================================================================
   resources :notifications, only: [:index, :show] do
-    member do
-      get :mark_as_read
-    end
+    member { get :mark_as_read }
   end
 
-  # Timeline events global
   patch 'timeline/update_event', to: 'timeline_events#update', as: :update_timeline_event 
 
   # =========================================================================
-  # 5. CUESTIONARIOS Y PÚBLICO
+  # 5. CUESTIONARIOS Y ADMIN SYSTEM
   # =========================================================================
   get 'diagnostico', to: 'public_questionnaires#new', as: :new_diagnostico
   post 'diagnostico', to: 'public_questionnaires#create', as: :public_questionnaires
@@ -108,18 +120,16 @@ Rails.application.routes.draw do
 
   namespace :admin do
     resources :prospect_questionnaires, only: [:index, :show, :update, :destroy]
-   get 'system', to: 'system_metrics#index'
+    get 'system', to: 'system_metrics#index'
     get 'system_metrics_data', to: 'system_metrics#chart_data'
     get 'system_logs', to: 'system_metrics#logs'
     get 'system_worker_stats', to: 'system_metrics#worker_stats'
     post 'retry_failed_jobs', to: 'system_metrics#retry_failed_jobs'
     post 'discard_failed_jobs', to: 'system_metrics#discard_all_failed_jobs'
-
-    
   end
 
   # =========================================================================
-  # 6. RUTAS DE PLANTILLA HYPER (Mantenidas para compatibilidad)
+  # 6. RUTAS DE PLANTILLA HYPER (Mantenidas al 100%)
   # =========================================================================
   get "apps/calendar"; get "apps/chat"; get "apps/social-feed", to: 'apps#social_feed'
   get "apps/file-manager", to: 'apps#file_manager'

@@ -1,19 +1,31 @@
 class ProjectsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_client
+  
+  # Añadimos todas las acciones sensibles que requieren validar si el usuario es miembro
   before_action :set_client_and_project, only: [
     :show, :edit, :update, :destroy, :delete_file, 
     :schedule_view, :toggle_activity, :comments
   ]
   
-  before_action :authorize_project_member!, only: [:edit, :update, :destroy, :toggle_activity]
+  # SEGURIDAD: Ahora 'show' y 'comments' también están protegidos
+  before_action :authorize_project_member!, only: [
+    :show, :edit, :update, :destroy, :toggle_activity, :delete_file, :comments
+  ]
 
   def index
-    @projects = @client.projects.order(created_at: :desc)
+    # Solo mostramos los proyectos donde el usuario es miembro (si no es admin)
+    if current_user.role == 'admin'
+      @projects = @client.projects.order(created_at: :desc)
+    else
+      @projects = @client.projects.joins(:project_members)
+                                 .where(project_members: { user_id: current_user.id })
+                                 .order(created_at: :desc).distinct
+    end
   end
 
   def show
-    # 1. LOGICA DEL TIMELINE
+    # 1. LOGICA DEL TIMELINE (Corregido ILIKE a LIKE para MySQL)
     @events = TimelineLog.where(resource_id: @project.id)
                         .or(TimelineLog.where(resource_type: 'ProjectMember', resource_id: @project.project_members.pluck(:id)))
                         .or(TimelineLog.where(resource_type: 'Activity', resource_id: @project.stages.flat_map(&:activities).pluck(:id)))
@@ -21,16 +33,13 @@ class ProjectsController < ApplicationController
                         .order(happened_at: :desc)
 
     if params[:q].present?
-      @events = @events.where("details ILIKE ?", "%#{params[:q]}%")
+      @events = @events.where("details LIKE ?", "%#{params[:q]}%")
     end
 
-    # 2. CARGA DE DATOS
     @stages = @project.stages.includes(activities: :responsible)
     @comments = @project.comments.order(created_at: :desc)
     @comment = ProjectComment.new 
 
-    # 3. MIEMBROS ELEGIBLES (Solo usuarios de la empresa del cliente o admins)
-    # Excluimos a los que ya son miembros
     current_member_ids = @project.users.pluck(:id)
     @eligible_users = User.where(client_id: @client.id)
                           .or(User.where(role: 'admin'))
@@ -39,7 +48,6 @@ class ProjectsController < ApplicationController
 
   def new
     @project = @client.projects.build
-    # Para el selector del responsable en New
     @eligible_users = User.where(client_id: @client.id).order(:first_name)
   end
 
@@ -48,17 +56,14 @@ class ProjectsController < ApplicationController
     @project.user = current_user
     
     if @project.save
-      # A. AGREGAR AL RESPONSABLE COMO MIEMBRO AUTOMÁTICAMENTE
       if @project.responsible_id.present?
         @project.project_members.find_or_create_by(user_id: @project.responsible_id, role: 'lider')
       end
 
-      # B. CARGAR METODOLOGÍA
       if params[:project][:include_template] == "1"
         ConsiliumTemplateService.generate_structure(@project, current_user)
       end
 
-      # C. REDIRECCIÓN AL SHOW
       redirect_to client_project_path(@client, @project), notice: 'Proyecto iniciado correctamente.'
     else
       @eligible_users = User.where(client_id: @client.id).order(:first_name)
@@ -71,11 +76,11 @@ class ProjectsController < ApplicationController
   end
   
   def update
-    # Manejo de archivos adjuntos (Mantiene tu lógica original)
     if params[:project][:files].present?
       uploaded_files = params[:project][:files].reject(&:blank?)
       if uploaded_files.any?
         @project.files.attach(uploaded_files)
+        # Mantenemos tu lógica de logs original
         TimelineLog.create(
           client: @client, user: current_user, resource: @project, resource_name: @project.name,
           action_type: 'update', details: "📂 Se adjuntaron: #{uploaded_files.map(&:original_filename).join(', ')}",
@@ -85,12 +90,9 @@ class ProjectsController < ApplicationController
     end
 
     if @project.update(project_params.except(:files))
-      # Al actualizar el responsable, también nos aseguramos de que sea miembro
       if @project.saved_change_to_responsible_id? && @project.responsible_id.present?
         @project.project_members.find_or_create_by(user_id: @project.responsible_id, role: 'lider')
       end
-
-      # REDIRECCIÓN AL SHOW (Cambio solicitado)
       redirect_to client_project_path(@client, @project), notice: "Proyecto actualizado exitosamente."
     else
       @eligible_users = User.where(client_id: @client.id).order(:first_name)
@@ -129,39 +131,40 @@ class ProjectsController < ApplicationController
   end
 
   def comments
-    # @project y @client ya están cargados por el before_action (set_client_and_project)
-    
-    # 1. Cargamos los comentarios existentes
     @comments = @project.comments.order(created_at: :desc)
-    
-    # 2. Filtro de búsqueda si existe
     if params[:comment_query].present?
-      @comments = @comments.where("body ILIKE ?", "%#{params[:comment_query]}%")
+      @comments = @comments.where("body LIKE ?", "%#{params[:comment_query]}%")
     end
-
-    # 3. ESTA ES LA LÍNEA CLAVE: Inicializar el objeto para el formulario
-    # Debe llamarse EXACTAMENTE igual que en la vista
     @new_comment = ProjectComment.new 
   end
 
   private
 
+  # SEGURIDAD: Evita que un usuario vea clientes que no le corresponden
   def set_client
-    @client = Client.find(params[:client_id])
+    if true_user.role == 'admin'
+      @client = Client.find(params[:client_id])
+    else
+      @client = current_user.client
+      # Si intentan acceder a otro ID de cliente por URL, los expulsamos
+      if params[:client_id].to_i != @client.id
+        redirect_to root_path, alert: "Acceso no autorizado a este cliente."
+      end
+    end
   end
 
   def set_client_and_project
     @project = @client.projects.find(params[:id] || params[:project_id])
   end
 
-  # Se incluye responsible_id en los parámetros permitidos
   def project_params
     params.require(:project).permit(:name, :start_date, :end_date, :budget, :status, :details, :include_template, :responsible_id, :sequential_stages, files: [])
   end
   
+  # SEGURIDAD: Bloquea el acceso a proyectos específicos si no eres miembro
   def authorize_project_member!
-    unless current_user.role == 'admin' || @project.users.include?(current_user)
-      redirect_to client_path(@client), alert: "No tienes permiso para realizar esta acción."
+    unless true_user.role == 'admin' || @project.users.include?(current_user)
+      redirect_to client_path(@client), alert: "No tienes permiso para acceder a este proyecto."
     end
   end
 end

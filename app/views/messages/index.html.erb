@@ -1,13 +1,16 @@
 <%# app/views/messages/index.html.erb %>
 <meta name="current-user-id" content="<%= current_user.id %>">
 
-<%# 1. ENCABEZADO %>
+<%# 1. ENCABEZADO DINÁMICO %>
 <div class="row">
     <div class="col-12">
         <div class="page-title-box">
             <div class="page-title-right">
                 <ol class="breadcrumb m-0">
-                    <li class="breadcrumb-item"><%= link_to "Consilium", root_path %></li>
+                    <%# SEGURIDAD: El enlace cambia según quién sea el usuario detrás de la sesión %>
+                    <li class="breadcrumb-item">
+                        <%= link_to "Consilium", (current_user.role == 'admin' ? root_path : client_dashboard_path) %>
+                    </li>
                     <li class="breadcrumb-item active">Chat Corporativo</li>
                 </ol>
             </div>
@@ -21,12 +24,13 @@
     <div class="col-xxl-3 col-xl-4">
         <div class="card shadow-sm border-0">
             <div class="card-body" data-controller="presence">
-                <h4 class="header-title mb-1 text-primary">
+                <h4 class="header-title mb-1 text-primary text-truncate">
                     <i class="ri-community-line me-1"></i> 
                     <%= @client.company_name %>
                 </h4>
 
-                <% if current_user.role == 'admin' || @company_users.include?(current_user) %>
+                <%# SEGURIDAD: Usamos true_user para que el admin en soporte pueda crear grupos %>
+                <% if true_user.role == 'admin' || @company_users.include?(current_user) %>
                     <div class="mb-3 mt-2">
                         <button type="button" class="btn btn-sm btn-outline-primary w-100 d-flex align-items-center justify-content-center shadow-none" data-bs-toggle="modal" data-bs-target="#newGroupModal">
                             <i class="ri-group-line me-1 font-16"></i> Nuevo Grupo de Trabajo
@@ -48,7 +52,6 @@
                         <% if @group_conversations&.any? %>
                             <h6 class="font-11 text-muted text-uppercase mt-2 mb-2 px-2">Grupos</h6>
                             <% @group_conversations.each do |group| %>
-                                <%# Lógica de mensajes no leídos para grupos %>
                                 <% participant = group.conversation_participants.find_by(user: current_user) %>
                                 <% unread_count = participant&.unread_messages_count || 0 %>
 
@@ -71,7 +74,8 @@
                                             </div>
                                         </div>
                                     </a>
-                                    <% if current_user.role == 'admin' || group.sender_id == current_user.id %>
+                                    <%# SEGURIDAD: Solo el dueño o el admin real pueden borrar %>
+                                    <% if true_user.role == 'admin' || group.sender_id == current_user.id %>
                                         <%= button_to client_conversation_path(@client, group), method: :delete, form: { data: { turbo_confirm: "¿Eliminar grupo para todos?" }, class: "d-inline" }, class: "btn-delete-sidebar text-danger border-0 bg-transparent p-0 me-2" do %>
                                             <i class="ri-delete-bin-line"></i>
                                         <% end %>
@@ -85,7 +89,6 @@
                         <h6 class="font-11 text-muted text-uppercase mt-2 mb-2 px-2">Mensajes Directos</h6>
                         <% @company_users.each do |user| %>
                             <% conv_ind = @active_conversations.find { |c| !c.is_group? && (c.sender_id == user.id || c.recipient_id == user.id) } %>
-                            <%# Lógica de mensajes no leídos para individuales %>
                             <% unread_count = 0 %>
                             <% if conv_ind %>
                                 <% participant = conv_ind.conversation_participants.find_by(user: current_user) %>
@@ -118,7 +121,8 @@
                                         </div>
                                     </div>
                                 </a>
-                                <% if conv_ind && current_user.role == 'admin' %>
+                                <%# SEGURIDAD: Solo el admin real puede borrar historiales individuales %>
+                                <% if conv_ind && true_user.role == 'admin' %>
                                     <%= button_to client_conversation_path(@client, conv_ind), method: :delete, form: { data: { turbo_confirm: "¿Borrar historial?" }, class: "d-inline" }, class: "btn-delete-sidebar text-danger border-0 bg-transparent p-0 me-2" do %>
                                         <i class="ri-delete-bin-line"></i>
                                     <% end %>
@@ -132,7 +136,6 @@
     </div>
 
     <%# --- COLUMNA DERECHA: VENTANA DE CHAT --- %>
-    <%# El ID 'chat-window-container' permite que Turbo Stream lo actualice tras borrar %>
     <div class="col-xxl-9 col-xl-8" id="chat-window-container">
         <div class="card shadow-sm border-0 h-100 mb-0" data-controller="chat" data-chat-id-value="<%= @conversation.id %>">
             
@@ -158,7 +161,6 @@
                         </div>
                     </div>
 
-                    <%# Buscador de mensajes %>
                     <%= form_with url: client_conversation_messages_path(@client, @conversation), method: :get, html: { data: { chat_target: "searchForm" }, autocomplete: "off" } do |f| %>
                         <div class="input-group input-group-sm">
                             <%= f.search_field :q, class: "form-control border-light bg-light-subtle", placeholder: "Buscar mensaje...", data: { action: "input->chat#search" } %>
@@ -234,7 +236,10 @@
         const filter = document.getElementById('contact-search').value.toLowerCase();
         document.querySelectorAll('.contact-item').forEach(item => {
             const name = item.getAttribute('data-name');
-            item.closest('.chat-row').style.display = name.includes(filter) ? "" : "none";
+            const row = item.closest('.chat-row');
+            if (row) {
+                row.style.display = name.includes(filter) ? "" : "none";
+            }
         });
     }
 </script>

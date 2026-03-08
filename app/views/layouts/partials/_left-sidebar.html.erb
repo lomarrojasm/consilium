@@ -1,5 +1,6 @@
 <div class="leftside-menu" style="position: fixed; height: 100%; padding-bottom: 0;">
 
+  <%# Los logos ahora usan el root_path dinámico que definimos en routes.rb %>
   <a href="<%= root_path %>" class="logo logo-light">
     <span class="logo-lg"><img src="<%= image_path("consilium_rec.png") %>" alt="logo"></span>
     <span class="logo-sm"><img src="<%= image_path("icono_consilium.jpg") %>" alt="small logo"></span>
@@ -10,7 +11,7 @@
     <span class="logo-sm"><img src="<%= image_path("icono_consilium.jpg") %>" alt="small logo"></span>
   </a>
 
-  <div class="button-sm-hover" data-bs-toggle="tooltip" data-bs-placement="right" title="Show Full Sidebar">
+  <div class="button-sm-hover" data-bs-toggle="tooltip" data-bs-placement="right" title="Mostrar Sidebar Completo">
     <i class="ri-checkbox-blank-circle-line align-middle"></i>
   </div>
   <div class="button-close-fullsidebar">
@@ -21,7 +22,16 @@
     
     <div class="leftbar-user">
       <a href="<%= edit_user_registration_path %>">
-        <img src="<%= image_path("users/avatar-1.jpg") %>" alt="user-image" height="42" class="rounded-circle shadow-sm">
+        <% if current_user.avatar.attached? %>
+          <%= image_tag current_user.avatar, class: "rounded-circle shadow-sm", height: "42", width: "42", style: "object-fit: cover;" %>
+        <% else %>
+          <%# Avatar por defecto si no tiene uno cargado %>
+          <div class="avatar-sm d-inline-block">
+            <span class="avatar-title bg-soft-primary text-primary rounded-circle fw-bold">
+              <%= current_user.first_name[0] %><%= current_user.last_name[0] %>
+            </span>
+          </div>
+        <% end %>
         <span class="leftbar-user-name mt-2">
           <%= current_user&.first_name || 'Usuario' %>
         </span>
@@ -31,6 +41,7 @@
     <ul class="side-nav">
       <li class="side-nav-title">Módulos</li>
 
+      <%# Nota: Usamos current_user para que, al impersonar, el admin vea EXACTAMENTE el menú que ve el cliente %>
       <% if current_user.role == "admin" %>
         <li class="side-nav-item">
           <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false" aria-controls="sidebarDashboards" class="side-nav-link">
@@ -45,7 +56,6 @@
                   </li>
                   <li>
                       <%= link_to admin_prospect_questionnaires_path, data: { turbo: false } do %>
-                          <%# El contador ahora vive aquí, al lado del texto %>
                           <span> Leads & Diagnósticos </span>
                           <% count = ProspectQuestionnaire.where(status: 'Nuevo').count %>
                           <% if count > 0 %>
@@ -55,7 +65,7 @@
                   </li>
               </ul>
           </div>
-      </li>
+        </li>
 
         <li class="side-nav-item">
           <%= link_to clients_path, data: { turbo: false }, class: "side-nav-link" do %>
@@ -63,6 +73,7 @@
             <span> Clientes </span>
           <% end %>
         </li>
+        
         <li class="side-nav-title side-nav-item">Configuración</li>
 
         <li class="side-nav-item">
@@ -77,17 +88,27 @@
             <span> Sistema </span>
           <% end %>
         </li>
+
       <% else %>
+        <%# VISTA PARA CLIENTES / MANAGERS %>
         <li class="side-nav-item">
           <a href="<%= client_dashboard_path %>" class="side-nav-link">
             <i class="uil-dashboard"></i>
             <span> Dashboard </span>
           </a>
         </li>
+        
         <% if current_user.client %>
           <li class="side-nav-item">
             <a href="<%= client_path(current_user.client) %>" class="side-nav-link">
               <i class="uil-building"></i> <span> Mi Empresa </span>
+            </a>
+          </li>
+          
+          <li class="side-nav-item">
+            <%# Acceso directo al chat desde el sidebar para el cliente %>
+            <a href="<%= client_conversations_path(current_user.client) %>" class="side-nav-link">
+              <i class="ri-message-3-line"></i> <span> Mensajería </span>
             </a>
           </li>
         <% end %>
@@ -97,16 +118,12 @@
     <div class="clearfix"></div>
   </div> 
 
-
   <div class="help-box text-white text-center" 
        style="position: absolute; bottom: 30px; left: 20px; right: 20px; z-index: 10; border-radius: 5px;">
-        
         <img src="<%= image_path("consilium_blanco.png") %>" height="60" alt="Helper Icon Image" style="max-width: 100%;"/>
-        
         <h5 class="mt-3">Soporte</h5>
         <p class="mb-3 font-13">¿Necesitas ayuda con el sistema?</p>
-        
-        <a href="javascript: void(0);" class="btn btn-success btn-sm w-100">Contactar</a>
+        <a href="mailto:soporte@consilium.com" class="btn btn-success btn-sm w-100 shadow-none">Contactar</a>
   </div>
 
 </div>

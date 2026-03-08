@@ -69,6 +69,7 @@ gem 'sass-rails', '~> 6.0'
 
 gem 'devise'
 gem 'devise_invitable'
+gem "pretender"
 
 #Traducción
 gem 'rails-i18n'
