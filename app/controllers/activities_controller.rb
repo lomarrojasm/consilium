@@ -13,13 +13,28 @@ class ActivitiesController < ApplicationController
     :new, :create, :update, :destroy, :toggle
   ]
 
+  # Añadimos este filtro para las acciones que modifican el estado de la tarea
+  before_action :check_stage_lock_on_activity!, only: [:update_status, :toggle_user_approval, :upload_evidence]
+
   def new
     @activity = @project.activities.build
-    @activity.stage_id = params[:stage_id].presence || @project.stages.first&.id
+    if params[:stage_id].present?
+      stage = @project.stages.find(params[:stage_id])
+      if stage.locked_for?(current_user)
+        redirect_to client_project_path(@client, @project), alert: "No puedes añadir tareas a una etapa finalizada." and return
+      end
+      @activity.stage_id = stage.id
+    end
   end
 
   def create
     stage = @project.stages.find(activity_params[:stage_id])
+    
+    # SEGURIDAD BACKEND: Evita guardar la tarea si la etapa está bloqueada para el usuario activo
+    if stage.locked_for?(current_user)
+      redirect_to client_project_path(@client, @project), alert: "No puedes añadir tareas a una etapa finalizada y bloqueada." and return
+    end
+
     @activity = stage.activities.build(activity_params)
     @activity.user = current_user
     
@@ -40,6 +55,11 @@ class ActivitiesController < ApplicationController
   end
 
   def update
+    # SEGURIDAD: Solo el admin real puede modificar la fecha de creación original
+    unless current_user.role == 'admin'
+      params[:activity].delete(:created_at)
+    end
+
     if @activity.update(activity_params)
       total_cost = (@activity.leader_cost || 0) + (@activity.senior_cost || 0) + (@activity.analyst_cost || 0)
       @activity.update_column(:activity_cost, total_cost)
@@ -164,10 +184,21 @@ class ActivitiesController < ApplicationController
     redirect_to client_project_path(@client, @project), alert: "No tienes permisos de edición." unless true_user.role == 'admin' || ['lider', 'senior'].include?(role)
   end
 
+  def check_stage_lock_on_activity!
+    # Obtenemos la actividad
+    activity = @project.activities.find(params[:id])
+    
+    # Si la etapa está bloqueada para el usuario actual (incluyendo impersonate)
+    if activity.stage.locked_for?(current_user)
+      redirect_to client_project_path(@client, @project), 
+                  alert: "Acción no permitida: La etapa está finalizada y bloqueada."
+    end
+  end
+
   def activity_params
     params.require(:activity).permit(
       :name, :description, :document_ref, :stage_id, :month, :week, :completed_day, :area, :completed, :status,
-      :leader_hours, :leader_rate, :leader_cost, :senior_hours, :senior_rate, :senior_cost,
+      :created_at, :leader_hours, :leader_rate, :leader_cost, :senior_hours, :senior_rate, :senior_cost,
       :analyst_hours, :analyst_rate, :analyst_cost, :activity_cost, :responsible_id
     )
   end

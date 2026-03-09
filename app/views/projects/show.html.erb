@@ -155,9 +155,21 @@
                 <%= link_to comments_client_project_path(@client, @project), class: "btn btn-sm btn-outline-primary" do %>
                     <i class="ri-chat-history-line me-1"></i> Bitácora (<%= @project.comments.count %>)
                 <% end %>
+                
+                <%# --- SEGURIDAD: BOTÓN NUEVA TAREA BLOQUEADO SI TODAS LAS ETAPAS ESTÁN CERRADAS --- %>
                 <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
-                    <%= link_to new_client_project_activity_path(@client, @project), class: "btn btn-sm btn-primary" do %>
-                        <i class="ri-add-line"></i> Nueva Tarea
+                    <% has_unlocked_stages = @stages.any? { |stage| !stage.locked_for?(current_user) } %>
+                    
+                    <% if has_unlocked_stages %>
+                        <%= link_to new_client_project_activity_path(@client, @project), class: "btn btn-sm btn-primary shadow-sm" do %>
+                            <i class="ri-add-line"></i> Nueva Tarea
+                        <% end %>
+                    <% else %>
+                        <span data-bs-toggle="tooltip" title="Todas las etapas están cerradas o no hay etapas creadas.">
+                            <button class="btn btn-sm btn-secondary shadow-none" style="pointer-events: none;" disabled>
+                                <i class="ri-lock-line me-1"></i> Nueva Tarea
+                            </button>
+                        </span>
                     <% end %>
                 <% end %>
             </div>
@@ -169,6 +181,7 @@
                    is_unlocked = @project.stage_unlocked?(stage)
                    is_admin = current_user.role == 'admin'
                    should_show = is_admin || is_unlocked
+                   stage_locked = stage.locked_for?(current_user)
                 %>
 
                 <% if should_show %>
@@ -176,6 +189,11 @@
                         <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom py-2">
                             <a class="text-dark d-flex align-items-center flex-grow-1 <%= 'collapsed' unless index == 0 || (is_unlocked && stage.progress_percentage < 100) %>" 
                                data-bs-toggle="collapse" href="#stage-<%= stage.id %>">
+
+                                <span class="text-muted font-11 fw-normal d-none d-sm-flex align-items-center me-3" style="white-space: nowrap;">
+                                    <i class="ri-calendar-line me-1"></i>
+                                    <%= stage.created_at.strftime("%d/%m/%Y") %>
+                                </span>
                                 
                                 <% if stage.progress_percentage > 90 %>
                                     <i class="ri-checkbox-circle-fill me-2 text-success font-20"></i>
@@ -204,12 +222,22 @@
                                 <div class="dropdown">
                                     <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown"><i class="ri-more-2-fill text-muted"></i></a>
                                     <div class="dropdown-menu dropdown-menu-end shadow border-0">
-                                        <%= link_to edit_client_project_stage_path(@client, @project, stage), class: "dropdown-item" do %>
-                                            <i class="ri-edit-line me-1"></i> Editar Etapa
-                                        <% end %>
-                                        <% if ['admin', 'lider'].include?(current_project_role) %>
-                                            <%= button_to client_project_stage_path(@client, @project, stage), method: :delete, class: "dropdown-item text-danger", form: { onsubmit: "return confirm('¿Borrar etapa?');" } do %>
-                                                <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                        <% if stage_locked %>
+                                            <span class="dropdown-item text-muted italic">
+                                                <i class="ri-lock-line me-1"></i> Etapa Finalizada
+                                            </span>
+                                        <% else %>
+                                            <%= link_to edit_client_project_stage_path(@client, @project, stage), class: "dropdown-item" do %>
+                                                <i class="ri-edit-line me-1 text-primary"></i> Editar Etapa
+                                            <% end %>
+                                            
+                                            <% if ['admin', 'lider'].include?(current_project_role) %>
+                                                <%= button_to client_project_stage_path(@client, @project, stage), 
+                                                            method: :delete, 
+                                                            class: "dropdown-item text-danger", 
+                                                            form: { onsubmit: "return confirm('¿Borrar etapa?');" } do %>
+                                                    <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                                <% end %>
                                             <% end %>
                                         <% end %>
                                     </div>
@@ -223,13 +251,11 @@
                                     <table class="table table-centered table-hover mb-0 align-middle">
                                         <thead class="table-light text-muted font-11 uppercase">
                                             <tr>
-                                                <th class="text-center px-1 px-md-2" style="width: 40px;" title="Estatus">St</th>
+                                                <th class="text-center px-1 px-md-2" style="width: 40px;" title="Estatus">Estado</th>
                                                 <th style="min-width: 180px;">Actividad (Panel)</th>
-                                                
                                                 <th class="d-none d-lg-table-cell">Prog.</th>
                                                 <th class="d-none d-lg-table-cell">Área</th>
                                                 <th class="d-none d-md-table-cell">Responsable</th>
-                                                
                                                 <th class="text-center px-1 px-md-2" title="Evidencia"><i class="ri-file-list-3-line font-16 text-primary"></i></th>
                                                 <th class="text-center px-1 px-md-2" title="Aprob. Cliente"><i class="ri-user-star-line font-16 text-primary"></i></th>
                                                 <th class="text-center px-1 px-md-2" title="Aprob. Admin"><i class="ri-shield-check-line font-16 text-primary"></i></th>
@@ -241,7 +267,6 @@
                                                 <% is_finalized = activity.admin_approved && activity.user_approved %>
                                                 
                                                 <tr class="<%= 'bg-light-subtle' if activity.status == 'rejected' %> <%= 'bg-success bg-opacity-10' if is_finalized %>">
-                                                    
                                                     <td class="text-center px-1 px-md-2">
                                                         <% if is_finalized %>
                                                             <a href="javascript:void(0);" onclick="verSeguimientoActividad('<%= activity.id %>')" class="text-success hover-primary" data-bs-toggle="tooltip" title="Finalizada - Clic para visualizar">
@@ -259,6 +284,10 @@
                                                     </td>
                                                     
                                                     <td style="white-space: normal;">
+                                                        <div class="font-10 text-muted mb-1">
+                                                            <i class="ri-calendar-todo-line me-1"></i>Reg: <%= activity.created_at.strftime("%d/%m/%y %H:%M") %>
+                                                        </div>
+
                                                         <a href="javascript:void(0);" 
                                                            onclick="verSeguimientoActividad('<%= activity.id %>')"
                                                            class="<%= 'text-decoration-line-through text-muted italic' if is_finalized %> font-13 fw-bold text-body hover-primary d-block mb-1">
@@ -316,13 +345,14 @@
                                                                 <i class="ri-file-history-line font-18 text-muted opacity-50"></i>
                                                             <% end %>
                                                             
-                                                            <%# SIN RESTRICCIÓN DE ROL: El cliente (y tú en impersonate) ven este botón para subir evidencia %>
-                                                            <% if !is_finalized || current_user.role == 'admin' %>
-                                                                <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary ms-1" 
-                                                                        onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>')" 
-                                                                        data-bs-toggle="tooltip" title="Subir Evidencia Rápida">
-                                                                    <i class="ri-upload-2-line font-18"></i>
-                                                                </button>
+                                                            <% unless stage_locked %>
+                                                                <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
+                                                                    <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary ms-1" 
+                                                                            onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>')" 
+                                                                            data-bs-toggle="tooltip" title="Subir Evidencia Rápida">
+                                                                        <i class="ri-upload-2-line font-18"></i>
+                                                                    </button>
+                                                                <% end %>
                                                             <% end %>
                                                         </div>
                                                     </td>
@@ -334,11 +364,11 @@
                                                                     <input type="checkbox" class="form-check-input border-primary shadow-none cursor-pointer" 
                                                                            <%= 'checked' if activity.user_approved %> 
                                                                            onchange="this.form.submit()"
-                                                                           <%= 'disabled' if (!activity.completed && !activity.evidence.attached?) || activity.admin_approved %>>
+                                                                           <%= 'disabled' if (!activity.completed && !activity.evidence.attached?) || stage_locked || activity.admin_approved %>>
                                                                 </div>
                                                             <% end %>
                                                             <% if activity.user_approved_at %>
-                                                                <span class="font-9 text-muted mt-1 lh-1 fw-bold text-primary d-none d-sm-block"><%= activity.user_approved_at.strftime("%d/%m/%y") %></span>
+                                                                <span class="text-muted mt-1 lh-1 fw-bold text-primary d-none d-sm-block" style="font-size: 8px;"><%= activity.user_approved_at.strftime("%d/%m/%y") %></span>
                                                             <% end %>
                                                         </div>
                                                     </td>
@@ -347,7 +377,6 @@
                                                         <div class="d-flex flex-column align-items-center">
                                                             <%= form_with url: toggle_admin_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: true do %>
                                                                 <div class="form-check m-0">
-                                                                    <%# PERFECTA SIMULACIÓN: Si estás en Impersonate, eres 'user', por lo que verás esto gris y deshabilitado. %>
                                                                     <input type="checkbox" class="form-check-input border-danger shadow-none cursor-pointer" 
                                                                            <%= 'checked' if activity.admin_approved %> 
                                                                            onchange="this.form.submit()"
@@ -355,7 +384,7 @@
                                                                 </div>
                                                             <% end %>
                                                             <% if activity.admin_approved_at %>
-                                                                <span class="font-9 text-muted mt-1 lh-1 fw-bold text-danger d-none d-sm-block"><%= activity.admin_approved_at.strftime("%d/%m/%y") %></span>
+                                                                <span class="text-muted mt-1 lh-1 fw-bold text-danger d-none d-sm-block" style="font-size: 8px;"><%= activity.admin_approved_at.strftime("%d/%m/%y") %></span>
                                                             <% end %>
                                                         </div>
                                                     </td>
@@ -369,7 +398,7 @@
                                                                         <i class="ri-eye-line me-1"></i> Abrir Panel
                                                                     </a>
                                                                     
-                                                                    <% if !is_finalized || current_user.role == 'admin' %>
+                                                                    <% unless stage_locked %>
                                                                         <div class="dropdown-divider"></div>
                                                                         <%= link_to edit_client_project_activity_path(@client, @project, activity), class: "dropdown-item font-13" do %>
                                                                             <i class="ri-edit-line me-1"></i> Editar
@@ -472,6 +501,7 @@
     </div>
 </div>
 
+<%# --- MODALES --- %>
 <div class="modal fade" id="membersModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content shadow-lg border-0">

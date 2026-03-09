@@ -2,70 +2,114 @@
 <%= form_with(model: [@client, @project, @activity], local: true, class: "needs-validation") do |f| %>
   
   <% if @activity.errors.any? %>
-    <div class="alert alert-danger">
-      <ul class="mb-0">
-        <% @activity.errors.full_messages.each do |msg| %>
-          <li><%= msg %></li>
-        <% end %>
-      </ul>
+    <div class="alert alert-danger shadow-sm border-0 mb-4">
+      <div class="d-flex">
+        <i class="ri-error-warning-fill me-2 font-20"></i>
+        <div>
+          <h6 class="fw-bold">Por favor corrige los siguientes errores:</h6>
+          <ul class="mb-0 font-13">
+            <% @activity.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%# --- BLOQUE ADMIN: FECHA ORIGINAL (SUTIL) --- %>
+  <% if current_user.role == 'admin' && !@activity.new_record? %>
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card border-dashed border-primary bg-light bg-opacity-10 shadow-none mb-0">
+          <div class="card-body py-2 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+              <i class="ri-calendar-check-line text-primary me-2 font-20"></i>
+              <div>
+                <h6 class="m-0 font-13 fw-bold text-primary">Fecha de Registro Original (Admin)</h6>
+                <small class="text-muted">Ajusta la fecha histórica de esta actividad si es necesario.</small>
+              </div>
+            </div>
+            <div style="width: 200px;">
+              <%= f.date_field :created_at, 
+                               value: @activity.created_at&.to_date, 
+                               class: "form-control form-control-sm border-primary shadow-none" %>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   <% end %>
 
   <div class="row">
     <%# --- COLUMNA IZQUIERDA: INFORMACIÓN GENERAL --- %>
     <div class="col-lg-4">
-      <div class="card shadow-sm">
+      <div class="card shadow-sm border-0">
         <div class="card-body">
-          <h5 class="card-title mb-3 text-primary"><i class="ri-information-line me-1"></i> Información General</h5>
+          <h5 class="card-title mb-3 text-primary d-flex align-items-center">
+            <i class="ri-information-fill me-1"></i> Información General
+          </h5>
 
-          <%# Etapa del Proyecto %>
+          <%# Etapa del Proyecto con Filtro de Seguridad %>
           <div class="form-floating mb-3">
-             <%= f.collection_select :stage_id, @project.stages, :id, :name, {}, { class: "form-select" } %>
+             <%# Lógica: Mostrar solo etapas que NO estén bloqueadas para el usuario, o la actual si ya está guardada %>
+             <% 
+                available_stages = @project.stages.order(:position).reject { |s| s.locked_for?(current_user) }
+                # Si es edición y la etapa actual está bloqueada, la incluimos para que no se pierda el valor
+                available_stages << @activity.stage if @activity.stage && !available_stages.include?(@activity.stage)
+             %>
+             <%= f.collection_select :stage_id, available_stages, :id, :name, {}, { class: "form-select border-light-subtle", required: true } %>
              <%= f.label :stage_id, "Etapa del Proyecto" %>
+             <% if available_stages.empty? && @activity.new_record? %>
+                <div class="form-text text-danger font-10 mt-1"><i class="ri-error-warning-line"></i> No hay etapas disponibles o todas están finalizadas.</div>
+             <% end %>
           </div>
 
           <%# Nombre de la Actividad %>
           <div class="form-floating mb-3">
-            <%= f.text_area :name, class: "form-control", placeholder: "Nombre", style: "height: 100px", required: true %>
+            <%= f.text_area :name, class: "form-control border-light-subtle", placeholder: "Nombre", style: "height: 120px", required: true %>
             <%= f.label :name, "Nombre de la Actividad" %>
           </div>
 
-          <%# Responsable (Nuevo campo filtrado por miembros del proyecto) %>
+          <%# Responsable %>
           <div class="form-floating mb-3">
-            <%= f.collection_select :responsible_id, @project.users.order(:first_name), :id, :full_name, { prompt: "" }, { class: "form-select", required: true } %>
+            <%= f.collection_select :responsible_id, @project.users.order(:first_name), :id, :full_name, { prompt: "" }, { class: "form-select border-light-subtle", required: true } %>
             <%= f.label :responsible_id, "Responsable de Ejecución" %>
           </div>
 
           <%# Documento / Entregable %>
           <div class="form-floating mb-3">
-            <%= f.text_field :document_ref, class: "form-control", placeholder: "Referencia" %>
+            <%= f.text_field :document_ref, class: "form-control border-light-subtle", placeholder: "Referencia" %>
             <%= f.label :document_ref, "Documento / Entregable (Ref)" %>
           </div>
 
           <%# Área Responsable %>
           <div class="form-floating mb-3">
-            <%= f.select :area, ['Integral', 'Dirección', 'Finanzas', 'Procesos', 'Comercial', 'RH'], { include_blank: '' }, { class: "form-select" } %>
+            <%= f.select :area, ['Integral', 'Dirección', 'Finanzas', 'Procesos', 'Comercial', 'RH'], { include_blank: '' }, { class: "form-select border-light-subtle" } %>
             <%= f.label :area, "Área Interna" %>
           </div>
 
           <%# Tiempo: Mes, Semana, Día %>
-          <div class="row g-2">
-            <div class="col-4">
-              <div class="form-floating mb-3">
-                <%= f.number_field :month, class: "form-control", placeholder: "Mes" %>
-                <%= f.label :month, "Mes" %>
+          <div class="bg-light p-2 rounded mb-3">
+            <label class="form-label font-11 text-uppercase fw-bold text-muted ms-1 mb-2">Programación Temporal</label>
+            <div class="row g-2">
+              <div class="col-4">
+                <div class="form-floating">
+                  <%= f.number_field :month, class: "form-control border-0", placeholder: "Mes" %>
+                  <%= f.label :month, "Mes" %>
+                </div>
               </div>
-            </div>
-            <div class="col-4">
-              <div class="form-floating mb-3">
-                <%= f.number_field :week, class: "form-control", placeholder: "Semana" %>
-                <%= f.label :week, "Semana" %>
+              <div class="col-4">
+                <div class="form-floating">
+                  <%= f.number_field :week, class: "form-control border-0", placeholder: "Semana" %>
+                  <%= f.label :week, "Semana" %>
+                </div>
               </div>
-            </div>
-            <div class="col-4">
-              <div class="form-floating mb-1">
-                <%= f.number_field :completed_day, class: "form-control", placeholder: "Día" %>
-                <%= f.label :completed_day, "Día Fin" %>
+              <div class="col-4">
+                <div class="form-floating">
+                  <%= f.number_field :completed_day, class: "form-control border-0", placeholder: "Día" %>
+                  <%= f.label :completed_day, "Día Fin" %>
+                </div>
               </div>
             </div>
           </div>
@@ -76,94 +120,78 @@
 
     <%# --- COLUMNA DERECHA: PRESUPUESTO --- %>
     <div class="col-lg-8">
-      <div class="card shadow-sm">
+      <div class="card shadow-sm border-0">
         <div class="card-body">
-          <h5 class="card-title mb-3 text-primary"><i class="ri-money-dollar-circle-line me-1"></i> Presupuesto y Esfuerzo</h5>
+          <h5 class="card-title mb-3 text-primary d-flex align-items-center">
+            <i class="ri-money-dollar-circle-fill me-1"></i> Presupuesto y Esfuerzo
+          </h5>
           
           <div class="table-responsive">
-            <table class="table table-centered table-nowrap mb-0">
+            <table class="table table-centered mb-0 align-middle">
               <thead class="table-light">
-                <tr>
-                  <th>Rol</th>
-                  <th style="width: 20%;">Horas</th>
-                  <th style="width: 30%;">Tarifa ($/hr)</th>
-                  <th style="width: 30%;">Costo Total ($)</th>
+                <tr class="font-12 text-muted">
+                  <th class="ps-3">ROL</th>
+                  <th style="width: 20%;">HORAS</th>
+                  <th style="width: 25%;">TARIFA ($/hr)</th>
+                  <th style="width: 25%;" class="text-end pe-3">SUBTOTAL ($)</th>
                 </tr>
               </thead>
               <tbody>
                 <%# Leader Row %>
                 <tr>
-                  <td class="fw-bold text-dark">Líder</td>
+                  <td class="fw-bold text-dark ps-3">Líder</td>
                   <td>
-                    <div class="form-floating">
-                      <%= f.number_field :leader_hours, step: 0.5, class: "form-control calc-input", data: { role: 'leader', type: 'hours' }, placeholder: "0" %>
-                      <%= f.label :leader_hours, "Hrs" %>
-                    </div>
+                    <%= f.number_field :leader_hours, step: 0.5, class: "form-control form-control-sm calc-input", data: { role: 'leader', type: 'hours' }, placeholder: "0" %>
                   </td>
                   <td>
-                    <div class="form-floating">
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
                       <%= f.number_field :leader_rate, step: 0.01, class: "form-control calc-input", data: { role: 'leader', type: 'rate' }, placeholder: "0" %>
-                      <%= f.label :leader_rate, "Tarifa" %>
                     </div>
                   </td>
-                  <td>
-                    <div class="form-floating">
-                      <%= f.number_field :leader_cost, step: 0.01, class: "form-control bg-light", readonly: true, id: "total_leader", placeholder: "Total" %>
-                      <%= f.label :leader_cost, "Subtotal" %>
-                    </div>
+                  <td class="text-end pe-3">
+                    <%= f.number_field :leader_cost, step: 0.01, class: "form-control form-control-sm bg-light text-end border-0 fw-bold", readonly: true, id: "total_leader" %>
                   </td>
                 </tr>
 
                 <%# Senior Row %>
                 <tr>
-                  <td class="fw-bold text-dark">Senior</td>
+                  <td class="fw-bold text-dark ps-3">Senior</td>
                   <td>
-                    <div class="form-floating">
-                      <%= f.number_field :senior_hours, step: 0.5, class: "form-control calc-input", data: { role: 'senior', type: 'hours' }, placeholder: "0" %>
-                      <%= f.label :senior_hours, "Hrs" %>
-                    </div>
+                    <%= f.number_field :senior_hours, step: 0.5, class: "form-control form-control-sm calc-input", data: { role: 'senior', type: 'hours' }, placeholder: "0" %>
                   </td>
                   <td>
-                    <div class="form-floating">
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
                       <%= f.number_field :senior_rate, step: 0.01, class: "form-control calc-input", data: { role: 'senior', type: 'rate' }, placeholder: "0" %>
-                      <%= f.label :senior_rate, "Tarifa" %>
                     </div>
                   </td>
-                  <td>
-                    <div class="form-floating">
-                      <%= f.number_field :senior_cost, step: 0.01, class: "form-control bg-light", readonly: true, id: "total_senior", placeholder: "Total" %>
-                      <%= f.label :senior_cost, "Subtotal" %>
-                    </div>
+                  <td class="text-end pe-3">
+                    <%= f.number_field :senior_cost, step: 0.01, class: "form-control form-control-sm bg-light text-end border-0 fw-bold", readonly: true, id: "total_senior" %>
                   </td>
                 </tr>
 
                 <%# Analyst Row %>
                 <tr>
-                  <td class="fw-bold text-dark">Analista</td>
+                  <td class="fw-bold text-dark ps-3">Analista</td>
                   <td>
-                    <div class="form-floating">
-                      <%= f.number_field :analyst_hours, step: 0.5, class: "form-control calc-input", data: { role: 'analyst', type: 'hours' }, placeholder: "0" %>
-                      <%= f.label :analyst_hours, "Hrs" %>
-                    </div>
+                    <%= f.number_field :analyst_hours, step: 0.5, class: "form-control form-control-sm calc-input", data: { role: 'analyst', type: 'hours' }, placeholder: "0" %>
                   </td>
                   <td>
-                    <div class="form-floating">
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
                       <%= f.number_field :analyst_rate, step: 0.01, class: "form-control calc-input", data: { role: 'analyst', type: 'rate' }, placeholder: "0" %>
-                      <%= f.label :analyst_rate, "Tarifa" %>
                     </div>
                   </td>
-                  <td>
-                    <div class="form-floating">
-                      <%= f.number_field :analyst_cost, step: 0.01, class: "form-control bg-light", readonly: true, id: "total_analyst", placeholder: "Total" %>
-                      <%= f.label :analyst_cost, "Subtotal" %>
-                    </div>
+                  <td class="text-end pe-3">
+                    <%= f.number_field :analyst_cost, step: 0.01, class: "form-control form-control-sm bg-light text-end border-0 fw-bold", readonly: true, id: "total_analyst" %>
                   </td>
                 </tr>
                 
-                <tr class="bg-light-subtle">
-                    <td colspan="3" class="text-end fw-bold align-middle">Costo Total Actividad:</td>
-                    <td class="align-middle">
-                        <h3 class="my-0 text-success" id="grand_total">
+                <tr class="bg-primary bg-opacity-10">
+                    <td colspan="3" class="text-end fw-bold align-middle py-3">COSTO TOTAL DE LA ACTIVIDAD:</td>
+                    <td class="text-end pe-3 align-middle">
+                        <h3 class="my-0 text-primary fw-bold" id="grand_total">
                             <%= number_to_currency(@activity.activity_cost || 0) %>
                         </h3>
                     </td>
@@ -172,19 +200,34 @@
             </table>
           </div>
           
-          <div class="alert alert-soft-info mt-3 mb-0 border-0">
-            <i class="ri-information-fill me-1"></i> 
-            El costo total se calcula automáticamente multiplicando las horas por la tarifa de cada rol.
+          <div class="alert alert-soft-info mt-3 mb-0 border-0 font-12">
+            <i class="ri-information-fill me-1 font-16 align-middle"></i> 
+            El cálculo es automático: <strong>(Horas × Tarifa)</strong> por cada rol asignado.
           </div>
+        </div>
+      </div>
+      
+      <%# Descripción Detallada opcional %>
+      <div class="card shadow-sm border-0 mt-3">
+        <div class="card-body">
+           <h5 class="card-title mb-2 text-muted font-13 text-uppercase">Notas o Descripción de la Tarea</h5>
+           <%= f.text_area :description, class: "form-control border-light-subtle", rows: 3, placeholder: "Instrucciones adicionales para el responsable..." %>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row mt-3">
+  <div class="row mt-4 mb-5">
     <div class="col-12 text-end">
-        <%= link_to "Cancelar", client_project_path(@client, @project), class: "btn btn-outline-secondary me-2 px-4" %>
-        <%= f.submit @activity.new_record? ? "Crear Actividad" : "Guardar Cambios", class: "btn btn-primary px-4 shadow-sm" %>
+        <hr class="border-dashed opacity-50 mb-4">
+        <%= link_to "Volver al Proyecto", client_project_path(@client, @project), class: "btn btn-light me-2 px-4 shadow-none" %>
+        
+        <%# Botón bloqueado si no hay etapas disponibles para crear %>
+        <% if available_stages.empty? && @activity.new_record? %>
+            <button class="btn btn-primary px-5 shadow-sm fw-bold disabled" style="pointer-events: none;">Crear Actividad</button>
+        <% else %>
+            <%= f.submit @activity.new_record? ? "Crear Actividad" : "Guardar Cambios", class: "btn btn-primary px-5 shadow-sm fw-bold" %>
+        <% end %>
     </div>
   </div>
 <% end %>
@@ -201,19 +244,28 @@
                 const rateInput = document.querySelector(`input[data-role='${role}'][data-type='rate']`);
                 const totalInput = document.getElementById(`total_${role}`);
                 
-                const hours = parseFloat(hoursInput.value) || 0;
-                const rate = parseFloat(rateInput.value) || 0;
-                const cost = hours * rate;
-                
-                totalInput.value = cost.toFixed(2);
-                grandTotal += cost;
+                if (hoursInput && rateInput && totalInput) {
+                    const hours = parseFloat(hoursInput.value) || 0;
+                    const rate = parseFloat(rateInput.value) || 0;
+                    const cost = hours * rate;
+                    
+                    totalInput.value = cost.toFixed(2);
+                    grandTotal += cost;
+                }
             });
             
-            document.getElementById('grand_total').innerText = "$" + grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            // Formato de moneda para el h3
+            document.getElementById('grand_total').innerText = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+            }).format(grandTotal);
         }
 
         inputs.forEach(input => {
             input.addEventListener('input', calculate);
         });
+
+        // Ejecutar cálculo inicial por si ya hay valores cargados (Edición)
+        calculate();
     });
 </script>

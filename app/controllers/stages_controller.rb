@@ -6,6 +6,7 @@ class StagesController < ApplicationController
   before_action :authorize_project_member!
   
   before_action :set_stage, only: [:edit, :update, :destroy]
+  before_action :check_stage_lock!, only: [:edit, :update, :destroy]
 
   
 
@@ -29,10 +30,17 @@ class StagesController < ApplicationController
   end
 
   def update
+
+    # Seguridad: Solo admin puede modificar la fecha de creación
+    unless current_user.role == 'admin'
+      params[:stage].delete(:created_at)
+    end
+
+
     if @stage.update(stage_params)
       redirect_to client_project_path(@client, @project), notice: 'Etapa actualizada.'
     else
-      render :edit
+      redirect_to client_project_path(@client, @project), alert: 'No se pudo actualizar la etapa.'
     end
   end
 
@@ -52,7 +60,15 @@ class StagesController < ApplicationController
     @stage = @project.stages.find(params[:id])
   end
 
+  def check_stage_lock!
+    # Usamos current_user para que el impersonate te bloquee el acceso
+    if @stage.locked_for?(current_user)
+      redirect_to client_project_path(@client, @project), 
+                  alert: "Esta etapa está finalizada y bloqueada para cambios."
+    end
+  end
+
   def stage_params
-    params.require(:stage).permit(:name, :position)
+    params.require(:stage).permit(:name, :position, :created_at)
   end
 end

@@ -9,4 +9,16 @@ class Stage < ApplicationRecord
     return 0 if total.zero?
     (activities.where(completed: true).count.to_f / total * 100).round
   end
+
+
+  def finished?
+    # Una etapa está terminada si su progreso es 100%
+    progress_percentage >= 100
+  end
+
+  def locked_for?(user)
+    # Está bloqueada si está terminada y el usuario NO es admin
+    finished? && user.role != 'admin'
+  end
+
 end

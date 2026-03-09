@@ -10,56 +10,117 @@
 <div class="modal-body p-0">
     <div class="row g-0">
         <div class="col-md-7 border-end p-4 bg-white">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="m-0 font-13 fw-bold text-uppercase text-muted"><i class="ri-history-line me-1"></i> Línea de Tiempo</h5>
-                <span class="badge bg-soft-primary text-primary font-11">Última act. <%= time_ago_in_words(activity.updated_at) %></span>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="m-0 font-13 fw-bold text-uppercase text-muted">
+                    <i class="ri-history-line me-1"></i> Línea de Tiempo
+                </h5>
+                <span class="badge bg-soft-primary text-primary font-11 rounded-pill px-2">
+                    Hace <%= time_ago_in_words(activity.updated_at) %>
+                </span>
             </div>
             
-            <div class="timeline-alt pb-0 pe-2" style="max-height: 500px; overflow-y: auto;" data-simplebar>
-                <% if activity.activity_logs.any? %>
-                    <% activity.activity_logs.order(created_at: :desc).each do |log| %>
-                        <div class="timeline-item">
-                            <% status_class = case log.status 
-                                when 'approved' then 'success'
-                                when 'rejected' then 'danger'
-                                else 'warning'
-                               end %>
-                            
-                            <% icon_class = log.comment.include?('📁') ? 'ri-file-upload-line' : (log.comment.include?('🛡️') ? 'ri-shield-check-line' : 'ri-record-circle-line') %>
-                            <i class="<%= icon_class %> text-<%= status_class %> timeline-icon bg-white"></i>
-                            
-                            <div class="timeline-item-info border rounded p-2 shadow-none mb-3 bg-light bg-opacity-50">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <h6 class="m-0 fw-bold text-dark"><%= log.user.full_name %></h6>
-                                    <small class="text-muted"><%= log.created_at.strftime("%d/%m/%y %H:%M") %></small>
-                                </div>
-                                <p class="text-muted font-13 mb-1"><%= log.comment %></p>
+            <div class="timeline-scroll-area" style="max-height: 520px; overflow-y: auto; padding-left: 20px;" data-simplebar>
+                <div class="timeline-alt-safe" style="border-left: 2px solid #eef2f7; position: relative;">
+                    <% if activity.activity_logs.any? %>
+                        <% activity.activity_logs.order(created_at: :desc).each do |log| %>
+                            <div class="timeline-item" style="position: relative; padding-left: 30px; margin-bottom: 25px; min-height: 50px;">
+                                <% 
+                                    is_evidence = log.comment.include?('📁') || log.attachments.attached?
+                                    is_approval  = log.comment.include?('✅')
+                                    is_admin     = log.comment.include?('🛡️')
+                                    is_revoked   = log.comment.include?('↩️')
+                                    is_rejected  = (log.status == 'rejected')
+
+                                    icon_class = if is_admin then "ri-shield-check-line"
+                                                elsif is_approval  then "ri-checkbox-circle-line"
+                                                elsif is_evidence  then "ri-file-upload-line"
+                                                elsif is_revoked   then "ri-arrow-go-back-line"
+                                                elsif is_rejected  then "ri-close-circle-line"
+                                                else "ri-chat-3-line"
+                                                end
+
+                                    dot_color = if is_rejected   then '#fa5c7c'
+                                                elsif is_admin     then '#fa5c7c'
+                                                elsif is_approval  then '#0acf97'
+                                                elsif is_evidence  then '#39afd1'
+                                                elsif is_revoked   then '#ffbc00'
+                                                else '#98a6ad'
+                                                end
+                                %>
                                 
-                                <% if log.attachments.attached? %>
-                                    <div class="d-flex flex-wrap gap-2 mt-2">
-                                        <% log.attachments.each do |file| %>
-                                            <%= link_to rails_blob_path(file, disposition: "attachment"), class: "btn btn-xs btn-white border d-flex align-items-center py-1" do %>
-                                                <i class="ri-attachment-line me-1 text-primary"></i>
-                                                <span class="font-10 text-truncate" style="max-width: 120px;"><%= file.filename %></span>
-                                            <% end %>
-                                        <% end %>
+                                <div class="custom-icon-wrapper" style="
+                                    position: absolute; 
+                                    left: -16px; 
+                                    top: 0; 
+                                    width: 30px; 
+                                    height: 30px; 
+                                    background: #fff; 
+                                    border: 2px solid <%= dot_color %>; 
+                                    border-radius: 50%; 
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: center; 
+                                    z-index: 10;
+                                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                    
+                                    <i class="<%= icon_class %>" style="color: <%= dot_color %>; font-size: 14px; display: block;"></i>
+                                </div>
+                                
+                                <div class="timeline-item-info border-start border-3 p-3 bg-light bg-opacity-25 rounded-end shadow-none" 
+                                    style="border-color: <%= dot_color %> !important; margin-left: 2px;">
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <h6 class="m-0 fw-bold text-dark font-13"><%= log.user.full_name %></h6>
+                                        <small class="text-muted font-10" style="font-size: 8px !important;">
+                                            <%= log.created_at.strftime("%H:%M · %d/%m/%y") %>
+                                        </small>
                                     </div>
-                                <% end %>
+
+                                    <p class="text-secondary font-12 mb-2 lh-sm">
+                                        <%= log.comment.gsub(/📁|✅|🛡️|↩️/, '').strip %>
+                                    </p>
+                                    
+                                    <% if log.attachments.attached? %>
+                                        <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top border-light">
+                                            <% log.attachments.each do |file| %>
+                                                <%= link_to rails_blob_path(file, disposition: "attachment"), 
+                                                    class: "btn btn-xs btn-white border d-flex align-items-center py-1",
+                                                    style: "background: white; border-radius: 4px;" do %>
+                                                    <i class="ri-attachment-line me-1 text-primary" style="font-size: 10px;"></i>
+                                                    <span style="font-size: 9px; max-width: 120px;" class="text-truncate text-dark"><%= file.filename %></span>
+                                                <% end %>
+                                            <% end %>
+                                        </div>
+                                    <% end %>
+                                </div>
                             </div>
+                        <% end %>
+                    <% else %>
+                        <div class="text-center py-5">
+                            <i class="ri-chat-history-line font-36 text-muted opacity-25"></i>
+                            <p class="text-muted font-13 mt-2">Sin registros de actividad.</p>
                         </div>
                     <% end %>
-                <% else %>
-                    <div class="text-center py-5">
-                        <i class="ri-chat-history-line font-36 text-muted opacity-25 mb-2 d-block"></i>
-                        <p class="text-muted font-13">La actividad no tiene registros aún.<br>Sube evidencia o añade un comentario para empezar.</p>
-                    </div>
-                <% end %>
+                </div>
             </div>
         </div>
 
         <div class="col-md-5 p-4 bg-light">
-            <h5 class="mb-3 font-13 fw-bold text-uppercase text-muted"><i class="ri-git-merge-line me-1"></i> Flujo de Autorización</h5>
+            <% is_locked = activity.stage.locked_for?(current_user) %>
             
+            <h5 class="mb-3 font-13 fw-bold text-uppercase text-muted">
+                <i class="ri-git-merge-line me-1"></i> Flujo de Autorización 
+                <% if is_locked %>
+                    <span class="badge bg-soft-danger text-danger float-end"><i class="ri-lock-fill"></i> BLOQUEADO</span>
+                <% end %>
+            </h5>
+            
+            <% if is_locked %>
+                <div class="alert alert-soft-danger border-0 font-11 mb-3">
+                    <i class="ri-information-line me-1"></i> Esta etapa ha finalizado. Para realizar cambios, un administrador debe reabrirla.
+                </div>
+            <% end %>
+
             <div class="card shadow-none border mb-2 <%= activity.evidence.attached? ? 'border-success' : 'border-secondary border-opacity-25' %>">
                 <div class="card-body p-2 d-flex align-items-center">
                     <div class="avatar-sm me-2">
@@ -67,11 +128,9 @@
                     </div>
                     <div class="flex-grow-1">
                         <h6 class="m-0 font-13 fw-bold <%= activity.evidence.attached? ? 'text-success' : 'text-muted' %>">Evidencia Formal</h6>
-                        <% if activity.evidence.attached? %>
-                            <small class="text-muted font-11"><i class="ri-check-line"></i> Cargada: <%= activity.evidence_uploaded_at&.strftime("%d/%m/%y") || 'Reciente' %></small>
-                        <% else %>
-                            <small class="text-danger font-11"><i class="ri-error-warning-line"></i> Requerida para aprobar</small>
-                        <% end %>
+                        <small class="text-muted font-11">
+                            <%= activity.evidence.attached? ? "Cargada: #{activity.evidence_uploaded_at&.strftime('%d/%m/%y')}" : "Pendiente" %>
+                        </small>
                     </div>
                 </div>
             </div>
@@ -83,20 +142,14 @@
                     </div>
                     <div class="flex-grow-1">
                         <h6 class="m-0 font-13 fw-bold <%= activity.user_approved ? 'text-primary' : 'text-muted' %>">Visto Bueno Cliente</h6>
-                        <% if activity.user_approved %>
-                            <small class="text-muted font-11"><i class="ri-check-double-line"></i> Por: <%= activity.user.first_name %> (<%= activity.user_approved_at&.strftime("%d/%m/%y") %>)</small>
-                        <% else %>
-                            <small class="text-muted font-11"><%= activity.evidence.attached? ? 'Esperando validación' : 'Bloqueado (Falta evidencia)' %></small>
-                        <% end %>
                     </div>
                     <div class="ms-2">
-                        <%= form_with url: toggle_user_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: false, class: "m-0" do %>
+                        <%= form_with url: toggle_user_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: false do %>
                             <div class="form-check form-switch m-0">
-                                <%# Bloqueado si el admin ya aprobó (se debe desmarcar admin primero) %>
                                 <input type="checkbox" class="form-check-input cursor-pointer" style="width: 2.5em; height: 1.2em;"
-                                       <%= 'checked' if activity.user_approved %>
-                                       onchange="this.form.submit()"
-                                       <%= 'disabled' if (!activity.completed && !activity.evidence.attached?) || activity.admin_approved %>>
+                                    <%= 'checked' if activity.user_approved %>
+                                    onchange="this.form.submit()"
+                                    <%= 'disabled' if is_locked || activity.admin_approved || !activity.evidence.attached? %>>
                             </div>
                         <% end %>
                     </div>
@@ -110,70 +163,43 @@
                     </div>
                     <div class="flex-grow-1">
                         <h6 class="m-0 font-13 fw-bold <%= activity.admin_approved ? 'text-danger' : 'text-muted' %>">Validación Consilium</h6>
-                        <% if activity.admin_approved %>
-                            <small class="text-muted font-11"><i class="ri-shield-check-fill text-danger"></i> Cierre oficial (<%= activity.admin_approved_at&.strftime("%d/%m/%y") %>)</small>
-                        <% else %>
-                            <small class="text-muted font-11"><%= activity.user_approved ? 'Esperando al Admin' : 'Bloqueado (Falta V.B. Cliente)' %></small>
-                        <% end %>
                     </div>
                     <div class="ms-2">
-                        <%= form_with url: toggle_admin_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: false, class: "m-0" do %>
+                        <%= form_with url: toggle_admin_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: false do %>
                             <div class="form-check form-switch m-0">
-                                <%# SEGURIDAD PERFECTA: Solo el admin real puede aprobar. En Impersonate esto estará gris y bloqueado %>
                                 <input type="checkbox" class="form-check-input border-danger cursor-pointer" style="width: 2.5em; height: 1.2em;"
-                                       <%= 'checked' if activity.admin_approved %>
-                                       onchange="this.form.submit()"
-                                       <%= 'disabled' unless current_user.role == 'admin' && activity.user_approved %>>
+                                    <%= 'checked' if activity.admin_approved %>
+                                    onchange="this.form.submit()"
+                                    <%= 'disabled' unless current_user.role == 'admin' && activity.user_approved %>>
                             </div>
                         <% end %>
                     </div>
                 </div>
             </div>
 
-            <% if activity.admin_approved %>
-                <div class="alert alert-success border-0 text-center">
-                    <i class="ri-checkbox-circle-fill font-24 d-block mb-1"></i>
-                    <strong>Actividad Finalizada</strong><br>
-                    <small>Esta tarea ha sido cerrada formalmente y no admite nuevos comentarios. Para reabrirla, el administrador debe retirar el Visto Bueno.</small>
+            <% if is_locked %>
+                <div class="text-center py-3 border rounded bg-white">
+                    <i class="ri-chat-off-line font-24 text-muted opacity-50"></i>
+                    <p class="text-muted font-12 mb-0">Comentarios deshabilitados en etapas finalizadas.</p>
                 </div>
             <% else %>
-                <hr class="border-dashed mb-3">
                 <h5 class="mb-3 font-13 fw-bold text-uppercase text-muted"><i class="ri-add-line me-1"></i> Añadir Seguimiento</h5>
                 <%= form_with url: update_status_client_project_activity_path(@client, @project, activity), method: :patch, local: true, multipart: true do |f| %>
-                    
                     <div class="mb-2">
-                        <%= f.text_area :comment, class: "form-control form-control-sm", rows: 3, placeholder: "Detalla los avances o motivos de retraso...", required: true %>
+                        <%= f.text_area :comment, class: "form-control form-control-sm", rows: 3, placeholder: "Detalla los avances...", required: true %>
                     </div>
-
                     <div class="mb-3">
-                        <label class="font-11 text-muted fw-bold d-block mb-1">Archivos Adicionales (Opcional)</label>
                         <%= file_field_tag "attachments[]", multiple: true, class: "form-control form-control-sm" %>
                     </div>
-
-                    <div class="btn-group w-100 mb-2" role="group">
-                        <input type="radio" class="btn-check" name="status" id="st_pending" value="pending" <%= 'checked' if activity.status == 'pending' || activity.status.nil? %>>
-                        <label class="btn btn-outline-warning btn-sm" for="st_pending">
-                            En Proceso
-                        </label>
-
+                    <div class="btn-group w-100 mb-2">
+                        <input type="radio" class="btn-check" name="status" id="st_pending" value="pending" <%= 'checked' if activity.status == 'pending' %>>
+                        <label class="btn btn-outline-warning btn-sm" for="st_pending">En Proceso</label>
                         <input type="radio" class="btn-check" name="status" id="st_deny" value="rejected" <%= 'checked' if activity.status == 'rejected' %>>
-                        <label class="btn btn-outline-danger btn-sm" for="st_deny">
-                            Rechazar
-                        </label>
+                        <label class="btn btn-outline-danger btn-sm" for="st_deny">Rechazar</label>
                     </div>
-                    
                     <%= f.submit "Registrar Avance", class: "btn btn-primary w-100 btn-sm shadow-sm" %>
                 <% end %>
             <% end %>
         </div>
     </div>
 </div>
-
-<style>
-    .timeline-alt { padding: 5px 0; border-left: 2px solid #eef2f7; margin-left: 10px; }
-    .timeline-item { position: relative; padding-left: 20px; padding-bottom: 20px; }
-    .timeline-icon { position: absolute; left: -28px; top: 0; font-size: 18px; z-index: 2; border-radius: 50%; padding: 2px; }
-    .cursor-pointer { cursor: pointer; }
-    .btn-white { background-color: #fff; border-color: #eef2f7; color: #6c757d; }
-    .btn-white:hover { background-color: #f8f9fa; }
-</style>
