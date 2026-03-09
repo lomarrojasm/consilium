@@ -114,6 +114,10 @@ Rails.application.routes.draw do
   post 'autodiagnostico', to: 'public_questionnaires#create_autodiagnostico', as: :create_autodiagnostico
   get 'autodiagnostico_exito/:id', to: 'public_questionnaires#autodiagnostico_exito', as: :autodiagnostico_exito
   get 'autodiagnostico_pdf/:id', to: 'public_questionnaires#download_pdf', as: :autodiagnostico_pdf
+  get '/evaluacion_membresia', to: 'public_questionnaires#new_membership', as: :new_membership
+  get '/membresia/resultado/:id', to: 'public_questionnaires#membership_result', as: :membership_result
+  # NUEVA RUTA DEDICADA PARA EL PDF
+  get '/membresia_pdf/:id', to: 'public_questionnaires#download_membership_pdf', as: :membership_pdf
   
   get 'diagnostico_exito', to: 'public_questionnaires#exito', as: :success_page
   get 'logout-success', to: 'pages#logout_success', as: :logout_success

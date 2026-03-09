@@ -1,0 +1,92 @@
+<%# app/views/public_questionnaires/membership_result.html.erb %>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      
+      <%# Botón de Descarga PDF (Solo se muestra en web, se oculta al imprimir el PDF) %>
+      <% if request.format.html? %>
+        <div class="text-end mb-3">
+            <%= link_to membership_pdf_path(id: @questionnaire.signed_id), 
+                        class: "btn btn-danger shadow-sm rounded-pill px-4 fw-bold", 
+                        target: "_blank", data: { turbo: false } do %>
+            <i class="ri-file-pdf-2-line me-1"></i> Descargar Reporte en PDF
+            <% end %>
+        </div>
+        <% end %>
+
+      <div class="card shadow-lg border-0" style="border-radius: 16px; overflow: hidden;">
+        
+        <%# Encabezado %>
+        <div class="card-header border-0 text-center py-4 text-white" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+          <h2 class="fw-bold mb-0">Reporte de Perfil Operativo</h2>
+          <p class="text-white-50 font-14 mt-1 mb-0">Consilium - Diagnóstico Estructural</p>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+          
+          <%# Datos de la Empresa %>
+          <div class="row border-bottom pb-4 mb-4">
+            <div class="col-sm-6">
+              <p class="text-muted font-11 text-uppercase fw-bold mb-1">Empresa Evaluada</p>
+              <h4 class="text-dark fw-bold m-0"><%= @questionnaire.company_name %></h4>
+            </div>
+            <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+              <p class="text-muted font-11 text-uppercase fw-bold mb-1">Representante</p>
+              <h5 class="text-secondary m-0"><%= @questionnaire.name %> (<%= @questionnaire.position %>)</h5>
+            </div>
+          </div>
+
+          <%# Nivel de Membresía Recomendado %>
+          <% 
+             badge_color = case @membership_level
+                           when "Platinum" then "#1f2937" # Dark Slate
+                           when "Gold" then "#f5b225"     # Gold
+                           else "#6366f1"                 # Indigo/Básica
+                           end
+          %>
+          
+          <div class="text-center p-4 rounded-4 mb-4" style="background-color: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.1);">
+            <p class="text-primary font-12 fw-bold text-uppercase tracking-wider mb-2">Nivel de Acompañamiento Sugerido</p>
+            <h1 class="display-4 fw-bold mb-2" style="color: <%= badge_color %>;">
+              Membresía <%= @membership_level %>
+            </h1>
+            <span class="badge bg-light text-dark border">Puntaje de Complejidad: <%= @total_score %> puntos</span>
+          </div>
+
+          <%# Justificación Técnica %>
+          <div class="mb-5">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="ri-survey-line text-primary me-2"></i>Justificación del Sistema</h5>
+            <p class="text-muted" style="font-size: 15px; line-height: 1.7; text-align: justify;">
+              <%= @justification %>
+            </p>
+          </div>
+
+          <%# Detalle de Respuestas %>
+          <div>
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="ri-list-check-2 text-primary me-2"></i>Factores Evaluados</h5>
+            <ul class="list-group list-group-flush">
+              <% @questionnaire.answers.select { |k, v| k.start_with?('m') }.each do |key, val| %>
+                <li class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                  <div style="max-width: 80%;">
+                    <p class="mb-0 font-13 fw-bold text-dark"><%= get_question_text(key) %></p>
+                  </div>
+                  <span class="badge bg-soft-secondary text-secondary rounded-pill font-12 border">Puntos: <%= val %></span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+
+        </div>
+
+        <%# Footer del PDF %>
+        <div class="card-footer bg-light text-center border-0 py-3">
+          <p class="text-muted font-12 mb-0">
+            Este reporte es generado automáticamente. Para cotizaciones o dudas, contacta a tu asesor en Consilium.
+          </p>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>

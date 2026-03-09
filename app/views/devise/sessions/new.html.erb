@@ -95,7 +95,9 @@
   <%# LADO DERECHO: LLAMADOS A LA ACCIÓN (CTAs)  %>
   <%# ========================================== %>
   <div class="auth-fluid-right d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #f8f9fa 0%, #eef2f7 100%);">
-    <div class="text-center px-4 px-lg-5" style="max-width: 700px;">
+    
+    <%# Ampliamos el max-width a 1000px para que quepan las 3 tarjetas holgadamente %>
+    <div class="text-center px-4 px-lg-5" style="max-width: 1000px;">
       
       <h2 class="fw-bold text-dark mb-3 display-6">¿Aún no eres cliente?</h2>
       <p class="text-muted font-16 mb-5" style="line-height: 1.6;">
@@ -105,7 +107,7 @@
       <div class="row g-4">
         
         <%# OPCIÓN 1: Autodiagnóstico Express %>
-        <div class="col-md-6">
+        <div class="col-lg-4 col-md-6">
           <div class="card h-100 border-0 shadow-sm custom-hover-card">
             <div class="card-body p-4 text-center d-flex flex-column">
               <div class="avatar-md bg-success-subtle text-success rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
@@ -122,8 +124,26 @@
           </div>
         </div>
 
-        <%# OPCIÓN 2: Diagnóstico Profundo %>
-        <div class="col-md-6">
+        <%# OPCIÓN 2: Evaluación de Membresía (NUEVA) %>
+        <div class="col-lg-4 col-md-6">
+          <div class="card h-100 border-0 shadow-sm custom-hover-card">
+            <div class="card-body p-4 text-center d-flex flex-column">
+              <div class="avatar-md bg-warning-subtle text-warning rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                <i class="ri-vip-crown-line font-24 text-warning"></i>
+              </div>
+              <h4 class="fw-bold text-dark">Tu Membresía Ideal</h4>
+              <p class="text-muted font-13 mb-4 flex-grow-1">
+                Responde 6 preguntas rápidas sobre la complejidad de tu operación y descubre qué nivel de membresía se adapta a ti.
+              </p>
+              <%= link_to new_membership_path, class: "btn btn-outline-warning text-dark rounded-pill fw-bold w-100" do %>
+                Descubrir Plan <i class="ri-arrow-right-line ms-1"></i>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <%# OPCIÓN 3: Diagnóstico Profundo %>
+        <div class="col-lg-4 col-md-12">
           <div class="card h-100 border-0 shadow-sm custom-hover-card">
             <div class="card-body p-4 text-center d-flex flex-column">
               <div class="avatar-md bg-primary-subtle text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
@@ -133,7 +153,6 @@
               <p class="text-muted font-13 mb-4 flex-grow-1">
                 Cuéntanos con tus propias palabras los retos y la visión de tu empresa para recibir una propuesta estratégica personalizada.
               </p>
-              <%# Asegúrate de que esta ruta coincida con la de tu cuestionario narrativo (ej. new_public_questionnaire_path) %>
               <%= link_to new_diagnostico_path, class: "btn btn-outline-primary rounded-pill fw-bold w-100" do %>
                 Iniciar Diagnóstico <i class="ri-arrow-right-line ms-1"></i>
               <% end %>
@@ -173,7 +192,7 @@
     transform: translateY(-5px);
     box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
   }
-  /* Responsivo para móviles: apilar en lugar de dividir pantalla */
+  /* Responsivo para móviles y tablets */
   @media (max-width: 991px) {
     .auth-fluid { flex-direction: column; }
     .auth-fluid-form-box { max-width: 100%; min-height: 100vh; }

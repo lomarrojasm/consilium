@@ -89,19 +89,74 @@ module QuestionnaireHelper
     }
   end
 
-  # 3. BUSCADOR DE TEXTO (Método de utilidad para el Admin)
-  # Recibe una llave (ej: "q1" o "a5") y devuelve la pregunta correspondiente
+  # 3. EVALUACIÓN DE MEMBRESÍA (Clasificación del prospecto)
+  # Devuelve texto, opciones y puntaje asociado.
+  def get_membership_questions
+    {
+      "Perfil" => {
+        "m1" => {
+          text: "¿Cuántos empleados tiene tu empresa (incluyéndote)?",
+          options: { "1–3" => 5, "4–10" => 10, "11–30" => 15, "31–100" => 20, "101+" => 20 }
+        },
+        "m2" => {
+          text: "Facturación promedio mensual (últimos 3 meses)",
+          options: { "<$200k" => 5, "$200k–$1M" => 10, "$1M–$5M" => 15, "$5M–$15M" => 20, ">$15M" => 20 }
+        },
+        "m3" => {
+          text: "Años operando (desde que empezó a vender)",
+          options: { "<1" => 2, "1–3" => 4, "3–7" => 6, "7–15" => 8, "15+" => 10 }
+        }
+      },
+      "Complejidad" => {
+        "m4" => {
+          text: "¿Cuántas unidades/ubicaciones o frentes operativos tienen?",
+          options: { "1" => 2, "2–3" => 5, "4–10" => 8, "10+" => 10 }
+        },
+        "m5" => {
+          text: "¿Cuántas líneas de producto/servicio venden activamente?",
+          options: { "1" => 2, "2–5" => 5, "6–15" => 8, "16+" => 10 }
+        },
+        "m6" => {
+          text: "¿Con qué frecuencia tus clientes te piden condiciones formales y medibles (tiempos garantizados de respuesta/entrega, evidencia, reportes, auditorías o penalizaciones)?",
+          options: { "Prácticamente nunca" => 3, "A veces" => 6, "Sí, frecuente" => 10 }
+        }
+      }
+    }
+  end
+
+  # Método de utilidad para evaluar la membresía recomendada basada en el puntaje
+  def get_membership_level(score)
+    case score.to_i
+    when 0..39
+      "Básica"
+    when 40..59
+      "Gold"
+    when 60..100
+      "Platinum"
+    else
+      "No determinada"
+    end
+  end
+
+  # 4. BUSCADOR DE TEXTO (Método de utilidad para el Admin)
+  # Recibe una llave (ej: "q1", "a5", "m3") y devuelve la pregunta correspondiente
   def get_question_text(key)
-    # Primero buscamos en el cuestionario narrativo (llaves q1...q30)
+    # Buscamos en el cuestionario narrativo (llaves q1...q30)
     get_categorized_questions.each do |_, questions|
       return questions[key] if questions.key?(key)
     end
 
-    # Si no está ahí, buscamos en el autodiagnóstico (llaves a1...a25)
+    # Buscamos en el autodiagnóstico (llaves a1...a25)
     get_autodiagnostico_questions.each do |_, questions|
       return questions[key] if questions.key?(key)
     end
 
+    # Buscamos en evaluación de membresía (llaves m1...m6)
+    get_membership_questions.each do |_, questions|
+      return questions[key][:text] if questions.key?(key)
+    end
+
     "Pregunta no identificada (#{key})"
   end
+
 end

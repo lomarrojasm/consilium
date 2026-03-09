@@ -1,70 +1,94 @@
 <tr>
+    <%# --- COLUMNA 1: EMPRESA --- %>
     <td>
         <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
                 <div class="avatar-sm">
                     <span class="avatar-title bg-primary-lighten text-primary rounded-circle fw-bold">
-                        <%= lead.company_name.first.upcase if lead.company_name.present? %>
+                        <%= lead.company_name.present? ? lead.company_name.first.upcase : '?' %>
                     </span>
                 </div>
             </div>
             <div class="flex-grow-1 ms-2">
                 <h5 class="my-0 fw-bold text-dark"><%= lead.company_name %></h5>
-                <p class="mb-0 text-muted font-13"><i class="ri-global-line font-12"></i> <%= lead.website.presence || 'Sin web' %></p>
+                <p class="mb-0 text-muted font-13">
+                    <i class="ri-global-line font-12"></i> <%= lead.website.presence || 'Sin sitio web' %>
+                </p>
             </div>
         </div>
     </td>
+
+    <%# --- COLUMNA 2: CONTACTO --- %>
     <td>
         <span class="text-body fw-medium"><%= lead.name %></span><br>
-        <small class="text-muted"><%= lead.position || 'No especificado' %></small>
+        <small class="text-muted"><%= lead.position.presence || 'No especificado' %></small>
     </td>
+
+    <%# --- COLUMNA 3: FECHA --- %>
     <td>
         <span class="text-body"><%= lead.created_at.strftime("%d/%m/%Y") %></span><br>
         <small class="text-muted"><%= time_ago_in_words(lead.created_at) %> atrás</small>
     </td>
+
+    <%# --- COLUMNA 4: ESTATUS (BADGE) --- %>
     <td>
         <% badge_class = case lead.status 
             when 'Nuevo', 'Autodiagnóstico' then 'bg-danger'
-            when 'En Análisis' then 'bg-warning text-dark'
+            when 'Evaluación Membresía', 'En Análisis' then 'bg-warning text-dark'
             when 'Contactado' then 'bg-info'
             when 'Convertido' then 'bg-success'
             else 'bg-secondary' end 
         %>
         <span class="badge <%= badge_class %> rounded-pill px-2 py-1"><%= lead.status %></span>
     </td>
+
+    <%# --- COLUMNA 5: NOTAS --- %>
     <td class="text-center">
         <% if lead.notes.present? %>
-            <i class="ri-chat-check-fill text-success font-20" data-bs-toggle="tooltip" title="Tiene notas registradas"></i>
+            <i class="ri-chat-check-fill text-success font-20" data-bs-toggle="tooltip" data-bs-placement="top" title="Notas: <%= truncate(lead.notes, length: 50) %>"></i>
         <% else %>
-            <i class="ri-chat-new-line text-muted font-20 opacity-50" data-bs-toggle="tooltip" title="Sin notas"></i>
+            <i class="ri-chat-new-line text-muted font-20 opacity-50" data-bs-toggle="tooltip" title="Sin observaciones"></i>
         <% end %>
     </td>
     
-    <%# --- BOTONES DE ACCIÓN ACTUALIZADOS --- %>
+    <%# --- COLUMNA 6: ACCIONES --- %>
     <td class="text-end">
         <div class="d-flex justify-content-end gap-1">
             
-            <%# Botón PDF (Solo si tiene respuestas cuantitativas 'a1') %>
+            <%# ACCIÓN: Descargar PDF Autodiagnóstico (Rojo) %>
             <% if lead.answers && lead.answers['a1'].present? %>
                 <%= link_to autodiagnostico_pdf_path(id: lead.signed_id), 
                             class: "btn btn-sm btn-outline-danger rounded-pill px-2",
-                            title: "Descargar Reporte PDF",
+                            title: "Reporte de Madurez (PDF)",
+                            target: "_blank",
+                            data: { turbo: false, bs_toggle: "tooltip" } do %>
+                    <i class="ri-file-pdf-2-line"></i>
+                <% end %>
+            
+            <%# ACCIÓN: Descargar PDF Membresía (Dorado) %>
+            <% elsif lead.answers && lead.answers['m1'].present? %>
+                <%= link_to membership_pdf_path(id: lead.signed_id), 
+                            class: "btn btn-sm btn-outline-warning text-dark rounded-pill px-2",
+                            title: "Descargar Membresía PDF",
+                            target: "_blank",
                             data: { turbo: false, bs_toggle: "tooltip" } do %>
                     <i class="ri-file-pdf-2-line"></i>
                 <% end %>
             <% end %>
 
-            <%# Botón Analizar %>
-            <%= link_to admin_prospect_questionnaire_path(lead), class: "btn btn-sm btn-outline-primary rounded-pill px-3" do %>
+            <%# ACCIÓN: Analizar Detalle %>
+            <%= link_to admin_prospect_questionnaire_path(lead), 
+                        class: "btn btn-sm btn-outline-primary rounded-pill px-3",
+                        data: { bs_toggle: "tooltip" }, title: "Ver respuestas detalladas" do %>
                 Analizar <i class="ri-arrow-right-line ms-1"></i>
             <% end %>
             
-            <%# Botón Eliminar con form nativo %>
+            <%# ACCIÓN: Eliminar (Formulario Turbo) %>
             <%= button_to admin_prospect_questionnaire_path(lead), 
                           method: :delete, 
-                          class: "btn btn-sm btn-outline-secondary rounded-pill px-2", 
+                          class: "btn btn-sm btn-outline-secondary rounded-pill px-2 shadow-none border-0", 
                           form: { class: "m-0", style: "display: inline-block;" }, 
-                          data: { turbo_confirm: "¿Eliminar el diagnóstico de #{lead.company_name}?" } do %>
+                          data: { turbo_confirm: "¿Estás seguro de eliminar permanentemente el diagnóstico de #{lead.company_name}?" } do %>
                 <i class="ri-delete-bin-line"></i>
             <% end %>
         </div>
