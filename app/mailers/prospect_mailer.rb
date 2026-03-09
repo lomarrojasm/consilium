@@ -2,6 +2,8 @@
 class ProspectMailer < ApplicationMailer
   # Ya no necesita el 'default from' aquí si está en ApplicationMailer
 
+  include Rails.application.routes.url_helpers
+
   def membership_result(questionnaire)
     @questionnaire = questionnaire
     
