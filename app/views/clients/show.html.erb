@@ -40,9 +40,9 @@
 
                 <div class="position-relative d-inline-block mb-2">
                   <% if @client.avatar.attached? %>
-                      <%= image_tag url_for(@client.avatar), class: "rounded-circle avatar-lg img-thumbnail shadow-sm", style: "width: 96px; height: 96px; object-fit: cover;" %>
+                      <%= image_tag url_for(@client.avatar), class: "h-100", style: "width: 96px; height: 96px; object-fit: cover;" %>
                   <% else %>
-                      <%= image_tag "icono_consilium.jpg", class: "rounded-circle avatar-lg img-thumbnail shadow-sm", style: "width: 96px; height: 96px; object-fit: cover;" %>
+                      <%= image_tag "icono_consilium.jpg", class: "h-100", style: "width: 96px; height: 96px; object-fit: cover;" %>
                   <% end %>
                 </div>
 

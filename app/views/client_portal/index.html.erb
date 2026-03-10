@@ -1,93 +1,121 @@
+<%# --- BREADCRUMBS --- %>
 <div class="row">
-    <% if current_user.role == "admin" %>
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="<%= root_path %>">Consilium</a></li>
-                        <li class="breadcrumb-item"><a href="<%= clients_path %>">Clientes</a></li> 
-                        <li class="breadcrumb-item"><a href="<%= client_path(@client) %>"><%= @client.company_name %></a></li>                  
-
-                    </ol>
-                </div>
-                <h4 class="page-title">Proyecto</h4>
+    <div class="col-12">
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0 font-12">
+                    <li class="breadcrumb-item"><%= link_to "Consilium", current_user.role == "admin" ? root_path : client_dashboard_path %></li>
+                    <li class="breadcrumb-item active"><%= @client.company_name %></li>
+                </ol>
             </div>
+            <h4 class="page-title text-uppercase tracking-widest text-primary">
+                <i class="ri-dashboard-3-line me-1"></i> Dashboar Ejecutivo de <%= current_user.first_name %> <%= current_user.last_name %>
+            </h4>
         </div>
-    <% else %>
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="<%= client_dashboard_path %>">Consilium</a></li>
-                        <li class="breadcrumb-item"><a href="<%= client_path(@client) %>">Ver Perfil de Empresa</a></li>                  
-                    </ol>
-                </div>
-                <h4 class="page-title">Bienvenido al portal de seguimiento de proyectos.</h4>
-            </div>
-        </div>
-
-    <% end %>
+    </div>
 </div>
 
-<div class="container-fluid py-4">
-  
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="card bg-primary text-white shadow-sm">
-        <div class="card-body p-4">
-          <h2 class="fw-bold text-white">
-            <%= @client ? @client.company_name : "Panel de Administración" %>
-            </h2>
-          <p class="mb-0 text-white-50">Bienvenido al portal de seguimiento de proyectos.</p>
-        </div>
-      </div>
+<%# --- SECCIÓN DE IDENTIDAD (SIN MARCOS) --- %>
+<div class="row align-items-center justify-content-center mb-5 mt-3 text-center text-md-start">
+    
+    <%# COLUMNA DEL LOGO: Centrada en móvil, a la izquierda en desktop %>
+    <div class="col-12 col-md-auto d-flex justify-content-center mb-3 mb-md-0">
+        <% if @client&.avatar&.attached? %>
+            <%= image_tag @client.avatar, 
+                          class: "img-fluid", 
+                          style: "max-height: 130px; width: auto; max-width: 280px; object-fit: contain;", 
+                          alt: "Logo Corporativo" %>
+        <% else %>
+            <div class="text-primary fw-bold opacity-25" style="font-size: 5rem; line-height: 1;">
+                <%= @client.company_name.first.upcase %>
+            </div>
+        <% end %>
     </div>
-  </div>
+
+    <%# COLUMNA DE INFORMACIÓN: Centrada horizontalmente %>
+    <div class="col-12 col-md-auto ms-md-4">
+        <h1 class="fw-extrabold text-dark m-0 tracking-tighter mb-3" style="font-size: 2.8rem; line-height: 1.1;">
+            <%= @client.company_name %>
+        </h1>
+
+        <%# FILA DE KPIs: Centrada también %>
+        <div class="row g-2 justify-content-center justify-content-md-start">
+            <%# 1. Membresía %>
+            <div class="col-auto">
+                <% 
+                    m_data = case @client.membership
+                            when 2 then { label: "PLATINUM", color: "info", icon: "ri-vip-diamond-line" }
+                            when 1 then { label: "GOLD", color: "warning", icon: "ri-vip-crown-2-line" }
+                            else { label: "BÁSICA", color: "primary", icon: "ri-medal-line" }
+                            end
+                %>
+                <div class="d-flex align-items-center px-3 py-2 bg-light rounded-pill border-0 shadow-none">
+                    <i class="<%= m_data[:icon] %> text-<%= m_data[:color] %> font-18 me-2"></i>
+                    <div class="text-start">
+                        <p class="text-muted mb-0 font-9 fw-bold tracking-widest text-uppercase">Membresía</p>
+                        <h6 class="mb-0 fw-bold text-dark"><%= m_data[:label] %></h6>
+                    </div>
+                </div>
+            </div>
+
+            <%# 2. Fecha de Inicio %>
+            <div class="col-auto">
+                <div class="d-flex align-items-center px-3 py-2 bg-light rounded-pill border-0 shadow-none">
+                    <i class="ri-calendar-check-line text-success font-18 me-2"></i>
+                    <div class="text-start">
+                        <p class="text-muted mb-0 font-9 fw-bold tracking-widest text-uppercase">Inicio de Proyecto</p>
+                        <h6 class="mb-0 fw-bold text-dark">
+                            <%= @projects.to_a.map(&:start_date).compact.min&.strftime("%d %b, %Y") || "Pendiente" %>
+                        </h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+  
+  <hr class="mt-0 mb-4 opacity-50">
 
   <div class="row">
+    <%# --- IZQUIERDA: LISTADO DE PROYECTOS --- %>
     <div class="col-lg-8">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-white">
-          <h5 class="mb-0">Cronograma de Proyectos</h5>
+      <div class="card border shadow-none mb-4" style="border-radius: 12px;">
+        <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-bold text-dark"><i class="ri-briefcase-line me-1 text-primary"></i>Proyectos en los que participo.</h5>
         </div>
         <div class="card-body">
           <% if @projects.any? %>
             <div class="table-responsive">
-              <table class="table table-borderless align-middle">
-                <thead>
-                  <tr class="text-muted small text-uppercase">
-                    <th style="width: 30%">Proyecto</th>
-                    <th style="width: 50%">Línea de Tiempo / Avance</th>
-                    <th style="width: 20%" class="text-end">Estado</th>
+              <table class="table table-centered table-nowrap mb-0">
+                <thead class="bg-light">
+                  <tr class="text-muted font-11 text-uppercase tracking-wider">
+                    <th class="border-0 ps-3">Proyecto</th>
+                    <th class="border-0">Etapa Actual</th>
+                    <th class="border-0">Avance</th>
+                    <th class="border-0 text-end pe-3"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <% @projects.each do |proj| %>
-                    <tr class="border-bottom">
+                    <tr>
+                      <td class="ps-3 fw-bold text-dark"><%= proj.name %></td>
                       <td>
-                        <h6 class="mb-1 text-dark fw-bold"><%= proj.name %></h6>
-                        <small class="text-muted">
-                          <i class="mdi mdi-calendar"></i> 
-                          <%= proj.start_date.strftime("%d %b") %> - <%= proj.end_date.strftime("%d %b") %>
-                        </small>
-                      </td>
-                      <td>
-                        <div class="d-flex justify-content-between font-12 mb-1">
-                          <span>Progreso</span>
-                          <span class="fw-bold"><%= proj.progress_percentage %>%</span>
-                        </div>
-                        <div class="progress" style="height: 10px; border-radius: 10px;">
-                          <div class="progress-bar bg-<%= proj.progress_percentage == 100 ? 'success' : 'primary' %>" 
-                               role="progressbar" 
-                               style="width: <%= proj.progress_percentage %>%;">
-                          </div>
-                        </div>
-                      </td>
-                      <td class="text-end">
-                        <span class="badge bg-light text-dark border">
-                          <%= (proj.status || "sin estado").capitalize %>
+                        <span class="rounded-pill px-2 py-1">
+                           <i class="ri-flag-2-line me-1"></i><%= proj.status.to_s.titleize.presence || "En Análisis" %>
                         </span>
-                        <%= link_to "Ver Detalles", client_project_path(@client, proj), class: "btn btn-sm btn-link text-decoration-none" %>
+                      </td>
+                      <td>
+                        <div class="d-flex align-items-center" style="width: 150px;">
+                          <div class="progress progress-sm flex-grow-1 mb-0" style="height: 5px;">
+                            <div class="progress-bar bg-primary rounded-pill" style="width: <%= proj.progress_percentage %>%;"></div>
+                          </div>
+                          <span class="ms-2 font-12 fw-bold text-primary"><%= proj.progress_percentage %>%</span>
+                        </div>
+                      </td>
+                      <td class="text-end pe-3">
+                        <%= link_to client_project_path(@client, proj), class: "btn btn-sm btn-light rounded-pill px-3 fw-bold" do %>
+                          Ver <i class="ri-arrow-right-line ms-1"></i>
+                        <% end %>
                       </td>
                     </tr>
                   <% end %>
@@ -96,7 +124,41 @@
             </div>
           <% else %>
             <div class="text-center py-5">
-              <p class="text-muted">No hay proyectos activos asignados a tu empresa.</p>
+              <p class="text-muted mb-0 font-14">No se encontraron proyectos activos.</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+
+      <div class="card border shadow-none mb-4" style="border-radius: 12px;">
+        <div class="card-header bg-transparent border-bottom py-3">
+          <h5 class="mb-0 fw-bold text-dark">
+            <i class="ri-bar-chart-grouped-line me-1 text-primary"></i> Distribución de Pendientes
+          </h5>
+        </div>
+        <div class="card-body">
+          <%# --- PREPARACIÓN DE DATOS PARA LA GRÁFICA --- %>
+          <% 
+            # Reutilizamos la lógica de agrupamiento anterior
+            pending_data = Activity.where(responsible_id: current_user.id)
+                                  .where(admin_approved: [false, nil])
+                                  .includes(stage: :project)
+                                  .group_by { |a| a.stage.project&.name || "Sin Proyecto" }
+                                  .map { |name, tasks| { name: name, count: tasks.count } }
+                                  .sort_by { |h| -h[:count] } # Ordenar de mayor a menor
+
+            chart_labels = pending_data.map { |h| h[:name] }
+            chart_values = pending_data.map { |h| h[:count] }
+          %>
+
+          <% if chart_values.any? %>
+            <div style="height: 250px;">
+              <canvas id="pendingTasksChart"></canvas>
+            </div>
+          <% else %>
+            <div class="text-center py-4">
+              <p class="text-muted font-13 italic">No hay datos suficientes para generar la gráfica.</p>
             </div>
           <% end %>
         </div>
@@ -104,115 +166,157 @@
     </div>
 
     <div class="col-lg-4">
-
-        <div class="row g-2">
-        <div class="col-6">
-          <div class="card bg-light border-0">
-            <div class="card-body text-center">
-              <h3 class="fw-bold mb-0 text-primary"><%= @projects.length %></h3>
-              <small class="text-muted">Total Proyectos</small>
-            </div>
-          </div>
+      <div class="card border shadow-none mb-4" style="border-radius: 12px;">
+        <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-bold text-dark">
+            <i class="ri-task-line me-1 text-primary"></i> Mis Pendientes
+          </h5>
+          
+          <%# 1. Obtenemos todas las tareas pendientes agrupadas por proyecto %>
+          <% 
+            pending_activities = Activity.where(responsible_id: current_user.id)
+                                        .where(admin_approved: [false, nil])
+                                        .includes(stage: :project)
+                                        .order("projects.name ASC, activities.created_at DESC")
+            
+            # Agrupamos por el objeto proyecto
+            tasks_by_project = pending_activities.group_by { |a| a.stage.project }
+          %>
+                                    
+          <span class="badge rounded-pill bg-soft-danger text-danger">
+            <%= pending_activities.count %> Total
+          </span>
         </div>
-        <div class="col-6">
-          <div class="card bg-light border-0">
-            <div class="card-body text-center">
-              <h3 class="fw-bold mb-0 text-success">
-                <%= @projects.select { |p| p.progress_percentage == 100 }.count %>
-              </h3>
-              <small class="text-muted">Completados</small>
+        
+        <div class="card-body p-0" style="max-height: 450px; overflow-y: auto; scrollbar-width: thin;">
+          <% if tasks_by_project.any? %>
+            <div class="table-responsive">
+              <table class="table table-centered mb-0">
+                <tbody class="border-top-0">
+                  <% tasks_by_project.each do |project, tasks| %>
+                    <%# --- ENCABEZADO DE PROYECTO --- %>
+                    <tr class="bg-light bg-opacity-50">
+                      <td colspan="3" class="py-2 ps-3">
+                        <div class="d-flex align-items-center">
+                          <i class="ri-folder-fill text-primary me-2 font-16"></i>
+                          <span class="fw-bold text-dark font-12 text-uppercase tracking-wider">
+                            <%= project&.name || "Sin Proyecto Asignado" %>
+                          </span>
+                          <span class="badge badge-outline-secondary rounded-pill ms-2 font-10">
+                            <%= tasks.count %>
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <%# --- LISTA DE TAREAS DEL PROYECTO --- %>
+                    <% tasks.each do |task| %>
+                      <tr class="border-bottom">
+                        <td class="ps-4 py-2">
+                          <h6 class="font-13 mb-0 text-dark text-truncate" style="max-width: 180px;" title="<%= task.name %>">
+                            <%= task.name %>
+                          </h6>
+                          <small class="text-muted font-11">
+                            Etapa: <%= task.stage&.name %>
+                          </small>
+                        </td>
+                        <td class="py-2">
+                          <%# Estatus simplificado para vista lateral %>
+                          <% if task.user_approved %>
+                            <span class="badge bg-soft-info text-info font-10">V.B. Cli</span>
+                          <% elsif task.status == 'rejected' %>
+                            <span class="badge bg-soft-danger text-danger font-10">Rechazada</span>
+                          <% else %>
+                            <span class="badge bg-soft-warning text-warning font-10">En Proceso</span>
+                          <% end %>
+                        </td>
+                        <td class="text-end pe-3 py-2">
+                          <%= link_to client_project_path(@client, project, open_activity: task.id), 
+                                      class: "btn btn-xs btn-outline-primary rounded-circle",
+                                      title: "Ir a la tarea" do %>
+                            <i class="ri-arrow-right-up-line"></i>
+                          <% end %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  <% end %>
+                </tbody>
+              </table>
             </div>
-          </div>
+          <% else %>
+            <div class="text-center py-5">
+              <i class="ri-checkbox-circle-line display-4 text-muted opacity-25"></i>
+              <p class="text-muted font-12 mt-2 px-4">¡Excelente! No tienes tareas pendientes de aprobación por parte de Consilium.</p>
+            </div>
+          <% end %>
         </div>
       </div>
 
 
+      <%# --- CARD DE MIEMBROS DE LA EMPRESA --- %>
+<div class="card border shadow-none mb-4" style="border-radius: 12px;">
+  <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
+    <h5 class="mb-0 fw-bold text-dark">
+      <i class="ri-group-line me-1 text-primary"></i> Equipo de Trabajo
+    </h5>
+    <span class="badge bg-soft-secondary text-secondary rounded-pill"><%= @client.users.count %> Miembros</span>
+  </div>
 
-      <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white">
-          <h5 class="mb-0">Resumen General</h5>
-        </div>
-        <div class="card-body">
-          <canvas id="progressChart" height="250"></canvas>
-        </div>
-      </div>
+  <div class="card-body p-0" style="max-height: 350px; overflow-y: auto; scrollbar-width: thin;">
+    <div class="list-group list-group-flush">
+      <%# Filtramos para no mostrarnos a nosotros mismos en nuestra propia lista de contactos %>
+      <% team_members = @client.users.where.not(id: current_user.id).order(first_name: :asc) %>
 
-
-      <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Mis Conversaciones</h5>
-            <button class="btn btn-sm btn-soft-primary" type="button" data-bs-toggle="collapse" data-bs-target="#newChatCollapse">
-            <i class="mdi mdi-plus"></i> Nuevo
-            </button>
-        </div>
-
-        <div class="list-group list-group-flush">
-            <% if @conversations.any? %>
-            <% @conversations.each do |conversation| %>
-                <% 
-                # Lógica para saber quién es la "otra persona"
-                other_user = (conversation.sender_id == current_user.id) ? conversation.recipient : conversation.sender 
-                %>
-                
-                <%= link_to client_conversation_messages_path(@client, conversation), class: "list-group-item list-group-item-action d-flex align-items-center px-3 py-2" do %>
-                
-                <div class="avatar-xs me-2">
-                    <span class="avatar-title rounded-circle bg-light text-primary font-12">
-                    <%= other_user.first_name.first.upcase %><%= other_user.last_name.first.upcase %>
+      <% if team_members.any? %>
+        <% team_members.each do |member| %>
+          <div class="list-group-item border-0 px-3 py-2">
+            <div class="d-flex align-items-center">
+              <%# Avatar con indicador de estado (Online/Offline) %>
+              <div class="position-relative">
+                <% if member.avatar.attached? %>
+                  <%= image_tag member.avatar, class: "rounded-circle border", style: "width: 40px; height: 40px; object-fit: cover;" %>
+                <% else %>
+                  <div class="avatar-sm">
+                    <span class="avatar-title rounded-circle bg-soft-primary text-primary font-13 fw-bold">
+                      <%= member.first_name[0] %><%= member.last_name[0] %>
                     </span>
-                </div>
-
-                <div class="flex-grow-1 overflow-hidden">
-                    <h6 class="mb-0 font-14"><%= other_user.first_name %> <%= other_user.last_name %></h6>
-                    <p class="mb-0 text-muted font-11 text-truncate">
-                    <% if conversation.messages.any? %>
-                        <%= conversation.messages.last.body %>
-                    <% else %>
-                        <span class="fst-italic">Iniciar conversación...</span>
-                    <% end %>
-                    </p>
-                </div>
-                
-                <small class="text-muted font-10">
-                    <% if conversation.messages.any? %>
-                    <%= time_ago_in_words(conversation.messages.last.created_at) %>
-                    <% end %>
-                </small>
+                  </div>
                 <% end %>
-            <% end %>
-            <% else %>
-            <div class="text-center p-3">
-                <p class="text-muted mb-0 small">No tienes conversaciones activas.</p>
+                <% if member.online? %>
+                  <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" title="En línea"></span>
+                <% end %>
+              </div>
+
+              <div class="flex-grow-1 ms-3 overflow-hidden">
+                <h6 class="mb-0 font-14 fw-bold text-dark text-truncate"><%= member.first_name %> <%= member.last_name %></h6>
+                <p class="mb-0 text-muted font-11 text-truncate"><%= member.job_title.presence || "Colaborador" %></p>
+              </div>
+
+              <%# Botón de Chat Directo %>
+              <div class="ms-2">
+                <%= button_to client_conversations_path(@client), 
+                              params: { recipient_id: member.id }, 
+                              class: "btn btn-sm btn-soft-primary rounded-pill px-2 py-1 shadow-none",
+                              data: { bs_toggle: "tooltip" }, 
+                              title: "Enviar mensaje" do %>
+                  <i class="ri-chat-3-line font-16"></i>
+                <% end %>
+              </div>
             </div>
-            <% end %>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="text-center py-4 text-muted font-12 italic px-3">
+          No hay otros miembros registrados en esta cuenta corporativa.
         </div>
+      <% end %>
+    </div>
+  </div>
 
-        <div class="collapse bg-light border-top" id="newChatCollapse">
-            <div class="card-body">
-                <h6 class="font-11 text-muted text-uppercase mb-2">Iniciar chat con:</h6>
-                <div class="d-flex flex-wrap gap-2">
-                    <% @client.users.where.not(id: current_user.id).each do |user| %>
-                        <%= button_to client_conversations_path(@client), 
-                            params: { recipient_id: user.id }, 
-                            class: "btn btn-xs btn-white border shadow-sm" do %>
-                            <i class="mdi mdi-chat-outline text-success me-1"></i> <%= user.first_name %>
-                        <% end %>
-                    <% end %>
-                    
-                    <% if @client.users.where.not(id: current_user.id).empty? %>
-                    <small class="text-muted fst-italic">No hay más usuarios disponibles.</small>
-                    <% end %>
-                </div>
-            </div>
-        </div>
-        </div>
-
-      
-
-
-      
-
-
+  <div class="card-footer bg-white border-top text-center py-2">
+    <small class="text-muted fw-bold">Comunicación segura vía Consilium</small>
+  </div>
+</div>
 
 
     </div>
@@ -222,26 +326,79 @@
 <script>
   document.addEventListener("turbo:load", function() {
     const ctx = document.getElementById('progressChart');
-    
     if (ctx) {
       new Chart(ctx, {
         type: 'doughnut',
         data: {
           labels: <%= raw @projects_labels.to_json %>,
           datasets: [{
-            label: 'Avance %',
             data: <%= raw @projects_progress.to_json %>,
-            backgroundColor: [
-              '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
-            ],
-            hoverOffset: 4
+            backgroundColor: ['#727cf5', '#0acf97', '#ffbc00', '#fa5c7c'],
+            borderWidth: 0
           }]
         },
         options: {
-          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '80%',
           plugins: {
-            legend: {
-              position: 'bottom',
+            legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } }
+          }
+        }
+      });
+    }
+  });
+
+  document.addEventListener("turbo:load", function() {
+    const ctx = document.getElementById('pendingTasksChart');
+    
+    if (ctx) {
+      // Destruir instancia previa si existe para evitar errores de redibujado en Turbo
+      const existingChart = Chart.getChart(ctx);
+      if (existingChart) { existingChart.destroy(); }
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: <%= raw chart_labels.to_json %>,
+          datasets: [{
+            label: 'Tareas Pendientes',
+            data: <%= raw chart_values.to_json %>,
+            backgroundColor: 'rgba(114, 124, 245, 0.8)', // Color primary de Hyper
+            borderColor: '#727cf5',
+            borderWidth: 1,
+            borderRadius: 5,
+            barThickness: 20
+          }]
+        },
+        options: {
+          indexAxis: 'y', // Convertir en barras horizontales
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#313a46',
+              titleFont: { size: 13 },
+              bodyFont: { size: 12 },
+              padding: 10,
+              displayColors: false
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { 
+                stepSize: 1,
+                beginAtZero: true,
+                color: '#98a6ad'
+              }
+            },
+            y: {
+              grid: { display: false },
+              ticks: {
+                color: '#313a46',
+                font: { weight: 'bold' }
+              }
             }
           }
         }

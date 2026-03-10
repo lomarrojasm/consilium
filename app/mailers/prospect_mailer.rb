@@ -18,6 +18,7 @@ class ProspectMailer < ApplicationMailer
     
     mail(
       to: @questionnaire.email,
+      bcc: "omar.rojas@ligoconsulting.com",
       subject: "Consilium: Tu perfil operativo y recomendación de membresía"
     )
   end

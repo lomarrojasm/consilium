@@ -266,7 +266,7 @@
                                             <% stage.activities.order(:month, :week).each do |activity| %>
                                                 <% is_finalized = activity.admin_approved && activity.user_approved %>
                                                 
-                                                <tr class="<%= 'bg-light-subtle' if activity.status == 'rejected' %> <%= 'bg-success bg-opacity-10' if is_finalized %>">
+                                                <tr id="activity-row-<%= activity.id %>" class="<%= 'bg-light-subtle' if activity.status == 'rejected' %> <%= 'bg-success bg-opacity-10' if is_finalized %>">
                                                     <td class="text-center px-1 px-md-2">
                                                         <% if is_finalized %>
                                                             <a href="javascript:void(0);" onclick="verSeguimientoActividad('<%= activity.id %>')" class="text-success hover-primary" data-bs-toggle="tooltip" title="Finalizada - Clic para visualizar">
@@ -666,6 +666,41 @@
             modal.show();
         });
     }
+
+
+    <%# Reemplaza el bloque de turbo:load al final de tu archivo por este: %>
+document.addEventListener("turbo:load", function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const activityId = urlParams.get('open_activity');
+
+    if (activityId) {
+        // 1. Buscamos la fila en la tabla
+        const targetRow = document.getElementById(`activity-row-${activityId}`);
+
+        if (targetRow) {
+            // 2. Hacemos scroll suave hasta la fila
+            setTimeout(() => {
+                targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // 3. Resaltamos la fila temporalmente (opcional)
+                targetRow.style.transition = "background-color 0.5s";
+                targetRow.style.backgroundColor = "rgba(114, 124, 245, 0.2)"; // Color primary soft
+                
+                // 4. DISPARAMOS TU FUNCIÓN PARA ABRIR EL PANEL
+                // Esto abrirá el modal de seguimiento automáticamente
+                if (typeof verSeguimientoActividad === "function") {
+                    verSeguimientoActividad(activityId);
+                }
+
+                // Quitamos el resaltado después de 2 segundos
+                setTimeout(() => {
+                    targetRow.style.backgroundColor = "";
+                }, 2000);
+            }, 500); // Pequeño delay para asegurar que el acordeón o la tabla carguen bien
+        }
+    }
+});
+
 </script>
 
 <style>

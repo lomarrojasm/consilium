@@ -9,6 +9,7 @@ class Client < ApplicationRecord
   # Si eliminas un cliente, se eliminan sus usuarios (dependent: :destroy)
   has_many :users, dependent: :destroy
   has_many :projects, dependent: :destroy
+  has_many :timeline_logs, dependent: :destroy
 
   # --- Muchas Conversaciones ---
   has_many :conversations, dependent: :destroy
