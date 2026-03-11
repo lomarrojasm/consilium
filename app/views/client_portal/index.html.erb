@@ -8,73 +8,266 @@
                     <li class="breadcrumb-item active"><%= @client.company_name %></li>
                 </ol>
             </div>
-            <h4 class="page-title text-uppercase tracking-widest text-primary">
-                <i class="ri-dashboard-3-line me-1"></i> Dashboar Ejecutivo de <%= current_user.first_name %> <%= current_user.last_name %>
-            </h4>
         </div>
     </div>
 </div>
 
-<%# --- SECCIÓN DE IDENTIDAD (SIN MARCOS) --- %>
-<div class="row align-items-center justify-content-center mb-5 mt-3 text-center text-md-start">
+<%# --- CONTENEDOR DE IDENTIDAD Y ESTATUS --- %>
+<div class="row align-items-center justify-content-between mb-5 mt-0 g-4">
     
-    <%# COLUMNA DEL LOGO: Centrada en móvil, a la izquierda en desktop %>
-    <div class="col-12 col-md-auto d-flex justify-content-center mb-3 mb-md-0">
-        <% if @client&.avatar&.attached? %>
-            <%= image_tag @client.avatar, 
-                          class: "img-fluid", 
-                          style: "max-height: 130px; width: auto; max-width: 280px; object-fit: contain;", 
-                          alt: "Logo Corporativo" %>
-        <% else %>
-            <div class="text-primary fw-bold opacity-25" style="font-size: 5rem; line-height: 1;">
-                <%= @client.company_name.first.upcase %>
+    <%# --- BLOQUE IZQUIERDO: IDENTIDAD CORPORATIVA --- %>
+    <div class="col-12 col-lg-auto">
+        <div class="d-flex flex-column flex-md-row align-items-center text-center text-md-start">
+            <%# Logo con presencia limpia %>
+            <div class="me-md-4 mb-3 mb-md-0">
+                <% if @client&.avatar&.attached? %>
+                    <%= image_tag @client.avatar, 
+                                  class: "img-fluid", 
+                                  style: "max-height: 100px; width: auto; max-width: 260px; object-fit: contain;", 
+                                  alt: "Logo" %>
+                <% else %>
+                    <div class="text-primary fw-bold opacity-25" style="font-size: 4.5rem; line-height: 1;">
+                        <%= @client.company_name.first.upcase %>
+                    </div>
+                <% end %>
             </div>
-        <% end %>
+
+            <%# Separador Vertical (Solo en Desktop) %>
+            <div class="d-none d-md-block bg-light mx-2" style="width: 2px; height: 60px;"></div>
+
+            <%# Nombre de la Empresa %>
+            <div class="ms-md-4">
+                <h1 class="fw-extrabold text-primary m-0 tracking-tighter" style="font-size: 2.8rem; line-height: 1;">
+                    <%= @client.company_name %>
+                </h1>
+                <p class="text-muted font-12 mb-0 mt-1 text-uppercase tracking-widest fw-bold opacity-75">
+                    Socio Estratégico Consilium
+                </p>
+            </div>
+        </div>
     </div>
 
-    <%# COLUMNA DE INFORMACIÓN: Centrada horizontalmente %>
-    <div class="col-12 col-md-auto ms-md-4">
-        <h1 class="fw-extrabold text-dark m-0 tracking-tighter mb-3" style="font-size: 2.8rem; line-height: 1.1;">
-            <%= @client.company_name %>
-        </h1>
-
-        <%# FILA DE KPIs: Centrada también %>
-        <div class="row g-2 justify-content-center justify-content-md-start">
-            <%# 1. Membresía %>
-            <div class="col-auto">
-                <% 
-                    m_data = case @client.membership
-                            when 2 then { label: "PLATINUM", color: "info", icon: "ri-vip-diamond-line" }
-                            when 1 then { label: "GOLD", color: "warning", icon: "ri-vip-crown-2-line" }
-                            else { label: "BÁSICA", color: "primary", icon: "ri-medal-line" }
-                            end
-                %>
-                <div class="d-flex align-items-center px-3 py-2 bg-light rounded-pill border-0 shadow-none">
-                    <i class="<%= m_data[:icon] %> text-<%= m_data[:color] %> font-18 me-2"></i>
-                    <div class="text-start">
-                        <p class="text-muted mb-0 font-9 fw-bold tracking-widest text-uppercase">Membresía</p>
-                        <h6 class="mb-0 fw-bold text-dark"><%= m_data[:label] %></h6>
+    <%# --- BLOQUE DERECHO: DATOS DE MEMBRESÍA E INICIO --- %>
+    <div class="col-12 col-lg-auto">
+        <div class="d-flex flex-wrap justify-content-center justify-content-lg-end gap-3">
+            
+            <%# Card de Membresía %>
+            <% 
+                m_data = case @client.membership
+                        when 2 then { label: "PLATINUM", color: "info", icon: "ri-vip-diamond-line" }
+                        when 1 then { label: "GOLD", color: "warning", icon: "ri-vip-crown-2-line" }
+                        else { label: "BÁSICA", color: "primary", icon: "ri-medal-line" }
+                        end
+            %>
+            <%# Card de Membresía (Versión Sobria) %>
+            <div class="px-3 py-2 bg-white border border-light shadow-none" style="border-radius: 8px; border-left: 3px solid <%= m_data[:color] == 'info' ? '#39afd1' : (m_data[:color] == 'warning' ? '#ffbc00' : '#727cf5') %> !important; min-width: 170px;">
+                <div class="d-flex align-items-center">
+                    <%# Icono minimalista sin fondo circular pesado %>
+                    <div class="me-2">
+                        <i class="<%= m_data[:icon] %> text-<%= m_data[:color] %> font-20 opacity-75"></i>
+                    </div>
+                    <div class="ms-1">
+                        <p class="text-muted mb-0 font-9 fw-bold text-uppercase tracking-widest opacity-60">Nivel de Membresía</p>
+                        <h6 class="mb-0 fw-bold text-dark" style="letter-spacing: -0.2px;"><%= m_data[:label] %></h6>
                     </div>
                 </div>
             </div>
 
-            <%# 2. Fecha de Inicio %>
-            <div class="col-auto">
-                <div class="d-flex align-items-center px-3 py-2 bg-light rounded-pill border-0 shadow-none">
-                    <i class="ri-calendar-check-line text-success font-18 me-2"></i>
-                    <div class="text-start">
-                        <p class="text-muted mb-0 font-9 fw-bold tracking-widest text-uppercase">Inicio de Proyecto</p>
-                        <h6 class="mb-0 fw-bold text-dark">
+            <%# Card de Inicio de Proyecto (Versión Sobria) %>
+            <div class="px-3 py-2 bg-white border border-light shadow-none" style="border-radius: 8px; border-left: 3px solid #0acf97 !important; min-width: 170px;">
+                <div class="d-flex align-items-center">
+                    <%# Icono minimalista %>
+                    <div class="me-2">
+                        <i class="ri-calendar-event-line text-success font-20 opacity-75"></i>
+                    </div>
+                    <div class="ms-1">
+                        <p class="text-muted mb-0 font-9 fw-bold text-uppercase tracking-widest opacity-60">Inicio de Proyecto</p>
+                        <h6 class="mb-0 fw-bold text-dark" style="letter-spacing: -0.2px;">
                             <%= @projects.to_a.map(&:start_date).compact.min&.strftime("%d %b, %Y") || "Pendiente" %>
                         </h6>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
-  
-  <hr class="mt-0 mb-4 opacity-50">
+
+
+
+<div class="row justify-content-center mb-2">
+  <div class="col-12 col-lg-11">
+    <div class="card border-0 shadow-sm" style="border-radius: 20px; background: linear-gradient(145deg, #ffffff, #fdfdff);">
+      <div class="card-body py-5">
+        
+        <%# --- CONFIGURACIÓN DE LA LÓGICA --- %>
+        <% 
+          metodologia = [
+            "Alinear y Diagnosticar",
+            "Ordenar y Controlar",
+            "Estandarizar y Profesionalizar",
+            "Mejora Continua y Consolidación",
+            "Optimización y Escalamiento",
+            "Excelencia Operativa"
+          ]
+          
+          etapa_actual_obj = @projects.first&.stages&.order(:position)&.find { |s| s.status != 'completed' } || @projects.first&.stages&.order(:position)&.last
+          etapa_actual_nombre = etapa_actual_obj&.name || ""
+          indice_actual = metodologia.index { |m| etapa_actual_nombre.downcase.include?(m.split(' ').first.downcase) } || 0
+          progreso_linea = (indice_actual.to_f / (metodologia.size - 1) * 100).round
+        %>
+
+        <%# --- TÍTULO CENTRADO CON ESTILO --- %>
+        <div class="d-flex align-items-center justify-content-center mb-5 text-center">
+            <div class="avatar-sm me-3">
+                <span class="avatar-title bg-soft-primary text-primary rounded-circle shadow-sm font-20">
+                    <i class="ri-ruler-2-line"></i>
+                </span>
+            </div>
+            <div>
+              <h4 class="m-0 fw-extrabold text-dark tracking-tight">Metodología Estratégica Consilium</h4>
+              <p class="text-muted font-12 mb-0 text-uppercase tracking-widest">Roadmap de Transformación Organizacional</p>
+            </div>
+        </div>
+
+        <div class="position-relative px-md-4">
+          <%# --- LÍNEA DE PROGRESO (DESKTOP) --- %>
+          <div class="progress position-absolute start-0 top-50 translate-middle-y w-100 d-none d-md-flex" style="height: 6px; background-color: #f1f3fa; z-index: 0; margin-top: -20px;">
+            <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" 
+                 role="progressbar" 
+                 style="width: <%= progreso_linea %>%; transition: width 1.5s ease-in-out;">
+            </div>
+          </div>
+
+          <%# --- NODOS DE LA METODOLOGÍA --- %>
+          <div class="row g-0 position-relative justify-content-between" style="z-index: 1;">
+            <% metodologia.each_with_index do |nombre, i| %>
+              <% 
+                is_completed = i < indice_actual
+                is_active = i == indice_actual
+                is_pending = i > indice_actual
+
+                iconos_metodologia = [
+                  "ri-focus-3-line", "ri-layout-grid-fill", "ri-award-fill", 
+                  "ri-line-chart-fill", "ri-rocket-2-fill", "ri-vip-crown-fill"
+                ]
+                icon_to_display = iconos_metodologia[i]
+              %>
+              
+              <div class="col-12 col-md-2 mb-4 mb-md-0">
+                <div class="d-flex flex-column align-items-center px-1">
+                  
+                  <%# ICONO DINÁMICO IMPACTANTE %>
+                  <div class="step-icon-container mb-3 d-flex align-items-center justify-content-center rounded-circle shadow-lg 
+                              <%= 'bg-success border-success' if is_completed %> 
+                              <%= 'bg-primary border-primary active-step' if is_active %> 
+                              <%= 'bg-white border text-muted opacity-50' if is_pending %>"
+                      style="width: 55px; height: 55px; border: 3px solid; transition: all 0.5s ease;">
+                    
+                    <% if is_completed %>
+                        <i class="<%= icon_to_display %> text-white font-24"></i>
+                        <div class="position-absolute translate-middle-x start-100 top-0 mt-1 ms-n1">
+                            <i class="ri-checkbox-circle-fill text-success bg-white rounded-circle font-16"></i>
+                        </div>
+                    <% elsif is_active %>
+                        <i class="<%= icon_to_display %> text-white font-26"></i>
+                    <% else %>
+                        <i class="<%= icon_to_display %> font-22"></i>
+                    <% end %>
+                  </div>
+                  
+                  <%# ETIQUETAS DE TEXTO --- %>
+                  <div class="text-center px-2">
+                    <p class="font-10 fw-extrabold mb-1 tracking-widest text-uppercase <%= is_active ? 'text-primary' : 'text-muted' %>">
+                      Etapa <%= i + 1 %>
+                    </p>
+                    <p class="mb-0 <%= is_active ? 'fw-bold text-dark font-13' : 'font-11 text-muted' %> <%= 'opacity-50' if is_pending %>" 
+                       style="line-height: 1.3;">
+                      <%= nombre %>
+                    </p>
+                  </div>
+
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# --- CARD DE PROGRESO GLOBAL INDEPENDIENTE --- %>
+<div class="row justify-content-center mb-5">
+    <div class="col-12 col-md-10 col-lg-8">
+        <div class="card border-0 shadow-sm" style="border-radius: 20px; background: #ffffff;">
+            <div class="card-body p-4">
+                
+                <%# Encabezado del Progreso %>
+                <div class="d-flex justify-content-between align-items-end mb-3">
+                    <div>
+                        <h5 class="m-0 fw-extrabold text-dark tracking-tight">
+                            <i class="ri-flag-2-line me-1 text-primary"></i> Avance General del Proyecto
+                        </h5>
+                        <p class="text-muted font-12 mb-0">Consolidado de todas las etapas estratégicas</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="display-6 fw-extrabold text-primary" style="line-height: 1;">
+                            <%= @projects.first&.progress_percentage || 0 %><small class="font-18">%</small>
+                        </span>
+                    </div>
+                </div>
+
+                <%# La Barra de Progreso Profesional %>
+                <div class="progress rounded-pill shadow-none mb-3" style="height: 12px; background-color: #f1f3fa;">
+                    <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated rounded-pill" 
+                         role="progressbar" 
+                         style="width: <%= @projects.first&.progress_percentage || 0 %>%; transition: width 1.5s cubic-bezier(0.1, 0.9, 0.2, 1);" 
+                         aria-valuenow="<%= @projects.first&.progress_percentage %>" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                </div>
+
+                <%# Indicadores de Inicio y Fin %>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-xs me-2">
+                            <span class="avatar-title bg-soft-light text-muted rounded-circle font-10 fw-bold border">INI</span>
+                        </div>
+                        <span class="font-11 fw-bold text-muted text-uppercase tracking-wider">
+                            <%= @projects.first&.start_date&.strftime("%d/%m/%Y") || "N/A" %>
+                        </span>
+                    </div>
+
+                    <%# Texto dinámico de estatus %>
+                    <div class="d-none d-md-block">
+                        <% if @projects.first&.progress_percentage.to_i >= 100 %>
+                            <span class="badge badge-soft-success rounded-pill px-3"><i class="ri-checkbox-circle-line me-1"></i>Objetivo Alcanzado</span>
+                        <% else %>
+                            <span class="text-muted font-11 italic">En ruta hacia la Excelencia Operativa</span>
+                        <% end %>
+                    </div>
+
+                    <div class="d-flex align-items-center">
+                        <span class="font-11 fw-bold text-muted text-uppercase tracking-wider me-2">
+                            <%= @projects.first&.end_date&.strftime("%d/%m/%Y") || "N/A" %>
+                        </span>
+                        <div class="avatar-xs">
+                            <span class="avatar-title bg-soft-primary text-primary rounded-circle font-10 fw-bold border border-primary border-opacity-25">FIN</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+  <h4 class="page-title text-uppercase tracking-widest text-primary">
+    <i class="ri-dashboard-3-line me-1"></i> Dashboar Ejecutivo de <%= current_user.first_name %> <%= current_user.last_name %>
+  </h4>
+
 
   <div class="row">
     <%# --- IZQUIERDA: LISTADO DE PROYECTOS --- %>
@@ -100,16 +293,53 @@
                     <tr>
                       <td class="ps-3 fw-bold text-dark"><%= proj.name %></td>
                       <td>
-                        <span class="rounded-pill px-2 py-1">
-                           <i class="ri-flag-2-line me-1"></i><%= proj.status.to_s.titleize.presence || "En Análisis" %>
+                        <%# 
+                          Lógica: Buscamos la etapa actual. 
+                          1. Ordenamos por posición. 
+                          2. Buscamos la primera que NO tenga estatus de 'completed' (asumiendo que es el último nivel del enum).
+                          3. Si no hay ninguna pendiente, tomamos la última etapa del proyecto.
+                        %>
+                        <% 
+                          current_stage = proj.stages.order(:position).find { |s| s.status != 'completed' } || proj.stages.order(:position).last 
+                          stage_name = current_stage&.name || "En Análisis"
+                        %>
+                        
+                        <span class="text-primary px-2 py-1 border border-info border-opacity-25">
+                          <i class="ri-node-tree me-1"></i>
+                          <%= stage_name %>
                         </span>
                       </td>
                       <td>
-                        <div class="d-flex align-items-center" style="width: 150px;">
-                          <div class="progress progress-sm flex-grow-1 mb-0" style="height: 5px;">
-                            <div class="progress-bar bg-primary rounded-pill" style="width: <%= proj.progress_percentage %>%;"></div>
+                        <% 
+                          # 1. Identificamos la etapa actual (la primera no completada o la última)
+                          current_stage = proj.stages.order(:position).find { |s| s.status != 'completed' } || proj.stages.order(:position).last
+                          
+                          # 2. Obtenemos el progreso de esa etapa específica
+                          # Si no hay etapas, el progreso es 0
+                          stage_progress = current_stage&.progress_percentage || 0
+                        %>
+
+                        <div class="d-flex flex-column" style="width: 160px;">
+                          <%# Barra de Progreso %>
+                          <div class="d-flex align-items-center">
+                            <div class="progress progress-sm flex-grow-1 mb-0" style="height: 6px; background-color: #f1f3fa;">
+                              <div class="progress-bar bg-success rounded-pill" 
+                                  role="progressbar" 
+                                  style="width: <%= stage_progress %>%;" 
+                                  aria-valuenow="<%= stage_progress %>" 
+                                  aria-valuemin="0" 
+                                  aria-valuemax="100">
+                              </div>
+                            </div>
+                            <span class="ms-2 font-12 fw-bold text-success"><%= stage_progress %>%</span>
                           </div>
-                          <span class="ms-2 font-12 fw-bold text-primary"><%= proj.progress_percentage %>%</span>
+
+                          <%# Etiqueta de Contexto %>
+                          <% if current_stage %>
+                            <small class="text-muted font-10 text-truncate mt-1" title="Etapa: <%= current_stage.name %>">
+                              <i class="ri-direction-line me-1"></i><%= current_stage.name %>
+                            </small>
+                          <% end %>
                         </div>
                       </td>
                       <td class="text-end pe-3">
@@ -254,74 +484,99 @@
 
 
       <%# --- CARD DE MIEMBROS DE LA EMPRESA --- %>
-<div class="card border shadow-none mb-4" style="border-radius: 12px;">
-  <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
-    <h5 class="mb-0 fw-bold text-dark">
-      <i class="ri-group-line me-1 text-primary"></i> Equipo de Trabajo
-    </h5>
-    <span class="badge bg-soft-secondary text-secondary rounded-pill"><%= @client.users.count %> Miembros</span>
-  </div>
-
-  <div class="card-body p-0" style="max-height: 350px; overflow-y: auto; scrollbar-width: thin;">
-    <div class="list-group list-group-flush">
-      <%# Filtramos para no mostrarnos a nosotros mismos en nuestra propia lista de contactos %>
-      <% team_members = @client.users.where.not(id: current_user.id).order(first_name: :asc) %>
-
-      <% if team_members.any? %>
-        <% team_members.each do |member| %>
-          <div class="list-group-item border-0 px-3 py-2">
-            <div class="d-flex align-items-center">
-              <%# Avatar con indicador de estado (Online/Offline) %>
-              <div class="position-relative">
-                <% if member.avatar.attached? %>
-                  <%= image_tag member.avatar, class: "rounded-circle border", style: "width: 40px; height: 40px; object-fit: cover;" %>
-                <% else %>
-                  <div class="avatar-sm">
-                    <span class="avatar-title rounded-circle bg-soft-primary text-primary font-13 fw-bold">
-                      <%= member.first_name[0] %><%= member.last_name[0] %>
-                    </span>
-                  </div>
-                <% end %>
-                <% if member.online? %>
-                  <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" title="En línea"></span>
-                <% end %>
-              </div>
-
-              <div class="flex-grow-1 ms-3 overflow-hidden">
-                <h6 class="mb-0 font-14 fw-bold text-dark text-truncate"><%= member.first_name %> <%= member.last_name %></h6>
-                <p class="mb-0 text-muted font-11 text-truncate"><%= member.job_title.presence || "Colaborador" %></p>
-              </div>
-
-              <%# Botón de Chat Directo %>
-              <div class="ms-2">
-                <%= button_to client_conversations_path(@client), 
-                              params: { recipient_id: member.id }, 
-                              class: "btn btn-sm btn-soft-primary rounded-pill px-2 py-1 shadow-none",
-                              data: { bs_toggle: "tooltip" }, 
-                              title: "Enviar mensaje" do %>
-                  <i class="ri-chat-3-line font-16"></i>
-                <% end %>
-              </div>
-            </div>
-          </div>
-        <% end %>
-      <% else %>
-        <div class="text-center py-4 text-muted font-12 italic px-3">
-          No hay otros miembros registrados en esta cuenta corporativa.
+      <div class="card border shadow-none mb-4" style="border-radius: 12px;">
+        <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-bold text-dark">
+            <i class="ri-group-line me-1 text-primary"></i> Equipo de Trabajo
+          </h5>
+          <span class="badge bg-soft-secondary text-secondary rounded-pill"><%= @client.users.count %> Miembros</span>
         </div>
-      <% end %>
-    </div>
-  </div>
 
-  <div class="card-footer bg-white border-top text-center py-2">
-    <small class="text-muted fw-bold">Comunicación segura vía Consilium</small>
+        <div class="card-body p-0" style="max-height: 350px; overflow-y: auto; scrollbar-width: thin;">
+          <div class="list-group list-group-flush">
+            <%# Filtramos para no mostrarnos a nosotros mismos en nuestra propia lista de contactos %>
+            <% team_members = @client.users.where.not(id: current_user.id).order(first_name: :asc) %>
+
+            <% if team_members.any? %>
+              <% team_members.each do |member| %>
+                <div class="list-group-item border-0 px-3 py-2">
+                  <div class="d-flex align-items-center">
+                    <%# Avatar con indicador de estado (Online/Offline) %>
+                    <div class="position-relative">
+                      <% if member.avatar.attached? %>
+                        <%= image_tag member.avatar, class: "rounded-circle border", style: "width: 40px; height: 40px; object-fit: cover;" %>
+                      <% else %>
+                        <div class="avatar-sm">
+                          <span class="avatar-title rounded-circle bg-soft-primary text-primary font-13 fw-bold">
+                            <%= member.first_name[0] %><%= member.last_name[0] %>
+                          </span>
+                        </div>
+                      <% end %>
+                      <% if member.online? %>
+                        <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" title="En línea"></span>
+                      <% end %>
+                    </div>
+
+                    <div class="flex-grow-1 ms-3 overflow-hidden">
+                      <h6 class="mb-0 font-14 fw-bold text-dark text-truncate"><%= member.first_name %> <%= member.last_name %></h6>
+                      <p class="mb-0 text-muted font-11 text-truncate"><%= member.job_title.presence || "Colaborador" %></p>
+                    </div>
+
+                    <%# Botón de Chat Directo %>
+                    <div class="ms-2">
+                      <%= button_to client_conversations_path(@client), 
+                                    params: { recipient_id: member.id }, 
+                                    class: "btn btn-sm btn-soft-primary rounded-pill px-2 py-1 shadow-none",
+                                    data: { bs_toggle: "tooltip" }, 
+                                    title: "Enviar mensaje" do %>
+                        <i class="ri-chat-3-line font-16"></i>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            <% else %>
+              <div class="text-center py-4 text-muted font-12 italic px-3">
+                No hay otros miembros registrados en esta cuenta corporativa.
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="card-footer bg-white border-top text-center py-2">
+          <small class="text-muted fw-bold">Comunicación segura vía Consilium</small>
+        </div>
+      </div>
+
+
+    </div>
   </div>
 </div>
 
 
-    </div>
-  </div>
-</div>
+<style>
+  /* Animación de Pulso para la etapa activa */
+  .active-step {
+    box-shadow: 0 0 20px rgba(114, 124, 245, 0.5) !important;
+    animation: pulse-blue-glow 2.5s infinite;
+    transform: scale(1.1);
+  }
+
+  @keyframes pulse-blue-glow {
+    0% { transform: scale(1.1); box-shadow: 0 0 10px rgba(114, 124, 245, 0.4); }
+    50% { transform: scale(1.15); box-shadow: 0 0 25px rgba(114, 124, 245, 0.6); }
+    100% { transform: scale(1.1); box-shadow: 0 0 10px rgba(114, 124, 245, 0.4); }
+  }
+
+  /* Ajustes para móviles (Timeline vertical) */
+  @media (max-width: 767px) {
+    .progress { display: none !important; }
+    .col-12.mb-4 { border-left: 2px dashed #eef2f7; margin-left: 25px; padding-left: 20px; text-align: left !important; }
+    .col-12.mb-4 .d-flex { flex-direction: row !important; align-items: center !important; }
+    .col-12.mb-4 .text-center { text-align: left !important; }
+    .step-icon-container { margin-bottom: 0 !important; margin-left: -48px; width: 45px !important; height: 45px !important; }
+  }
+</style>
 
 <script>
   document.addEventListener("turbo:load", function() {
