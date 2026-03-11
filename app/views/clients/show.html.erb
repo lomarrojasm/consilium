@@ -181,10 +181,13 @@
                 <div class="tab-content">
                     <%# TAB: PROYECTOS %>
                     <div class="tab-pane show active" id="projects">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4 class="header-title mb-0 text-primary fw-bold">Portafolio de Proyectos</h4>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h4 class="header-title mb-0 text-dark fw-bold">Portafolio de Proyectos</h4>
+                                <p class="text-muted font-12 mb-0">Gestión de consultoría y seguimiento financiero</p>
+                            </div>
                             <% if current_user.role == 'admin' %>
-                                <%= link_to new_client_project_path(@client), class: "btn btn-sm btn-primary shadow-sm" do %>
+                                <%= link_to new_client_project_path(@client), class: "btn btn-sm btn-primary shadow-sm px-3" do %>
                                     <i class="ri-add-line me-1"></i> Nuevo Proyecto
                                 <% end %>
                             <% end %>
@@ -193,31 +196,86 @@
                         <div class="row">
                             <% if @client.projects.any? %>
                                 <% @client.projects.each do |project| %>
-                                    <div class="col-md-6">
-                                        <div class="card border shadow-none mb-3 hover-shadow-sm transition-all">
-                                            <div class="card-body">
-                                                <div class="dropdown float-end">
-                                                    <a href="#" class="dropdown-toggle arrow-none text-muted" data-bs-toggle="dropdown">
-                                                        <i class="ri-more-fill"></i>
-                                                    </a>
-                                                    <div class="dropdown-menu dropdown-menu-end shadow border-0">
-                                                        <%= link_to "Gestionar", client_project_path(@client, project), class: "dropdown-item" %>
-                                                        <%= link_to "Editar", edit_client_project_path(@client, project), class: "dropdown-item" %>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card border-0 shadow-sm mb-0 hover-shadow-lg transition-all" style="border-radius: 12px;">
+                                            <div class="card-body p-3">
+                                                <%# Encabezado de Tarjeta %>
+                                                <div class="d-flex align-items-start justify-content-between mb-2">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="badge bg-soft-<%= project.status_color %> text-<%= project.status_color %> font-10 px-2 py-1 text-uppercase fw-bold me-2">
+                                                            <%= project.status&.humanize %>
+                                                        </div>
+                                                    </div>
+                                                    <div class="dropdown">
+                                                        <a href="#" class="dropdown-toggle arrow-none text-muted" data-bs-toggle="dropdown">
+                                                            <i class="ri-more-2-fill font-18"></i>
+                                                        </a>
+                                                        <div class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                                                            <%= link_to client_project_path(@client, project), class: "dropdown-item font-12" do %>
+                                                                <i class="ri-eye-line me-1 text-primary"></i> Gestionar Proyecto
+                                                            <% end %>
+                                                            <%= link_to edit_client_project_path(@client, project), class: "dropdown-item font-12" do %>
+                                                                <i class="ri-edit-line me-1 text-muted"></i> Editar Detalles
+                                                            <% end %>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <h5 class="mt-0 fw-bold"><%= link_to project.name, client_project_path(@client, project), class: "text-title" %></h5>
-                                                <div class="badge bg-soft-<%= project.status_color %> text-<%= project.status_color %> border border-<%= project.status_color %> border-opacity-25 mb-3">
-                                                    <%= project.status&.humanize&.upcase %>
-                                                </div>
-                                                <p class="text-muted font-13 mb-3"><%= truncate(project.details, length: 80) %></p>
+
+                                                <%# Título y Descripción %>
+                                                <% 
+                                                    membership_val = project.client.membership.to_s.downcase
+                                                    
+                                                    # Definimos la clase y el estilo según la membresía
+                                                    name_class = "fw-bold font-15"
+                                                    name_style = ""
+
+                                                    if membership_val == '1' || membership_val == 'gold'
+                                                        name_style = "color: #B8860B !important;" # Dorado Ejecutivo
+                                                    elsif membership_val == '2' || membership_val == 'platinum'
+                                                        name_class += " text-primary" # Azul Primary
+                                                    else
+                                                        name_class += " text-dark" # Negro estándar para Básica
+                                                    end
+                                                %>
+
+                                                <h5 class="mt-0 mb-1">
+                                                    <%= link_to project.name, client_project_path(@client, project), 
+                                                        class: name_class, 
+                                                        style: name_style %>
+                                                </h5>
+                                                <p class="text-muted font-12 mb-3"><%= truncate(project.details, length: 100) %></p>
                                                 
-                                                <div class="mt-2">
-                                                    <div class="d-flex justify-content-between mb-1">
-                                                        <span class="font-12 fw-bold">Avance</span>
-                                                        <span class="font-12 fw-bold text-<%= project.status_color %>"><%= project.progress_percentage %>%</span>
+                                                <%# Grid de Métricas Profesionales %>
+                                                <div class="row g-2 mb-3 border-top border-bottom py-2 bg-light bg-opacity-25" style="margin-left: -1rem; margin-right: -1rem;">
+                                                    <div class="col-6 ps-3">
+                                                        <span class="text-muted d-block font-9 fw-bold text-uppercase tracking-wider">Presupuesto</span>
+                                                        <span class="font-13 fw-bold text-dark">
+                                                            <%= number_to_currency(project.budget, precision: 0) || "$0.00" %>
+                                                        </span>
                                                     </div>
-                                                    <div class="progress progress-sm" style="height: 6px;">
-                                                        <div class="progress-bar bg-<%= project.status_color %>" style="width: <%= project.progress_percentage %>%"></div>
+                                                    <div class="col-6 border-start ps-3">
+                                                        <span class="text-muted d-block font-9 fw-bold text-uppercase tracking-wider">Responsable</span>
+                                                        <span class="font-11 fw-semibold text-muted">
+                                                            <i class="ri-user-star-line text-primary me-1"></i><%= project.responsible&.full_name || "Sin asignar" %>
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <%# Sección de Tiempos y Avance %>
+                                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                                    <div class="text-muted font-11">
+                                                        <i class="ri-calendar-todo-fill me-1"></i>
+                                                        <%= project.start_date&.strftime("%d %b") %> - <%= project.end_date&.strftime("%d %b, %Y") %>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="font-11 fw-bold text-success"><%= project.progress_percentage.to_i %>% completado</span>
+                                                    </div>
+                                                </div>
+
+                                                <%# Barra de Progreso Refinada %>
+                                                <div class="progress" style="height: 6px; border-radius: 10px; background-color: #f1f3fa;">
+                                                    <div class="progress-bar bg-success" role="progressbar" 
+                                                        style="width: <%= project.progress_percentage %>%; border-radius: 10px; transition: width 0.8s ease;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -226,8 +284,16 @@
                                 <% end %>
                             <% else %>
                                 <div class="col-12 text-center py-5">
-                                    <i class="ri-clipboard-line font-40 text-muted opacity-25"></i>
-                                    <p class="text-muted mt-2">No hay proyectos registrados.</p>
+                                    <div class="avatar-lg bg-soft-secondary rounded-circle mx-auto mb-3">
+                                        <i class="ri-folder-open-line font-32 text-muted"></i>
+                                    </div>
+                                    <h5 class="text-dark">Sin proyectos activos</h5>
+                                    <p class="text-muted font-13">Aún no se han registrado planes de consultoría para este cliente.</p>
+                                    <% if current_user.role == 'admin' %>
+                                        <%= link_to new_client_project_path(@client), class: "btn btn-primary btn-sm rounded-pill px-3" do %>
+                                            <i class="ri-add-fill me-1"></i> Iniciar primer proyecto
+                                        <% end %>
+                                    <% end %>
                                 </div>
                             <% end %>
                         </div>

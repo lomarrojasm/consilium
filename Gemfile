@@ -78,3 +78,4 @@ gem "redis"
 
 gem "bootstrap", "~> 5.3.3"
 gem "grover", "~> 1.2"
+gem 'roo'

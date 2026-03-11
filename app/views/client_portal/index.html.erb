@@ -35,9 +35,26 @@
             <%# Separador Vertical (Solo en Desktop) %>
             <div class="d-none d-md-block bg-light mx-2" style="width: 2px; height: 60px;"></div>
 
+            <%# Lógica de color por membresía %>
+            <% 
+                membership_val = @client.membership.to_s.downcase
+                
+                # Clases base y estilos base
+                name_class = "fw-extrabold m-0 tracking-tighter"
+                name_style = "font-size: 2.8rem; line-height: 1;"
+
+                if membership_val == '1' || membership_val == 'gold'
+                    name_style += " color: #B8860B !important;" # Dorado Oro
+                elsif membership_val == '2' || membership_val == 'platinum'
+                    name_class += " text-primary"              # Azul Platinum
+                else
+                    name_class += " text-dark"                 # Negro Básica
+                end
+            %>
+
             <%# Nombre de la Empresa %>
             <div class="ms-md-4">
-                <h1 class="fw-extrabold text-primary m-0 tracking-tighter" style="font-size: 2.8rem; line-height: 1;">
+                <h1 class="<%= name_class %>" style="<%= name_style %>">
                     <%= @client.company_name %>
                 </h1>
                 <p class="text-muted font-12 mb-0 mt-1 text-uppercase tracking-widest fw-bold opacity-75">
@@ -53,11 +70,17 @@
             
             <%# Card de Membresía %>
             <% 
-                m_data = case @client.membership
-                        when 2 then { label: "PLATINUM", color: "info", icon: "ri-vip-diamond-line" }
-                        when 1 then { label: "GOLD", color: "warning", icon: "ri-vip-crown-2-line" }
-                        else { label: "BÁSICA", color: "primary", icon: "ri-medal-line" }
-                        end
+              # Convertimos a string y minúsculas para normalizar la entrada
+              membership_val = @client.membership.to_s.downcase
+
+              m_data = case membership_val
+                      when '2', 'platinum'
+                        { label: "PLATINUM", color: "info", icon: "ri-vip-diamond-line" }
+                      when '1', 'gold'
+                        { label: "GOLD", color: "warning", icon: "ri-vip-crown-2-line" }
+                      else
+                        { label: "BÁSICA", color: "primary", icon: "ri-medal-line" }
+                      end
             %>
             <%# Card de Membresía (Versión Sobria) %>
             <div class="px-3 py-2 bg-white border border-light shadow-none" style="border-radius: 8px; border-left: 3px solid <%= m_data[:color] == 'info' ? '#39afd1' : (m_data[:color] == 'warning' ? '#ffbc00' : '#727cf5') %> !important; min-width: 170px;">
