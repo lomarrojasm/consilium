@@ -1,23 +1,25 @@
-class TemplateGoldService
-  def self.generate(project, user)
-    # 1. Creación de Etapas
-    stages_definitions = [
-      "Etapa 1 - Alinear y Diagnosticar",
-      "Etapa 2 - Ordenar y Controlar",
-      "Etapa 3 - Estandarizar y Profesionalizar",
-      "Etapa 4 - Mejora Continua y Consolidación",
-      "Etapa 5 - Optimización y Escalamiento",
-      "Etapa 6 - Excelencia Operativa"
-    ]
+module ProjectTemplates
+  module Y2022
+    class GoldService
+      def self.generate(project, user)
+        # 1. Creación de Etapas
+        stages_definitions = [
+          "Etapa 1 - Alinear y Diagnosticar",
+          "Etapa 2 - Ordenar y Controlar",
+          "Etapa 3 - Estandarizar y Profesionalizar",
+          "Etapa 4 - Mejora Continua y Consolidación",
+          "Etapa 5 - Optimización y Escalamiento",
+          "Etapa 6 - Excelencia Operativa"
+        ]
 
-    stages_hash = {}
-    stages_definitions.each_with_index do |name, i|
-      stages_hash[i + 1] = project.stages.find_or_create_by!(position: i + 1, name: name)
-    end
+        stages_hash = {}
+        stages_definitions.each_with_index do |name, i|
+          stages_hash[i + 1] = project.stages.find_or_create_by!(position: i + 1, name: name)
+        end
 
-    # 2. Base de Datos Estática (Matriz Extraída de MembresiaGold.xlsx)
-    # Formato: [Etapa, Mes, Semana, "Actividad", "Documento", "Áreas", Tarifa L, Tarifa S, Tarifa A, Hrs L, Hrs S, Hrs A]
-    actividades = [
+        # 2. Base de Datos Estática (Membresía GOLD - Generación 2022)
+        # Formato: [Etapa, Mes, Semana, "Actividad", "Documento", "Áreas", Tarifa L, Tarifa S, Tarifa A, Hrs L, Hrs S, Hrs A, "Fecha"]
+        actividades = [
           # --- ETAPA 1 (24 Tareas) ---
           [1, 1, 1, "Diagnóstico para membresía", "OPE-020 Diagnóstico para membresía", "Integral", 1250, 850, 450, 0, 0, 1, "2022-01-10"],
           [1, 1, 1, "Solicitar y revisar expediente", "OPE-001 Check list de expediente inicial", "Integral", 1250, 850, 450, 3, 2, 2, "2022-01-10"],
@@ -246,57 +248,61 @@ class TemplateGoldService
           [6, 12, 4, "Diagnóstico para membresía", "OPE-020 Diagnóstico para membresía", "Integral", 1250, 850, 450, 0, 0, 1, "2026-12-22"]
         ]
 
-    # 3. Motor de Inserción
-    actividades_creadas = 0
+        # 3. Motor de Inserción
+        actividades_creadas = 0
 
-    actividades.each do |row|
-      stage_num = row[0]
-      mes       = row[1]
-      semana    = row[2]
-      nombre    = row[3]
-      doc_ref   = row[4]
-      areas_raw = row[5] # Ej: "Dirección, Procesos, Comercial"
-      
-      # 🛠️ FIX DE VALIDACIÓN: Tomamos solo la primera área de la cadena
-      # "Dirección, Procesos, Comercial" -> se convierte en "Dirección"
-      area_principal = areas_raw.split(',').first.to_s.strip
-      
-      tar_l = row[6].to_f
-      tar_s = row[7].to_f
-      tar_a = row[8].to_f
-      
-      hrs_l = row[9].to_f
-      hrs_s = row[10].to_f
-      hrs_a = row[11].to_f
+        actividades.each do |row|
+          stage_num = row[0]
+          mes       = row[1]
+          semana    = row[2]
+          nombre    = row[3]
+          doc_ref   = row[4]
+          areas_raw = row[5]
+          
+          # Fix de validación de áreas
+          area_principal = areas_raw.split(',').first.to_s.strip
+          
+          tar_l = row[6].to_f
+          tar_s = row[7].to_f
+          tar_a = row[8].to_f
+          
+          hrs_l = row[9].to_f
+          hrs_s = row[10].to_f
+          hrs_a = row[11].to_f
 
-      # Cálculo de costo matemático infalible
-      costo_calc = (tar_l * hrs_l) + (tar_s * hrs_s) + (tar_a * hrs_a)
+          # Extracción de la fecha proporcionada en el CSV
+          fecha_fija = row[12]
 
-      target_stage = stages_hash[stage_num]
+          costo_calc = (tar_l * hrs_l) + (tar_s * hrs_s) + (tar_a * hrs_a)
+          target_stage = stages_hash[stage_num]
 
-      if target_stage
-        target_stage.activities.create!(
-          name: nombre,
-          month: mes,
-          week: semana,
-          document_ref: doc_ref,
-          area: area_principal, # <-- Enviamos solo el área principal validada
-          activity_cost: costo_calc,
-          leader_rate: tar_l,
-          senior_rate: tar_s,
-          analyst_rate: tar_a,
-          leader_hours: hrs_l,
-          senior_hours: hrs_s,
-          analyst_hours: hrs_a,
-          user_id: user.id,
-          responsible_id: user.id,
-          status: 'pending',
-          completed: false
-        )
-        actividades_creadas += 1
+          if target_stage
+            target_stage.activities.create!(
+              name: nombre,
+              month: mes,
+              week: semana,
+              document_ref: doc_ref,
+              area: area_principal,
+              activity_cost: costo_calc,
+              leader_rate: tar_l,
+              senior_rate: tar_s,
+              analyst_rate: tar_a,
+              leader_hours: hrs_l,
+              senior_hours: hrs_s,
+              analyst_hours: hrs_a,
+              user_id: user.id,
+              responsible_id: user.id,
+              status: 'pending',
+              completed: false,
+              created_at: fecha_fija, # Asignamos la fecha estática
+              updated_at: fecha_fija
+            )
+            actividades_creadas += 1
+          end
+        end
+
+        Rails.logger.info "✅ Template GOLD [Y2022] completado: #{actividades_creadas} actividades insertadas con sus fechas respectivas."
       end
     end
-
-    Rails.logger.info "✅ Template GOLD completado exitosamente: #{actividades_creadas} actividades insertadas en milisegundos."
   end
 end

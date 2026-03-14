@@ -56,16 +56,20 @@ class ProjectsController < ApplicationController
     @project.user = current_user
     
     if @project.save
+      # 1. Asignación del responsable como líder del proyecto
       if @project.responsible_id.present?
         @project.project_members.find_or_create_by(user_id: @project.responsible_id, role: 'lider')
       end
 
+      # 2. Generación de la plantilla si el usuario marcó la casilla
       if params[:project][:include_template] == "1"
-        ConsiliumTemplateService.generate_structure(@project, current_user)
+        # Aquí inyectamos el params[:template_year] que viene del nuevo select en la vista
+        ConsiliumTemplateService.generate_structure(@project, current_user, params[:template_year])
       end
 
       redirect_to client_project_path(@client, @project), notice: 'Proyecto iniciado correctamente.'
     else
+      # 3. Manejo de errores: Recargamos los usuarios para que el formulario (select) no falle
       @eligible_users = User.where(client_id: @client.id).order(:first_name)
       render :new, status: :unprocessable_entity
     end

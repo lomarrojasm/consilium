@@ -20,7 +20,7 @@ class DashboardsController < ApplicationController
     @total_clients = Client.count
     @total_users = User.count
     @pending_invites = User.where(invitation_accepted_at: nil).where.not(invitation_token: nil).count
-    @active_projects = Project.where(status: 'activo').count
+    @projects = Project.all.count
 
     @recent_users = User.order(created_at: :desc).limit(5)
     @new_registrations = User.order(created_at: :desc).limit(6) 

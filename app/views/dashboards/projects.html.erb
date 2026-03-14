@@ -32,7 +32,7 @@
               <div class="card-body text-center">
                 <i class="ri-mail-send-line text-warning font-24"></i>
                 <h3><span><%= @pending_invites %></span></h3>
-                <p class="text-muted font-15 mb-0">Por Aceptar</p>
+                <p class="text-muted font-15 mb-0">Usiarios pendientes</p>
               </div>
             </div>
           </div>
@@ -41,8 +41,8 @@
             <div class="card rounded-0 shadow-none m-0 border-start border-light">
               <div class="card-body text-center">
                 <i class="ri-todo-line text-info font-24"></i>
-                <h3><span><%= @total_activities %></span></h3>
-                <p class="text-muted font-15 mb-0">Actividades</p>
+                <h3><span><%= @projects %></span></h3>
+                <p class="text-muted font-15 mb-0">Total de Proyectos</p>
               </div>
             </div>
           </div>
@@ -56,7 +56,7 @@
   <div class="col-12">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Detalle de Proyectos por Cliente</h4>
+        <h4 class="header-title">Proyectos por Cliente</h4>
         <span class="badge badge-soft-primary"><%= @client_names.size %> Clientes</span>
       </div>
       <div class="card-body">
@@ -74,151 +74,15 @@
   </div>
 </div>
 
-<div class="row">
-  <div class="col-xl-4">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Estado de Actividades</h4>
-      </div>
-      <div class="card-body pt-0">
-        <div class="mt-3 mb-4 chartjs-chart" style="height: 204px;">
-          <canvas id="project-status-chart" 
-                  data-colors="#0acf97,#3e60d5"
-                  data-values="<%= [@completed_count, @pending_count].join(',') %>">
-          </canvas>
-        </div>
-        <div class="row text-center mt-2 py-2">
-          <div class="col-6">
-            <i class="ri-checkbox-circle-fill text-success h3"></i>
-            <h3 class="fw-normal"><span><%= @completed_count %></span></h3>
-            <p class="text-muted mb-0">Completadas</p>
-          </div>
-          <div class="col-6">
-            <i class="ri-time-fill text-primary h3"></i>
-            <h3 class="fw-normal"><span><%= @pending_count %></span></h3>
-            <p class="text-muted mb-0">Pendientes</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="col-xl-8">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Usuarios Recientes</h4>
-        <%= link_to "Ver Todos", users_path, class: "btn btn-sm btn-soft-primary" %>
-      </div>
-      <div class="card-body pt-2">
-        <div class="table-responsive">
-          <table class="table table-centered table-nowrap table-hover mb-0">
-            <thead>
-              <tr>
-                <th>Usuario</th>
-                <th>Estado</th>
-                <th>Cargo</th>
-                <th class="text-end">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% @recent_users.each do |user| %>
-                <tr>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <% if user.avatar.attached? %>
-                        <%= image_tag user.avatar, class: "me-2 rounded-circle", style: "width: 32px; height: 32px; object-fit: cover;" %>
-                      <% else %>
-                        <img src="<%= image_path("users/avatar-1.jpg") %>" class="me-2 rounded-circle" width="32">
-                      <% end %>
-                      <div>
-                        <h5 class="font-14 my-1"><%= user.full_name %></h5>
-                        <span class="text-muted font-13"><%= user.email %></span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <% if user.invitation_accepted_at.present? %>
-                      <span class="badge badge-success-lighten">Activo</span>
-                    <% elsif user.invitation_sent_at.present? %>
-                      <span class="badge badge-warning-lighten">Pendiente</span>
-                    <% else %>
-                      <span class="badge badge-info-lighten">Registrado</span>
-                    <% end %>
-                  </td>
-                  <td><%= user.job_title %></td>
-                  <td class="text-end">
-                    <%= link_to user_path(user), class: "action-icon" do %> <i class="ri-eye-line"></i><% end %>
-                    <%= link_to edit_user_path(user), class: "action-icon" do %> <i class="ri-edit-2-line"></i><% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<div class="row">
-  <div class="col-xl-4">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="header-title">Registros Recientes</h4>
-      </div>
-      <div class="card-body pt-0">
-        <div class="timeline-alt pb-0">
-          <% @new_registrations.each do |user| %>
-            <div class="timeline-item">
-              <i class="ri-user-add-line bg-info-lighten text-info timeline-icon"></i>
-              <div class="timeline-item-info">
-                <a href="<%= user_path(user) %>" class="text-info fw-bold mb-1 d-block"><%= user.full_name %></a>
-                <small><%= user.job_title %> - <%= user.email %></small>
-                <p class="mb-0 pb-2">
-                  <small class="text-muted"><%= time_ago_in_words(user.created_at) %> atrás</small>
-                </p>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+
+
+  
 
 <% content_for :javascript do %>
 <script>
   document.addEventListener('turbo:load', function() {
-    
-    // --- 1. GRÁFICA DE PASTEL (ACTIVIDADES) ---
-    const pieElem = document.getElementById('project-status-chart');
-    if (pieElem) {
-      const ctxPie = pieElem.getContext('2d');
-      const colorsPie = pieElem.getAttribute('data-colors').split(',');
-      const valuesPie = pieElem.getAttribute('data-values').split(',').map(Number);
-
-      if (window.myPieChart instanceof Chart) { window.myPieChart.destroy(); }
-
-      window.myPieChart = new Chart(ctxPie, {
-        type: 'doughnut',
-        data: {
-          labels: ["Completadas", "Pendientes"],
-          datasets: [{
-            data: valuesPie,
-            backgroundColor: colorsPie,
-            borderColor: "transparent",
-            borderWidth: 3
-          }]
-        },
-        options: {
-          maintainAspectRatio: false,
-          cutout: '80%', // Sintaxis moderna para el grosor del anillo
-          plugins: {
-            legend: { display: false }
-          }
-        }
-      });
-    }
 
     // --- 2. GRÁFICA DE BARRAS HORIZONTALES (PROYECTOS POR CLIENTE) ---
     const barElem = document.getElementById('client-projects-stacked-chart');
