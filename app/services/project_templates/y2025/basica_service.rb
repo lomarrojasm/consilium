@@ -1,5 +1,5 @@
 module ProjectTemplates
-  module Y2024
+  module Y2025
     class BasicaService
       def self.generate(project, user)
         stages_definitions = [
