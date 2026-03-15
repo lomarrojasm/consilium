@@ -298,7 +298,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <% stage.activities.order(:month, :week).each do |activity| %>
+                                            <% stage.activities.order(:activity_number, :week).each do |activity| %>
                                                 <% is_finalized = activity.admin_approved && activity.user_approved %>
                                                 
                                                 <tr id="activity-row-<%= activity.id %>" class="<%= 'bg-light-subtle' if activity.status == 'rejected' %> <%= 'bg-success bg-opacity-10' if is_finalized %>">

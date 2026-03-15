@@ -13,6 +13,9 @@ application.register("chat", ChatController)
 import HelloController from "./hello_controller"
 application.register("hello", HelloController)
 
+import NestedFormController from "./nested_form_controller"
+application.register("nested-form", NestedFormController)
+
 import PasswordVisibilityController from "./password_visibility_controller"
 application.register("password-visibility", PasswordVisibilityController)
 

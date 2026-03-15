@@ -28,6 +28,8 @@ class Project < ApplicationRecord
 
   before_validation :set_default_status
 
+  accepts_nested_attributes_for :stages, allow_destroy: true, reject_if: :all_blank
+
   # Método para generar etapas (Llamado manualmente desde el controlador)
   def create_default_stages
     default_stages = [

@@ -1,4 +1,3 @@
-<%# app/views/projects/edit.html.erb %>
 <div class="row">
     <div class="col-12">
         <div class="page-title-box">
@@ -28,85 +27,7 @@
                     </div>
                 </div>
 
-                <%= form_with(model: [@client, @project], local: true, class: "needs-validation") do |f| %>
-                    
-                    <% if @project.errors.any? %>
-                        <div class="alert alert-danger border-0 mb-4 shadow-sm">
-                            <ul class="mb-0">
-                                <% @project.errors.full_messages.each do |msg| %>
-                                    <li><%= msg %></li>
-                                <% end %>
-                            </ul>
-                        </div>
-                    <% end %>
-
-                    <%# Fila 1: Nombre y Responsable (Filtrado por empresa) %>
-                    <div class="row g-3">
-                        <div class="col-md-7">
-                            <div class="form-floating mb-3">
-                                <%= f.text_field :name, class: "form-control shadow-none", id: "editName", placeholder: "Nombre", required: true %>
-                                <label for="editName">Nombre del Proyecto</label>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-floating mb-3">
-                                <%# FILTRO: Solo usuarios que pertenecen al client_id del proyecto %>
-                                <%= f.collection_select :responsible_id, 
-                                    User.where(client_id: @client.id).order(:first_name), 
-                                    :id, :full_name, 
-                                    { prompt: "" }, 
-                                    { class: "form-select shadow-none", id: "editResponsible", required: true } %>
-                                <label for="editResponsible">Líder / Responsable</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <%# Fila 2: Fechas %>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="form-floating mb-3">
-                                <%= f.date_field :start_date, class: "form-control shadow-none", id: "editStart", required: true, placeholder: "Inicio" %>
-                                <label for="editStart">Fecha de Inicio</label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-floating mb-3">
-                                <%= f.date_field :end_date, class: "form-control shadow-none", id: "editEnd", required: true, placeholder: "Fin" %>
-                                <label for="editEnd">Fecha Estimada de Cierre</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <%# Fila 3: Presupuesto y Estatus %>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="form-floating mb-3">
-                                <%= f.number_field :budget, class: "form-control shadow-none", id: "editBudget", step: "0.01", placeholder: "0.00" %>
-                                <label for="editBudget">Presupuesto ($)</label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-floating mb-3">
-                                <%= f.select :status, Project.statuses.keys.map { |s| [s.humanize.upcase, s] }, {}, { class: "form-select shadow-none", id: "editStatus" } %>
-                                <label for="editStatus">Estatus Operativo</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <%# Fila 4: Detalles / Descripción %>
-                    <div class="form-floating mb-4">
-                        <%= f.text_area :details, class: "form-control shadow-none", id: "editDetails", style: "height: 150px", placeholder: "Detalles" %>
-                        <label for="editDetails">Descripción y Objetivos Estratégicos</label>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center mt-2 pt-3 border-top">
-                        <%= link_to "Volver al Proyecto", client_project_path(@client, @project), class: "btn btn-light px-4" %>
-                        
-                        <div class="d-flex gap-2">
-                            <%= f.submit "Actualizar Proyecto", class: "btn btn-primary px-4 shadow" %>
-                        </div>
-                    </div>
-                <% end %>
+                <%= render "form" %>
 
             </div>
         </div>

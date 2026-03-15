@@ -19,3 +19,4 @@
 //= link controllers/system_monitor_controller.js
 //= link controllers/system_logs_controller.js
 //= link controllers/system_workers_controller.js
+//= link controllers/nested_form_controller.js

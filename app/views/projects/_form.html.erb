@@ -1,0 +1,146 @@
+<%# app/views/projects/_form.html.erb %>
+<%= form_with(model: [@client, @project], local: true, class: "needs-validation") do |f| %>
+    
+    <% if @project.errors.any? %>
+        <div class="alert alert-danger border-0 mb-4 shadow-sm">
+            <ul class="mb-0">
+                <% @project.errors.full_messages.each do |msg| %>
+                    <li><%= msg %></li>
+                <% end %>
+            </ul>
+        </div>
+    <% end %>
+
+    <%# Fila 1: Nombre y Responsable %>
+    <div class="row g-3">
+        <div class="col-md-7">
+            <div class="form-floating mb-3">
+                <%= f.text_field :name, class: "form-control shadow-none", id: "projectName", placeholder: "Ej: Implementación 2026", required: true %>
+                <label for="projectName">Nombre del Proyecto</label>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="form-floating mb-3">
+                <%= f.collection_select :responsible_id, 
+                    User.where(client_id: @client.id).order(:first_name), 
+                    :id, :full_name, 
+                    { prompt: "" }, 
+                    { class: "form-select shadow-none", id: "projectResponsible", required: true } %>
+                <label for="projectResponsible">Responsable del Proyecto</label>
+            </div>
+        </div>
+    </div>
+
+    <%# Fila 2: Fechas %>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="form-floating mb-3">
+                <%= f.date_field :start_date, class: "form-control shadow-none", id: "projectStart", required: true %>
+                <label for="projectStart">Fecha de Inicio</label>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-floating mb-3">
+                <%= f.date_field :end_date, class: "form-control shadow-none", id: "projectEnd", required: true %>
+                <label for="projectEnd">Fecha Estimada de Cierre</label>
+            </div>
+        </div>
+    </div>
+
+    <%# Fila 3: Presupuesto y Estatus %>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="form-floating mb-3">
+                <%= f.number_field :budget, class: "form-control shadow-none", id: "projectBudget", step: "0.01", placeholder: "0.00" %>
+                <label for="projectBudget">Presupuesto ($)</label>
+            </div>
+        </div>
+        <div class="col-md-6">
+             <div class="form-floating mb-3">
+                <% if @project.new_record? %>
+                    <input type="text" class="form-control bg-light text-muted border-0" value="EN ESPERA" readonly disabled>
+                    <label>Estatus Inicial</label>
+                <% else %>
+                    <%= f.select :status, Project.statuses.keys.map { |s| [s.humanize.upcase, s] }, {}, { class: "form-select shadow-none", id: "editStatus" } %>
+                    <label for="editStatus">Estatus Operativo</label>
+                <% end %>
+            </div>
+        </div>
+    </div>
+    
+    <%# Fila 4: Detalles %>
+    <div class="form-floating mb-4">
+        <%= f.text_area :details, class: "form-control shadow-none", id: "projectDetails", style: "height: 120px", placeholder: "Objetivos..." %>
+        <label for="projectDetails">Descripción y Objetivos Estratégicos</label>
+    </div>
+
+    <%# === SECCIÓN A: METODOLOGÍA (SOLO AL CREAR NUEVO PROYECTO) === %>
+    <% if @project.new_record? %>
+        <div class="bg-primary bg-opacity-10 p-3 rounded-3 mb-4 border border-primary border-opacity-25">
+            <div class="form-check form-switch mb-2">
+                <%= f.check_box :include_template, class: "form-check-input", role: "switch", checked: true, id: "includeTemplateSwitch" %>
+                <label class="form-check-label ms-2" for="includeTemplateSwitch">
+                    <strong class="text-primary">Cargar Metodología Consilium</strong>
+                    <p class="text-muted font-12 mb-0">Al activar, se generarán automáticamente las etapas y actividades estándar.</p>
+                </label>
+            </div>
+
+            <hr class="border-primary border-opacity-25">
+
+            <div class="mb-2">
+                <%= label_tag :template_year, "Generación de Plantilla (Año Histórico)", class: "form-label font-12 fw-bold text-primary mb-1" %>
+                <%= select_tag :template_year, options_for_select([
+                    ['Sin año (Fechas actuales)', ''],
+                    ['Generación 2026', '2026'],
+                    ['Generación 2025', '2025'],
+                    ['Generación 2024', '2024'],
+                    ['Generación 2023', '2023'],
+                    ['Generación 2022', '2022']
+                ]), class: "form-select shadow-sm border-0" %>
+                <small class="form-text text-muted">
+                    <i class="ri-information-line me-1"></i>Selecciona un año para asignar fechas históricas a las tareas, o déjalo en blanco para iniciar hoy.
+                </small>
+            </div>
+        </div>
+    <% end %>
+
+    <%# === SECCIÓN B: ETAPAS DINÁMICAS MANUALES === %>
+    <div class="card border border-light shadow-none mb-4">
+        <div class="card-header bg-light bg-opacity-50 py-2 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-dark"><i class="ri-stack-line me-1"></i> Etapas del Proyecto</h6>
+        </div>
+        
+        <div class="card-body p-3" data-controller="nested-form">
+            <p class="text-muted font-12 mb-3">
+                <%= @project.new_record? ? "Si deseas, puedes agregar etapas manuales adicionales que no estén en la plantilla automática." : "Edita el nombre y posición de las etapas actuales o agrega nuevas." %>
+            </p>
+
+            <div data-nested-form-target="container">
+                <%= f.fields_for :stages do |stage_form| %>
+                    <%= render "stage_fields", f: stage_form %>
+                <% end %>
+            </div>
+
+            <template data-nested-form-target="template">
+                <%= f.fields_for :stages, Stage.new, child_index: "NEW_RECORD" do |stage_form| %>
+                    <%= render "stage_fields", f: stage_form %>
+                <% end %>
+            </template>
+
+            <button type="button" class="btn btn-soft-secondary btn-sm w-100 border-dashed" data-action="click->nested-form#add">
+                <i class="ri-add-circle-line me-1"></i> <%= @project.new_record? ? "Agregar etapa manual extra" : "Agregar nueva etapa" %>
+            </button>
+        </div>
+    </div>
+
+    <%# === BOTONES DE GUARDADO === %>
+    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+        <% if @project.new_record? %>
+            <%= link_to "Cancelar", client_path(@client), class: "btn btn-light px-4" %>
+            <%= f.submit "Crear Proyecto y Cargar Etapas", class: "btn btn-primary px-4 shadow" %>
+        <% else %>
+            <%= link_to "Volver al Proyecto", client_project_path(@client, @project), class: "btn btn-light px-4" %>
+            <%= f.submit "Actualizar Proyecto", class: "btn btn-primary px-4 shadow" %>
+        <% end %>
+    </div>
+<% end %>

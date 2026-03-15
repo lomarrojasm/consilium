@@ -278,6 +278,7 @@ module ProjectTemplates
 
           if target_stage
             target_stage.activities.create!(
+              activity_number: row[2],
               name: nombre,
               month: mes,
               week: semana,

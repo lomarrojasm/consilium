@@ -67,6 +67,13 @@ class ProjectsController < ApplicationController
         ConsiliumTemplateService.generate_structure(@project, current_user, params[:template_year])
       end
 
+      # NUEVO: Lógica para rellenar etapas dinámicas añadidas manualmente
+    @project.stages.each do |stage|
+      if stage.template_stage_number.present?
+        ConsiliumTemplateService.append_stage_activities(stage, @project.client.membership, current_user)
+      end
+    end
+
       redirect_to client_project_path(@client, @project), notice: 'Proyecto iniciado correctamente.'
     else
       # 3. Manejo de errores: Recargamos los usuarios para que el formulario (select) no falle
@@ -97,6 +104,14 @@ class ProjectsController < ApplicationController
       if @project.saved_change_to_responsible_id? && @project.responsible_id.present?
         @project.project_members.find_or_create_by(user_id: @project.responsible_id, role: 'lider')
       end
+
+      # NUEVO: Lógica para rellenar etapas dinámicas añadidas manualmente
+    @project.stages.each do |stage|
+      if stage.template_stage_number.present?
+        ConsiliumTemplateService.append_stage_activities(stage, @project.client.membership, current_user)
+      end
+    end
+    
       redirect_to client_project_path(@client, @project), notice: "Proyecto actualizado exitosamente."
     else
       @eligible_users = User.where(client_id: @client.id).order(:first_name)
@@ -162,7 +177,7 @@ class ProjectsController < ApplicationController
   end
 
   def project_params
-    params.require(:project).permit(:name, :start_date, :end_date, :budget, :status, :details, :include_template, :responsible_id, :sequential_stages, files: [])
+    params.require(:project).permit(:name, :start_date, :end_date, :budget, :status, :details, :include_template, :responsible_id, :sequential_stages, files: [], stages_attributes: [:id, :name, :position, :_destroy, :template_stage_number])
   end
   
   # SEGURIDAD: Bloquea el acceso a proyectos específicos si no eres miembro
