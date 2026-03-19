@@ -1,199 +1,309 @@
-<%# Para asegurar que la web no muestre el contenido del PDF %>
+<%# ========================================== %>
+<%# ESTILOS BLINDADOS PARA GROVER / PUPPETEER  %>
+<%# ========================================== %>
 <style>
-  @media screen { .pdf-only { display: none !important; } }
+  * { 
+    box-sizing: border-box; 
+    -webkit-print-color-adjust: exact !important; 
+    print-color-adjust: exact !important; 
+  }
+
+  /* Márgenes limpios y simétricos para la página */
+  @page {
+    margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+    size: Letter;
+  }
+
+  body {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    color: #1e293b;
+    background-color: white;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* --- CONTROL EXACTO DE SALTOS DE PÁGINA --- */
+  .page-start { 
+    page-break-before: always !important; 
+    break-before: page !important;
+    padding-top: 10px;
+  }
+
+  /* El truco definitivo para evitar cortes a la mitad: usar inline-block */
+  .avoid-break { 
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: inline-block !important;
+    width: 100%;
+    margin-bottom: 15px;
+    vertical-align: top;
+  }
+
+  /* --- SISTEMA DE COLUMNAS INFALIBLE (SIN FLEX NI FLOATS) --- */
+  .pdf-grid {
+    width: 100%;
+    font-size: 0; /* Elimina el espacio fantasma entre inline-blocks */
+    text-align: left;
+  }
+  .pdf-col-50 {
+    display: inline-block;
+    width: 48%;
+    vertical-align: top;
+    font-size: 12px; /* Restauramos la fuente */
+    margin-right: 4%;
+  }
+  .pdf-col-50.last { margin-right: 0; }
+
+  .pdf-col-60 { display: inline-block; width: 56%; vertical-align: middle; font-size: 12px; margin-right: 4%; }
+  .pdf-col-40 { display: inline-block; width: 40%; vertical-align: middle; font-size: 12px; }
+
+  /* --- ELEMENTOS VISUALES --- */
+  .verdict-box { 
+    border-left: 4px solid; 
+    padding: 10px 15px; 
+    margin: 8px 0; 
+    border-radius: 6px; 
+    background-color: #f8fafc;
+  }
+  .verdict-danger  { border-color: #ef4444; background-color: #fef2f2; }
+  .verdict-warning { border-color: #f59e0b; background-color: #fffbeb; }
+  .verdict-success { border-color: #22c55e; background-color: #f0fdf4; }
+
+  .rec-list { list-style: none; padding-left: 0; margin-top: 5px; margin-bottom: 0; }
+  .rec-list li { 
+    position: relative; 
+    padding-left: 15px; 
+    font-size: 11px; 
+    margin-bottom: 4px; 
+    color: #334155; 
+  }
+  .rec-list li::before { 
+    content: "→"; 
+    position: absolute; 
+    left: 0; 
+    color: #6366f1; 
+    font-weight: bold; 
+  }
+
+  /* --- OCULTAR EN WEB --- */
+  @media screen {
+    .pdf-only { display: none !important; }
+    .page-start { border-top: 3px dashed #cbd5e1; margin-top: 40px; padding-top: 40px; page-break-before: auto !important; }
+  }
 </style>
 
-<%# ========================================== %>
-<%# PÁGINA 1: INTRODUCCIÓN (SOLO PDF)          %>
-<%# ========================================== %>
-<div class="pdf-only pdf-page bg-white">
-  <div class="h-100 d-flex flex-column justify-content-center text-center">
-    <div class="mb-5">
-      <div style="width: 80px; height: 8px; background: #6366f1; margin: 0 auto 30px auto; border-radius: 10px;"></div>
-      <h1 class="fw-bold text-dark display-4 mb-2">Cons<span class="text-primary">ilium</span></h1>
-      <h3 class="text-muted fw-light">Reporte de Autodiagnóstico Empresarial</h3>
+<div>
+
+  <%# ========================================== %>
+  <%# PÁGINA 1: PORTADA                          %>
+  <%# ========================================== %>
+  <div style="text-align: center; padding-top: 120px; padding-bottom: 20px;">
+    <div style="width: 70px; height: 6px; background: #6366f1; margin: 0 auto 25px auto; border-radius: 10px;"></div>
+    <h1 style="font-size: 42px; font-weight: bold; color: #0f172a; margin: 0 0 10px 0; letter-spacing: -1px;">Cons<span style="color: #6366f1;">ilium</span></h1>
+    <h3 style="font-size: 20px; color: #64748b; font-weight: 300; margin: 0; font-style: italic;">Reporte Ejecutivo de Autodiagnóstico</h3>
+    <div style="display: inline-block; background: #eef2ff; color: #6366f1; padding: 6px 16px; border-radius: 20px; font-size: 12px; margin-top: 20px; font-weight: bold; border: 1px solid #c7d2fe;">Generación 2026</div>
+    
+    <div style="max-width: 550px; margin: 80px auto 0 auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; text-align: left;">
+      <h5 style="font-weight: bold; color: #475569; text-align: center; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; margin-top: 0; margin-bottom: 20px;">Perfil del Análisis</h5>
+      
+      <div class="pdf-grid" style="margin-bottom: 15px;">
+        <div class="pdf-col-50">
+          <span style="color: #94a3b8; display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 3px;">Empresa</span>
+          <strong style="color: #0f172a; font-size: 14px;"><%= @questionnaire.company_name %></strong>
+        </div>
+        <div class="pdf-col-50 last">
+          <span style="color: #94a3b8; display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 3px;">Representante</span>
+          <strong style="color: #0f172a; font-size: 14px;"><%= @questionnaire.name %></strong>
+        </div>
+      </div>
+      
+      <div class="pdf-grid">
+        <div class="pdf-col-50">
+          <span style="color: #94a3b8; display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 3px;">Cargo</span>
+          <strong style="color: #0f172a; font-size: 14px;"><%= @questionnaire.position %></strong>
+        </div>
+        <div class="pdf-col-50 last">
+          <span style="color: #94a3b8; display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 3px;">Fecha de Emisión</span>
+          <strong style="color: #0f172a; font-size: 14px;"><%= Time.current.strftime("%d/%m/%Y") %></strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ========================================== %>
+  <%# PÁGINA 2: RADIOGRAFÍA (GRÁFICA)            %>
+  <%# ========================================== %>
+  <div class="page-start">
+    <div style="text-align: center; margin-bottom: 30px;">
+      <h2 style="font-size: 24px; font-weight: bold; color: #0f172a; margin: 0 0 5px 0;">Radiografía de Madurez</h2>
+      <p style="color: #64748b; font-size: 13px; margin: 0;">Desempeño consolidado por pilar estratégico</p>
+    </div>
+
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 25px;">
+      <div class="pdf-grid">
+        
+        <%# GRÁFICA %>
+        <div class="pdf-col-60" style="text-align: center;">
+          <div data-controller="chart" data-chart-scores-value="<%= @scores.to_json %>" style="width: 100%; height: 320px; position: relative; margin: 0 auto;">
+              <canvas id="radarChart" data-chart-target="canvas"></canvas>
+          </div>
+        </div>
+
+        <%# BARRAS DE PUNTUACIÓN %>
+        <div class="pdf-col-40">
+          <h6 style="font-weight: bold; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-top: 0; margin-bottom: 15px;">Puntuación por Área</h6>
+          
+          <% categories = ["Dirección y Estrategia", "Administración y Finanzas", "Operación y Procesos", "Ventas y Mercadotecnia", "Organización y C. Humano"] %>
+          <% @scores.each_with_index do |score, i| %>
+            <div style="margin-bottom: 15px;">
+              <div style="display: block; margin-bottom: 4px; width: 100%;">
+                <span style="font-size: 11px; font-weight: bold; color: #0f172a;"><%= categories[i] %></span>
+                <span style="font-size: 11px; font-weight: bold; color: #6366f1; float: right;"><%= score %> / 5.0</span>
+                <div style="clear: both;"></div>
+              </div>
+              <div style="height: 6px; border-radius: 10px; background: #f1f5f9; width: 100%; position: relative;">
+                <div style="height: 100%; width: <%= (score/5.0)*100 %>%; background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%); border-radius: 10px;"></div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <%# ========================================== %>
+  <%# PÁGINA 3+: ANÁLISIS DETALLADO              %>
+  <%# ========================================== %>
+  <div class="page-start">
+    <div style="border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; padding-bottom: 10px;">
+        <h3 style="font-size: 20px; font-weight: bold; color: #0f172a; margin: 0;">Análisis Detallado de Hallazgos</h3>
     </div>
     
-    <div class="mt-5 p-5 bg-light rounded-4 text-start shadow-sm mx-auto" style="max-width: 600px;">
-      <h4 class="fw-bold text-dark mb-4">Bienvenido a tu Diagnóstico</h4>
-      <p class="text-muted" style="line-height: 1.8;">
-        Este reporte ejecutivo ha sido generado para
-        <p>Generado para: <strong><%= @questionnaire.name %></strong></p>
-        <p>Cargo: <strong><%= @questionnaire.position %></strong></p>
-        <p>Empresa: <strong><%= @questionnaire.company_name %></strong></p>
-        Su propósito es brindarte una radiografía clara y objetiva sobre el nivel de madurez actual de tu organización.
-      </p>
-      <p class="text-muted" style="line-height: 1.8;">
-        A través de la metodología Consilium, analizamos 5 pilares fundamentales para identificar brechas, riesgos operativos y, lo más importante, la ruta exacta para escalar tu negocio con control y certidumbre.
-      </p>
-    </div>
-  </div>
-  <div class="footer-pdf">Página 1 de 3 | Consilium - Consulta, delega y transforma</div>
-</div>
-
-
-<%# ========================================== %>
-<%# PÁGINA 2: GRÁFICA Y PUNTAJES (WEB Y PDF)   %>
-<%# ========================================== %>
-<div class="page-break pdf-page" style="padding-top: 20px;">
-  
-  <%# La Navbar solo se ve en la web %>
-  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm py-2 web-only">
-    <div class="container-fluid px-4">
-      <div class="d-flex align-items-center">
-        <span class="fw-bold text-dark font-18">Cons<span class="text-primary">ilium</span></span>
-      </div>
-      <div class="ms-auto">
-        <%= link_to "Nuevo Diagnóstico", new_autodiagnostico_path, class: "btn btn-outline-primary rounded-pill px-3 py-1 font-12 fw-bold" %>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container mt-4">
-    <div class="pdf-only text-center mb-4">
-      <h3 class="fw-bold text-dark">Radiografía de Madurez</h3>
-      <p class="text-muted">Desempeño actual por pilar estratégico</p>
-    </div>
-
-    <div class="card border-0 shadow-lg" style="border-radius: 24px; background: white;">
-      <div class="card-body p-4 p-md-5">
-        <div class="row align-items-center">
+    <% q_num = 1 %> <%# <-- INICIAMOS EL CONTADOR DE PREGUNTAS %>
+    
+    <% get_autodiagnostico_questions.each_with_index do |(category, questions), cat_index| %>
+      <div style="margin-bottom: 30px;">
+        
+        <h5 style="color: #6366f1; font-weight: bold; font-size: 13px; background: #f8faff; padding: 8px 12px; border-left: 4px solid #6366f1; text-transform: uppercase; margin-top: 0; margin-bottom: 15px; page-break-after: avoid !important;">
+          Pilar <%= cat_index + 1 %>: <%= category %>
+        </h5>
+        
+        <% questions.each do |key, q_text| %>
+          <% 
+            score = @questionnaire.answers[key]
+            analysis = get_autodiagnostico_analysis(key, score)
+            status_class = case score.to_i
+                           when 1..2 then "danger"
+                           when 3 then "warning"
+                           else "success"
+                           end
+            bg_color = case score.to_i
+                       when 1..2 then "#ef4444"
+                       when 3 then "#f59e0b"
+                       else "#22c55e"
+                       end
+          %>
           
-          <%# GRÁFICA %>
-          <div class="col-md-7 mb-4 mb-md-0">
-            <div data-controller="chart" data-chart-scores-value="<%= @scores.to_json %>" style="width: 100%; height: 350px;">
-                <canvas id="radarChart" data-chart-target="canvas"></canvas>
-            </div>
+          <%# PREGUNTA INDIVIDUAL: BLOQUE INSEPARABLE %>
+          <div class="avoid-break">
+            <table style="width: 100%; border-collapse: collapse; border: none;">
+              <tr>
+                <td style="width: 40px; vertical-align: top; padding-top: 2px;">
+                  <%# Badge de color con la calificación (ej. 2) %>
+                  <div style="background-color: <%= bg_color %>; color: white; border-radius: 50px; width: 22px; height: 22px; text-align: center; line-height: 22px; font-size: 11px; font-weight: bold;"><%= score %></div>
+                </td>
+                <td style="vertical-align: top; padding-bottom: 10px;">
+                  
+                  <%# TEXTO DE LA PREGUNTA (CON NUMERACIÓN) %>
+                  <p style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 0 0 3px 0; line-height: 1.3;">
+                    <%= q_num %>. <%= q_text %>
+                  </p>
+                  
+                  <%# TEXTO DE LA RESPUESTA SELECCIONADA POR EL CLIENTE (CON NIVEL DE OPCIÓN) %>
+                  <p style="font-size: 11px; color: #475569; margin: 0 0 8px 0; font-style: italic; line-height: 1.4;">
+                    <span style="color: <%= bg_color %>; font-weight: bold; font-style: normal;">Respuesta (Opción <%= score %>):</span> "<%= analysis[:text] %>"
+                  </p>
+                  
+                  <div style="border-left: 2px solid #e2e8f0; margin-left: 2px; padding-left: 15px; margin-top: 6px;">
+                    <%# DICTAMEN %>
+                    <div class="verdict-box verdict-<%= status_class %>">
+                      <span style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 3px;">Dictamen Técnico:</span>
+                      <span style="font-size: 11px; color: #334155; line-height: 1.4;">"<%= analysis[:dictamen] %>"</span>
+                    </div>
+                    
+                    <%# RECOMENDACIONES %>
+                    <div style="margin-top: 8px;">
+                      <span style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">Acciones Recomendadas:</span>
+                      <ul class="rec-list">
+                        <% analysis[:recs].each do |rec| %>
+                          <li><%= rec %></li>
+                        <% end %>
+                      </ul>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </table>
           </div>
+          
+          <% q_num += 1 %> <%# <-- INCREMENTAMOS EL CONTADOR %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
 
-          <%# DESGLOSE %>
-          <div class="col-md-5 ps-md-4">
-            <h5 class="fw-bold mb-4 text-dark border-bottom pb-2">Puntuación por Área</h5>
-            <% categories = ["Dirección y Estrategia", "Finanzas", "Operaciones / Procesos", "Comercial (Ventas / Mkt)", "RH (Personas y Cultura)"] %>
-            <% @scores.each_with_index do |score, i| %>
-              <div class="mb-3">
-                <div class="d-flex justify-content-between mb-1">
-                  <span class="font-12 fw-bold text-dark"><%= categories[i] %></span>
-                  <span class="font-12 fw-bold text-primary"><%= score %> / 5.0</span>
-                </div>
-                <div class="progress" style="height: 6px; border-radius: 10px;">
-                  <div class="progress-bar custom-gradient-progress" style="width: <%= (score/5.0)*100 %>%; background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);"></div>
-                </div>
-              </div>
+  <%# ========================================== %>
+  <%# PÁGINA FINAL: CONCLUSIÓN (RIESGOS DINÁMICOS) %>
+  <%# ========================================== %>
+  <div class="page-start">
+    <% 
+      avg_global = ((@scores.sum / 25.0) * 100).round 
+      
+      # EXTRAEMOS LOS 3 PEORES PUNTAJES PARA HACER LOS RIESGOS DINÁMICOS
+      worst_answers = @questionnaire.answers.select { |k, v| k.start_with?('a') }.sort_by { |k, v| v.to_i }.first(3)
+    %>
+    
+    <div style="background-color: #0f172a; padding: 30px; border-radius: 16px; margin-bottom: 30px;">
+        <h3 style="font-weight: bold; font-size: 20px; color: white; margin: 0 0 10px 0;">Interpretación Ejecutiva Final</h3>
+        <p style="font-size: 13px; line-height: 1.6; color: #cbd5e1; margin: 0;">
+          Su organización presenta un índice de madurez operativa del <strong style="color: white;"><%= avg_global %>%</strong>. 
+          Este resultado lo sitúa en una etapa de 
+          <span style="color: #f59e0b; font-weight: bold;">
+            <%= avg_global < 50 ? "SUPERVIVENCIA Y REACTIVIDAD" : (avg_global < 80 ? "INSTITUCIONALIZACIÓN EN CURSO" : "EXCELENCIA Y LIDERAZGO") %>
+          </span>.
+        </p>
+    </div>
+
+    <div class="pdf-grid avoid-break">
+      <div class="pdf-col-50">
+        <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 25px; border-radius: 16px; height: 100%;">
+          <h5 style="font-weight: bold; color: #dc2626; font-size: 14px; margin: 0 0 15px 0;"><i class="ri-alarm-warning-line"></i> Riesgos Críticos Detectados</h5>
+          
+          <ul style="padding-left: 15px; margin: 0; font-size: 11px; color: #7f1d1d; line-height: 1.5;">
+            <% worst_answers.each do |key, score| %>
+              <% analysis = get_autodiagnostico_analysis(key, score) %>
+              <li style="margin-bottom: 10px;">
+                <%= analysis[:dictamen].split(';').first || analysis[:dictamen] %>
+              </li>
             <% end %>
-          </div>
+          </ul>
 
         </div>
+      </div>
 
-        <%# ACCIONES WEB (Ocultas en PDF) %>
-        <div class="text-center mt-5 web-only">
-          <h5 class="fw-bold text-dark mb-3">¿Cómo transformar estos resultados?</h5>
-          <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
-            <%= link_to autodiagnostico_pdf_path(id: @questionnaire.signed_id), 
-                        class: "btn btn-danger", 
-                        target: "_blank", 
-                        data: { turbo: false } do %>
-                <i class="ri-file-pdf-line me-1"></i> Descargar Reporte en PDF
-            <% end %>
-
-            <%# Enlace secundario de salida %>
-            <%= link_to "Finalizar y Salir", new_user_session_path, class: "text-muted font-12 fw-bold text-decoration-none" %>
-
+      <div class="pdf-col-50 last">
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 25px; border-radius: 16px; height: 100%;">
+          <h5 style="font-weight: bold; color: #166534; font-size: 14px; margin: 0 0 10px 0;"><i class="ri-rocket-line"></i> Próximos Pasos</h5>
+          <p style="font-size: 12px; color: #475569; margin: 0 0 20px 0; line-height: 1.5;">Le recomendamos agendar una sesión estratégica sin costo para estructurar un plan de acción enfocado en mitigar los riesgos detectados.</p>
+          <div style="text-align: center;">
+             <a href="http://74.208.227.22" style="display: block; background: #166534; color: white; padding: 12px 0; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 11px;">
+                AGENDAR SESIÓN DE REVISIÓN
+             </a>
           </div>
         </div>
-
       </div>
     </div>
   </div>
-  <div class="footer-pdf pdf-only">Página 2 de 3 | Consilium - Consulta, delega y transforma</div>
-</div>
 
-
-<%# ========================================== %>
-<%# PÁGINA 3: PLAN DE ACCIÓN (SOLO PDF)        %>
-<%# ========================================== %>
-<div class="pdf-only page-break pdf-page bg-white">
-  <% avg_global = ((@scores.sum / 25.0) * 100).round %>
-  <% dir_score = ((@scores[0] / 5.0) * 100).round %>
-  <% op_score = ((@scores[2] / 5.0) * 100).round %>
-
-  <div class="container-fluid p-0">
-    <h3 class="fw-bold text-dark mb-4 border-bottom pb-2">Interpretación Ejecutiva</h3>
-    <p class="text-muted mb-5 text-justify">
-      El prediagnóstico revela un índice global del <strong><%= avg_global %>%</strong>. 
-      Dependiendo de los picos en tu gráfica, áreas como Comercial y Finanzas podrían presentar un nivel superior, 
-      mientras que pilares como Dirección y Operaciones muestran oportunidades críticas de mejora.
-    </p>
-
-    <h4 class="fw-bold text-dark mb-3">Análisis de Capacidades</h4>
-    <div class="table-responsive mb-5">
-      <table class="table table-custom rounded-3 overflow-hidden shadow-sm">
-        <thead>
-          <tr>
-            <th class="py-3 px-4">Área Estratégica</th>
-            <th class="py-3 px-4 text-center">Tu Resultado</th>
-            <th class="py-3 px-4 text-center">Referencia Ideal Consilium</th>
-          </tr>
-        </thead>
-        <tbody class="bg-light">
-          <% categories.each_with_index do |cat, i| %>
-            <tr>
-              <td class="py-3 px-4 fw-bold text-dark"><%= cat %></td>
-              <td class="py-3 px-4 text-center text-primary fw-bold"><%= @scores[i] %> / 5.0</td>
-              <td class="py-3 px-4 text-center text-muted">5.0 / 5.0</td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="row g-4 mb-4 avoid-break">
-      <%# DIAGNÓSTICO Y DOLOR %>
-      <div class="col-6">
-        <div class="card h-100 bg-light p-4">
-          <h5 class="fw-bold text-danger mb-3"><i class="ri-error-warning-line me-2"></i> Diagnóstico y Riesgo</h5>
-          <p class="small text-muted mb-2">
-            "Tu empresa enfrenta brechas en <strong>Dirección y Estrategia (<%= dir_score %>%)</strong> y <strong>Operaciones (<%= op_score %>%)</strong> que afectan su desempeño."
-          </p>
-          <strong class="small text-dark d-block mt-3">Punto de Dolor:</strong>
-          <p class="small text-muted mb-2">Estrés por falta de control y posibles fugas de efectivo que merman la rentabilidad.</p>
-          <strong class="small text-dark d-block mt-2">Causa Raíz:</strong>
-          <p class="small text-muted mb-0">La falta de procesos definidos limita la gestión, generando decisiones a ciegas.</p>
-        </div>
-      </div>
-
-      <%# SOLUCIÓN PROPUESTA %>
-      <div class="col-6">
-        <div class="card h-100 p-4" style="background-color: #f0fdf4; border: 1px solid #bbf7d0 !important;">
-          <h5 class="fw-bold text-success mb-3"><i class="ri-checkbox-circle-line me-2"></i> Solución Consilium</h5>
-          <p class="small text-muted mb-3">
-            Acompañamiento en la definición de objetivos anuales y documentación de procesos clave.
-          </p>
-          <strong class="small text-dark d-block">Alcance:</strong>
-          <ul class="small text-muted mb-3 ps-3">
-            <li>Definición de objetivos anuales</li>
-            <li>Documentación de procesos clave</li>
-            <li>Reportes mensuales de flujo y resultados</li>
-          </ul>
-          <strong class="small text-dark d-block">Impacto Esperado:</strong>
-          <ul class="small text-muted mb-0 ps-3">
-            <li>Claridad en la dirección del negocio</li>
-            <li>Reducción de riesgos financieros</li>
-            <li>Eficiencia operativa garantizada</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <%# CTA FINAL %>
-    <div class="text-center mt-5">
-      <h5 class="fw-bold text-dark">Transforma tu negocio con Consilium</h5>
-      <p class="text-muted small mb-3">Sin compromiso. 30 minutos de asesoría gratuita basada en estos resultados.</p>
-      <a href="http://74.208.227.22" style="display: inline-block; background-color: #6366f1; color: white; padding: 12px 30px; border-radius: 30px; text-decoration: none; font-weight: bold;">
-        Salir
-      </a>
-    </div>
-
-  </div>
-  <div class="footer-pdf">Página 3 de 3 | Consilium - Consulta, delega y transforma</div>
 </div>

@@ -6,7 +6,7 @@
   <div class="container-fluid px-4">
     <div class="d-flex align-items-center">
       <div class="text-start">
-        <%# Logo en texto (Fallback si no hay imagen) %>
+        <%# Logo en texto %>
         <span class="fw-bold text-dark font-18" style="letter-spacing: -0.5px;">
           Cons<span class="text-primary">ili</span>um
         </span>
@@ -42,10 +42,16 @@
   <div class="container" style="position: relative; z-index: 2;">
     <div class="row justify-content-center">
       <div class="col-lg-7 col-xl-6">
-        <span class="text-dark fw-bold font-17">Guía de preguntas para alinear historia, operación, prioridades y decisiones clave.</span></br></br>
-        <span class="text-secondary font-14">Responde como si estuvieras explicándole tu empresa a un consultor: 
-                                                    Breve, real y con ejemplos; y, cuando aplique, con números aproximados. 
-                                                    Esto nos permitirá priorizar acciones y construir un plan práctico.</span>
+        
+        <div class="text-center mb-4">
+            <span class="text-dark fw-bold font-17 d-block mb-3">Guía de preguntas para alinear historia, operación, prioridades y decisiones clave.</span>
+            <span class="text-secondary font-14 d-block px-md-4" style="line-height: 1.5;">
+              Responde como si estuvieras explicándole tu empresa a un consultor: 
+              Breve, real y con ejemplos; y, cuando aplique, con números aproximados. 
+              Esto nos permitirá priorizar acciones y construir un plan práctico.
+            </span>
+        </div>
+
         <%# --- ÁREA DE PROGRESO Y CONTADOR --- %>
         <div class="mb-4 px-1 text-center mt-2">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -62,7 +68,6 @@
                  data-questionnaire-target="progressBar"></div>
           </div>
 
-          <%# Contador debajo de la barra %>
           <div class="mt-2">
             <span class="text-muted font-12 fw-bold">
               Pregunta <span data-questionnaire-target="currentNum">1</span> de 31
@@ -72,18 +77,18 @@
 
         <%# --- TARJETA DEL FORMULARIO --- %>
         <div class="card border-0 shadow-lg" style="border-radius: 20px; background: white;">
-          <div class="card-header border-0 py-4 text-center" style="background-color: #6366f1;">
-             <h4 class="text-white mb-0 fw-bold">Consilium</h4>
+          <div class="card-header border-0 py-3 text-center" style="background-color: #6366f1; border-top-left-radius: 20px; border-top-right-radius: 20px;">
+             <h5 class="text-white mb-0 fw-bold">Consilium</h5>
           </div>
 
           <div class="card-body p-4 p-md-5">
             <%= form_with(model: @questionnaire, url: public_questionnaires_path, id: "questionnaire-form") do |f| %>
               
-              <div style="min-height: 320px;">
+              <div style="min-height: 280px;">
                 
-                <%# PASO 0: CONTACTO (Floating Labels) %>
+                <%# PASO 0: CONTACTO %>
                 <div data-questionnaire-target="step" class="animate-fade-in">
-                  <h2 class="fw-bold text-dark mb-4 text-center">Datos de Contexto</h2>
+                  <h2 class="fw-bold text-dark mb-4 text-center" style="font-size: 1.5rem;">Datos de Contexto</h2>
                   
                   <div class="form-floating mb-3">
                     <%= f.text_field :name, class: "form-control custom-input", id: "floatName", placeholder: "Nombre", required: true %>
@@ -101,33 +106,48 @@
                   </div>
                 </div>
 
-                <%# PASOS 1-30: PREGUNTAS (Sin Float, obligatorias) %>
+                <%# PREPARACIÓ PER SABER QUAN ÉS L'ÚLTIMA PREGUNTA %>
+                <% total_questions = get_categorized_questions.values.sum(&:size) %>
+                <% q_count = 0 %>
+
+                <%# PASOS 1-30: PREGUNTAS %>
                 <% get_categorized_questions.each_with_index do |(category, qs), sec_index| %>
                   <% qs.each do |q_key, q_text| %>
+                    <% q_count += 1 %>
                     <div data-questionnaire-target="step" class="d-none animate-fade-in">
                       <div class="text-center mb-4">
                         <span class="text-muted text-uppercase font-10 fw-bold tracking-wider"><%= category %></span>
-                        <h3 class="fw-bold text-dark mt-2" style="font-size: 1.5rem; line-height: 1.4;"><%= q_text %></h3>
+                        <h3 class="fw-bold text-dark mt-2 mb-4" style="font-size: 1.25rem; line-height: 1.4;"><%= q_text %></h3>
                       </div>
                       
                       <div class="mb-3">
-                        <%= f.fields_for :answers do |af| %>
-                          <%= af.text_area q_key, 
-                              class: "form-control border-0 bg-light custom-textarea", 
-                              rows: 7, 
-                              placeholder: "Escribe tu respuesta con detalle aquí...",
-                              required: true %>
-                        <% end %>
+                        <%= text_area_tag "prospect_questionnaire[answers][#{q_key}]", nil,
+                            class: "form-control border-0 custom-textarea", 
+                            rows: 6, 
+                            placeholder: "Escribe tu respuesta con detalle aquí...",
+                            required: true %>
                       </div>
+
+                      <%# BOTÓ 'SEGÜENT' LOCAL (Apareix a totes les preguntes excepte l'última) %>
+                      <% if q_count < total_questions %>
+                        <div class="text-end mt-3">
+                          <button type="button" 
+                                  class="btn btn-primary rounded-pill px-4 py-2 shadow-sm" 
+                                  style="background-color: #6366f1; border: none;"
+                                  data-action="click->questionnaire#next">
+                            Siguiente <i class="ri-arrow-right-s-line ms-1"></i>
+                          </button>
+                        </div>
+                      <% end %>
                     </div>
                   <% end %>
                 <% end %>
               </div>
 
-              <%# NAVEGACIÓN %>
+              <%# NAVEGACIÓ GLOBAL (Manté la compatibilitat amb el JS) %>
               <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
                 <button type="button" 
-                        class="btn btn-link text-primary fw-bold text-decoration-none d-none" 
+                        class="btn btn-link text-primary fw-bold text-decoration-none d-none shadow-none px-0" 
                         data-questionnaire-target="prevBtn" 
                         data-action="click->questionnaire#prev">
                   <i class="ri-arrow-left-s-line me-1"></i> Anterior
@@ -138,11 +158,11 @@
                         style="background-color: #6366f1; border: none;"
                         data-questionnaire-target="nextBtn" 
                         data-action="click->questionnaire#next">
-                  Siguiente <i class="ri-arrow-right-s-line ms-1"></i>
+                  Comenzar Diagnóstico <i class="ri-arrow-right-s-line ms-1"></i>
                 </button>
                 
                 <%= f.submit "Finalizar diagnóstico", 
-                    class: "btn btn-success rounded-pill px-4 py-2 shadow-sm d-none", 
+                    class: "btn btn-success rounded-pill px-4 py-2 shadow-sm d-none ms-auto", 
                     data: { questionnaire_target: "submitBtn" } %>
               </div>
             <% end %>
@@ -167,6 +187,7 @@
     z-index: 1;
     width: 100%;
     height: 100%;
+    pointer-events: none;
   }
   .auth-fluid-circles [class^="circle-"] {
     position: absolute;
@@ -192,10 +213,18 @@
     background-color: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
   }
+  .custom-textarea {
+    background-color: #f1f5f9 !important;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 15px;
+    resize: none;
+  }
   .custom-input:focus, .custom-textarea:focus {
     background-color: #fff !important;
     border-color: #6366f1 !important;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+    outline: none;
   }
   .btn-soft-danger {
     background-color: rgba(250, 92, 124, 0.1);
@@ -204,4 +233,7 @@
   .bg-soft-primary { background-color: rgba(99, 102, 241, 0.1); }
   .animate-fade-in { animation: fadeIn 0.4s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  
+  /* Evitar outline azul por defecto en Chrome */
+  .btn:focus { box-shadow: none !important; outline: none !important; }
 </style>
