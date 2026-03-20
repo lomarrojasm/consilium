@@ -22,7 +22,7 @@
             <div class="timeline-scroll-area" style="max-height: 520px; overflow-y: auto; padding-left: 20px;" data-simplebar>
                 <div class="timeline-alt-safe" style="border-left: 2px solid #eef2f7; position: relative;">
                     <% if activity.activity_logs.any? %>
-                        <% activity.activity_logs.order(created_at: :desc).each do |log| %>
+                        <% activity.activity_logs.order(created_at: :asc).each do |log| %>
                             <div class="timeline-item" style="position: relative; padding-left: 30px; margin-bottom: 25px; min-height: 50px;">
                                 <% 
                                     is_evidence = log.comment.include?('📁') || log.attachments.attached?

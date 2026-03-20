@@ -105,6 +105,21 @@ class ActivitiesController < ApplicationController
     end
   end
 
+  def update_evidence_date
+    @activity = Activity.find(params[:id])
+
+    # Blindaje de seguridad: Solo permitir si el rol es admin
+    if current_user.role == 'admin'
+      if @activity.update(evidence_uploaded_at: params[:evidence_uploaded_at])
+        redirect_back fallback_location: root_path, notice: "Fecha de evidencia actualizada correctamente."
+      else
+        redirect_back fallback_location: root_path, alert: "Error al actualizar la fecha."
+      end
+    else
+      redirect_back fallback_location: root_path, alert: "No tienes permisos para modificar fechas de evidencia."
+    end
+  end
+
   def update_status
     @activity = @project.activities.find(params[:id])
     new_status = params[:status]

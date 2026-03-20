@@ -39,22 +39,26 @@
                 <label for="projectStart">Fecha de Inicio</label>
             </div>
         </div>
+        <!--
         <div class="col-md-6">
             <div class="form-floating mb-3">
                 <%= f.date_field :end_date, class: "form-control shadow-none", id: "projectEnd", required: true %>
                 <label for="projectEnd">Fecha Estimada de Cierre</label>
             </div>
         </div>
+        -->
     </div>
 
     <%# Fila 3: Presupuesto y Estatus %>
     <div class="row g-3">
+        <!--
         <div class="col-md-6">
             <div class="form-floating mb-3">
                 <%= f.number_field :budget, class: "form-control shadow-none", id: "projectBudget", step: "0.01", placeholder: "0.00" %>
                 <label for="projectBudget">Presupuesto ($)</label>
             </div>
         </div>
+        -->
         <div class="col-md-6">
              <div class="form-floating mb-3">
                 <% if @project.new_record? %>
