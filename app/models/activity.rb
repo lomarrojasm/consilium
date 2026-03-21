@@ -6,7 +6,7 @@ class Activity < ApplicationRecord
   has_many_attached :evidence_files # Para subir archivos de ejemplo/detalles
 
   # Enumeramos los estados para facilitar la lógica
-  enum :status, { pending: 'pending', approved: 'approved', rejected: 'rejected' }
+  enum :status, { pending: 'pending', approved: 'approved', rejected: 'rejected', completed: 'completed' }
 
 
   # El responsable de la ejecución

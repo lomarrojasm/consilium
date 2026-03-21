@@ -1,93 +1,64 @@
 <%# app/views/activities/_activity_modal.html.erb %>
 
-<div class="modal-header bg-primary text-white">
+<% 
+    # ==========================================
+    # LÓGICA DE SEGURIDAD Y ROLES
+    # ==========================================
+    is_admin     = current_user.role == 'admin'
+    is_internal  = is_admin || ['lider', 'senior', 'analista'].include?(current_project_role)
+    is_locked    = activity.stage.locked_for?(current_user)
+    is_finalized = activity.admin_approved && activity.user_approved
+%>
+
+<div class="modal-header bg-primary text-white" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
     <h5 class="modal-title font-16 fw-bold">
         <i class="ri-survey-line me-1"></i> Panel de Actividad: <%= activity.name %>
     </h5>
-    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 
 <div class="modal-body p-0">
     <div class="row g-0">
+        
+        <%# --- COLUMNA IZQUIERDA: TIMELINE (7/12) --- %>
         <div class="col-md-7 border-end p-4 bg-white">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="m-0 font-13 fw-bold text-uppercase text-muted">
-                    <i class="ri-history-line me-1"></i> Línea de Tiempo
+                <h5 class="m-0 font-14 fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">
+                    <i class="ri-history-line me-1 text-primary"></i> Historial de Seguimiento
                 </h5>
-                <span class="badge bg-soft-primary text-primary font-11 rounded-pill px-2">
-                    Hace <%= time_ago_in_words(activity.updated_at) %>
+                <span class="badge bg-soft-primary text-primary font-11 rounded-pill px-2 py-1">
+                    Actualizado hace <%= time_ago_in_words(activity.updated_at) %>
                 </span>
             </div>
             
-            <div class="timeline-scroll-area" style="max-height: 520px; overflow-y: auto; padding-left: 20px;" data-simplebar>
+            <div class="timeline-scroll-area pe-2" style="height: 550px; overflow-y: auto; overflow-x: hidden; padding-left: 15px;" data-simplebar>
                 <div class="timeline-alt-safe" style="border-left: 2px solid #eef2f7; position: relative;">
                     <% if activity.activity_logs.any? %>
                         <% activity.activity_logs.order(created_at: :asc).each do |log| %>
-                            <div class="timeline-item" style="position: relative; padding-left: 30px; margin-bottom: 25px; min-height: 50px;">
+                            <div class="timeline-item" style="position: relative; padding-left: 25px; margin-bottom: 25px; min-height: 50px;">
+                                <%# --- ICONOS DINÁMICOS --- %>
                                 <% 
                                     is_evidence = log.comment.include?('📁') || log.attachments.attached?
-                                    is_approval  = log.comment.include?('✅')
-                                    is_admin     = log.comment.include?('🛡️')
-                                    is_revoked   = log.comment.include?('↩️')
-                                    is_rejected  = (log.status == 'rejected')
-
-                                    icon_class = if is_admin then "ri-shield-check-line"
-                                                elsif is_approval  then "ri-checkbox-circle-line"
-                                                elsif is_evidence  then "ri-file-upload-line"
-                                                elsif is_revoked   then "ri-arrow-go-back-line"
-                                                elsif is_rejected  then "ri-close-circle-line"
-                                                else "ri-chat-3-line"
-                                                end
-
-                                    dot_color = if is_rejected   then '#fa5c7c'
-                                                elsif is_admin     then '#fa5c7c'
-                                                elsif is_approval  then '#0acf97'
-                                                elsif is_evidence  then '#39afd1'
-                                                elsif is_revoked   then '#ffbc00'
-                                                else '#98a6ad'
-                                                end
+                                    is_approval = log.comment.include?('✅')
+                                    dot_color = is_approval ? '#0acf97' : (is_evidence ? '#39afd1' : '#727cf5')
+                                    icon_class = is_approval ? "ri-checkbox-circle-line" : (is_evidence ? "ri-file-upload-line" : "ri-chat-3-line")
                                 %>
-                                
-                                <div class="custom-icon-wrapper" style="
-                                    position: absolute; 
-                                    left: -16px; 
-                                    top: 0; 
-                                    width: 30px; 
-                                    height: 30px; 
-                                    background: #fff; 
-                                    border: 2px solid <%= dot_color %>; 
-                                    border-radius: 50%; 
-                                    display: flex; 
-                                    align-items: center; 
-                                    justify-content: center; 
-                                    z-index: 10;
-                                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                    
-                                    <i class="<%= icon_class %>" style="color: <%= dot_color %>; font-size: 14px; display: block;"></i>
+                                <div style="position: absolute; left: -15px; top: 0; width: 28px; height: 28px; background: #fff; border: 2px solid <%= dot_color %>; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10;">
+                                    <i class="<%= icon_class %>" style="color: <%= dot_color %>; font-size: 14px;"></i>
                                 </div>
                                 
-                                <div class="timeline-item-info border-start border-3 p-3 bg-light bg-opacity-25 rounded-end shadow-none" 
-                                    style="border-color: <%= dot_color %> !important; margin-left: 2px;">
-                                    
+                                <div class="timeline-item-info border-start border-3 p-3 bg-light bg-opacity-50 rounded" style="border-color: <%= dot_color %> !important; margin-top: -5px;">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                         <h6 class="m-0 fw-bold text-dark font-13"><%= log.user.full_name %></h6>
-                                        <small class="text-muted font-10" style="font-size: 8px !important;">
-                                            <%= log.created_at.strftime("%H:%M · %d/%m/%y") %>
-                                        </small>
+                                        <small class="text-muted font-10 uppercase"><%= log.created_at.strftime("%H:%M · %d/%m/%y") %></small>
                                     </div>
-
-                                    <p class="text-secondary font-12 mb-2 lh-sm">
-                                        <%= log.comment.gsub(/📁|✅|🛡️|↩️/, '').strip %>
-                                    </p>
+                                    <p class="text-secondary font-13 mb-0 lh-sm"><%= log.comment.gsub(/📁|✅|🛡️|↩️/, '').strip %></p>
                                     
                                     <% if log.attachments.attached? %>
-                                        <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top border-light">
+                                        <div class="d-flex flex-wrap gap-1 mt-2">
                                             <% log.attachments.each do |file| %>
-                                                <%= link_to rails_blob_path(file, disposition: "attachment"), 
-                                                    class: "btn btn-xs btn-white border d-flex align-items-center py-1",
-                                                    style: "background: white; border-radius: 4px;" do %>
-                                                    <i class="ri-attachment-line me-1 text-primary" style="font-size: 10px;"></i>
-                                                    <span style="font-size: 9px; max-width: 120px;" class="text-truncate text-dark"><%= file.filename %></span>
+                                                <%= link_to rails_blob_path(file, disposition: "attachment"), class: "btn btn-xs btn-white border font-10 py-0" do %>
+                                                    <i class="ri-attachment-line text-primary"></i> <%= file.filename %>
                                                 <% end %>
                                             <% end %>
                                         </div>
@@ -97,30 +68,23 @@
                         <% end %>
                     <% else %>
                         <div class="text-center py-5">
-                            <i class="ri-chat-history-line font-36 text-muted opacity-25"></i>
-                            <p class="text-muted font-13 mt-2">Sin registros de actividad.</p>
+                            <i class="ri-chat-history-line text-muted opacity-25 font-48"></i>
+                            <p class="text-muted font-13 mt-2">Sin registros aún.</p>
                         </div>
                     <% end %>
-                </div>
-            </div>
-        </div>
+                </div> <%# Fin timeline-alt-safe %>
+            </div> <%# Fin timeline-scroll-area %>
+        </div> <%# Fin col-md-7 %>
 
+        <%# --- COLUMNA DERECHA: CONTROLES (5/12) --- %>
         <div class="col-md-5 p-4 bg-light">
-            <% is_locked = activity.stage.locked_for?(current_user) %>
             
-            <h5 class="mb-3 font-13 fw-bold text-uppercase text-muted">
-                <i class="ri-git-merge-line me-1"></i> Flujo de Autorización 
-                <% if is_locked %>
-                    <span class="badge bg-soft-danger text-danger float-end"><i class="ri-lock-fill"></i> BLOQUEADO</span>
-                <% end %>
+            <%# --- FLUJO DE AUTORIZACIÓN --- %>
+            <h5 class="mb-3 font-13 fw-bold text-uppercase text-muted border-bottom pb-2">
+                <i class="ri-git-merge-line me-1 text-primary"></i> Flujo de Autorización
             </h5>
-            
-            <% if is_locked %>
-                <div class="alert alert-soft-danger border-0 font-11 mb-3">
-                    <i class="ri-information-line me-1"></i> Esta etapa ha finalizado. Para realizar cambios, un administrador debe reabrirla.
-                </div>
-            <% end %>
 
+            <%# CARD 1: EVIDENCIA %>
             <div class="card shadow-none border mb-2 <%= activity.evidence.attached? ? 'border-success' : 'border-secondary border-opacity-25' %>">
                 <div class="card-body p-2 d-flex align-items-center">
                     <div class="avatar-sm me-2">
@@ -128,13 +92,12 @@
                     </div>
                     <div class="flex-grow-1">
                         <h6 class="m-0 font-13 fw-bold <%= activity.evidence.attached? ? 'text-success' : 'text-muted' %>">Evidencia Formal</h6>
-                        <small class="text-muted font-11">
-                            <%= activity.evidence.attached? ? "Cargada: #{activity.evidence_uploaded_at&.strftime('%d/%m/%y')}" : "Pendiente" %>
-                        </small>
+                        <small class="text-muted font-11"><%= activity.evidence.attached? ? "Cargada" : "Pendiente" %></small>
                     </div>
                 </div>
             </div>
 
+            <%# CARD 2: CLIENTE %>
             <div class="card shadow-none border mb-2 <%= activity.user_approved ? 'border-primary' : 'border-secondary border-opacity-25' %>">
                 <div class="card-body p-2 d-flex align-items-center">
                     <div class="avatar-sm me-2">
@@ -147,15 +110,15 @@
                         <%= form_with url: toggle_user_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: false do %>
                             <div class="form-check form-switch m-0">
                                 <input type="checkbox" class="form-check-input cursor-pointer" style="width: 2.5em; height: 1.2em;"
-                                    <%= 'checked' if activity.user_approved %>
-                                    onchange="this.form.submit()"
-                                    <%= 'disabled' if is_locked || activity.admin_approved || !activity.evidence.attached? %>>
+                                    <%= 'checked' if activity.user_approved %> onchange="this.form.submit()"
+                                    <%= 'disabled' if (is_locked || activity.admin_approved || !activity.evidence.attached?) && !is_admin %>>
                             </div>
                         <% end %>
                     </div>
                 </div>
             </div>
 
+            <%# CARD 3: ADMIN %>
             <div class="card shadow-none border mb-4 <%= activity.admin_approved ? 'border-danger' : 'border-secondary border-opacity-25' %>">
                 <div class="card-body p-2 d-flex align-items-center">
                     <div class="avatar-sm me-2">
@@ -167,39 +130,126 @@
                     <div class="ms-2">
                         <%= form_with url: toggle_admin_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: false do %>
                             <div class="form-check form-switch m-0">
-                                <input type="checkbox" class="form-check-input border-danger cursor-pointer" style="width: 2.5em; height: 1.2em;"
-                                    <%= 'checked' if activity.admin_approved %>
-                                    onchange="this.form.submit()"
-                                    <%= 'disabled' unless current_user.role == 'admin' && activity.user_approved %>>
+                                <input type="checkbox" class="form-check-input border-danger cursor-pointer shadow-none" style="width: 2.5em; height: 1.2em;"
+                                    <%= 'checked' if activity.admin_approved %> onchange="this.form.submit()"
+                                    <%= 'disabled' unless is_admin && activity.user_approved %>>
                             </div>
                         <% end %>
                     </div>
                 </div>
             </div>
 
-            <% if is_locked %>
-                <div class="text-center py-3 border rounded bg-white">
-                    <i class="ri-chat-off-line font-24 text-muted opacity-50"></i>
-                    <p class="text-muted font-12 mb-0">Comentarios deshabilitados en etapas finalizadas.</p>
-                </div>
-            <% else %>
-                <h5 class="mb-3 font-13 fw-bold text-uppercase text-muted"><i class="ri-add-line me-1"></i> Añadir Seguimiento</h5>
-                <%= form_with url: update_status_client_project_activity_path(@client, @project, activity), method: :patch, local: true, multipart: true do |f| %>
+            <%# --- SECCIÓN DE SEGUIMIENTO (TAGS Y FORMULARIO) --- %>
+            <div class="mt-4 pt-3 border-top">
+                <% if is_locked || (is_finalized && !is_admin) || !is_internal %>
+                    <div class="text-center p-3 border rounded bg-white shadow-sm">
+                        <i class="ri-lock-line font-24 text-muted opacity-50"></i>
+                        <p class="text-muted font-12 fw-medium mt-1 mb-0">
+                            <%= is_locked ? "Etapa bloqueada." : (is_finalized ? "Actividad finalizada." : "Vista de consulta.") %>
+                        </p>
+                    </div>
+                <% else %>
+                    <h5 class="mb-3 font-13 fw-bold text-uppercase text-muted">
+                        <i class="ri-chat-new-line me-1 text-primary"></i> Registrar Seguimiento
+                    </h5>
+
+                    <%# TAGS RÁPIDOS %>
                     <div class="mb-2">
-                        <%= f.text_area :comment, class: "form-control form-control-sm", rows: 3, placeholder: "Detalla los avances...", required: true %>
+                        <p class="font-10 fw-bold text-muted text-uppercase mb-1">Comentarios Rápidos:</p>
+                        <div class="d-flex flex-wrap gap-1 mb-2">
+                            <% quick_tags = [{l:"✅ Revisado", t:"Evidencia revisada."}, {l:"📁 Evidencia", t:"Se adjunta evidencia."}, {l:"⏳ En curso", t:"Actividad en proceso."}, {l:"🧹 Limpiar", t:""}] %>
+                            <% quick_tags.each do |tag| %>
+                                <span class="badge bg-white text-secondary border cursor-pointer hover-tag-active py-1 px-2" 
+                                      onclick="<%= tag[:l] == '🧹 Limpiar' ? 'clearCommentField()' : "insertPresetText('#{j tag[:t]}')" %>"
+                                      style="font-size: 10px; border-radius: 4px; border-style: dashed !important;">
+                                    <%= tag[:l] %>
+                                </span>
+                            <% end %>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <%= file_field_tag "attachments[]", multiple: true, class: "form-control form-control-sm" %>
-                    </div>
-                    <div class="btn-group w-100 mb-2">
-                        <input type="radio" class="btn-check" name="status" id="st_pending" value="pending" <%= 'checked' if activity.status == 'pending' %>>
-                        <label class="btn btn-outline-warning btn-sm" for="st_pending">En Proceso</label>
-                        <input type="radio" class="btn-check" name="status" id="st_deny" value="rejected" <%= 'checked' if activity.status == 'rejected' %>>
-                        <label class="btn btn-outline-danger btn-sm" for="st_deny">Rechazar</label>
-                    </div>
-                    <%= f.submit "Registrar Avance", class: "btn btn-primary w-100 btn-sm shadow-sm" %>
+
+                    <%= form_with url: update_status_client_project_activity_path(@client, @project, activity), method: :patch, local: true, multipart: true do |f| %>
+                        <div class="mb-2">
+                            <%= f.text_area :comment, id: "activity_comment_field", class: "form-control form-control-sm border-secondary border-opacity-25 shadow-none", rows: 3, placeholder: "Detalles...", required: true %>
+                        </div>
+                        <div class="mb-3">
+                            <%= file_field_tag "attachments[]", multiple: true, class: "form-control form-control-sm border-secondary border-opacity-25 shadow-none" %>
+                        </div>
+                        
+                        <%# ESTATUS RESULTANTE %>
+                        <div class="bg-white p-2 rounded mb-3 border border-dashed">
+                            <div class="btn-group w-100 shadow-sm mb-2" role="group">
+                                <%# OPCIÓN: EN PROCESO %>
+                                <input type="radio" class="btn-check" name="status" id="st_pending" value="pending" 
+                                    <%= 'checked' if activity.status == 'pending' %> 
+                                    onchange="updateStatusHelp('pending')">
+                                <label class="btn btn-outline-warning btn-sm fw-bold px-0" for="st_pending"
+                                    onmouseover="showStatusHoverHelp('pending')" 
+                                    onmouseout="resetStatusHelp()">
+                                    En Proceso
+                                </label>
+                                
+                                <%# OPCIÓN: RECHAZADA %>
+                                <input type="radio" class="btn-check" name="status" id="st_deny" value="rejected" 
+                                    <%= 'checked' if activity.status == 'rejected' %>
+                                    onchange="updateStatusHelp('rejected')">
+                                <label class="btn btn-outline-danger btn-sm fw-bold px-0" for="st_deny"
+                                    onmouseover="showStatusHoverHelp('rejected')" 
+                                    onmouseout="resetStatusHelp()">
+                                    Revisar
+                                </label>
+
+                                <%# OPCIÓN: LISTO P/ V.B. %>
+                                <input type="radio" class="btn-check" name="status" id="st_done" value="completed" 
+                                    <%= 'checked' if activity.status == 'completed' %>
+                                    onchange="updateStatusHelp('completed')">
+                                <label class="btn btn-outline-success btn-sm fw-bold px-0" for="st_done"
+                                    onmouseover="showStatusHoverHelp('completed')" 
+                                    onmouseout="resetStatusHelp()">
+                                    Listo p/V.B.
+                                </label>
+                            </div>
+
+                            <%# Este contenedor recibirá los textos de ayuda tanto al hacer clic como al pasar el mouse %>
+                            <div id="status-instructions" class="font-10 text-muted italic mt-1 lh-sm" style="min-height: 25px; transition: all 0.2s;">
+                                Pasa el mouse sobre un estatus para ver su función.
+                            </div>
+                        </div>
+                        <%= f.submit "Guardar", class: "btn btn-primary w-100 btn-sm shadow fw-bold text-uppercase py-2" %>
+                    <% end %>
                 <% end %>
-            <% end %>
-        </div>
-    </div>
-</div>
+            </div> <%# Fin mt-4 seguimiento %>
+
+        </div> <%# Fin col-md-5 %>
+    </div> <%# Fin row %>
+</div> <%# Fin modal-body %>
+   
+
+<style>
+    .hover-preset-tag:hover {
+        background-color: #727cf5 !important;
+        color: white !important;
+        border-color: #727cf5 !important;
+        transform: translateY(-1px);
+    }
+
+    .bg-soft-secondary {
+        background-color: rgba(108, 117, 125, 0.1);
+    }
+
+    .hover-tag-active:hover { background-color: #f1f3fa !important; border-color: #727cf5 !important; color: #727cf5 !important; }
+    .cursor-pointer { cursor: pointer; }
+
+</style>
+
+<%# Script inyectado para hacer Auto-Scroll al final del Timeline al abrir el modal %>
+<script>
+    setTimeout(() => {
+        const scrollArea = document.querySelector('.timeline-scroll-area');
+        if (scrollArea) {
+            // Si Data-Simplebar envuelve el div, scrolleamos su contenedor interno, sino el div directo
+            const simplebarContent = scrollArea.querySelector('.simplebar-content-wrapper') || scrollArea;
+            simplebarContent.scrollTop = simplebarContent.scrollHeight;
+        }
+    }, 150);
+</script>

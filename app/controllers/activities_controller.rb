@@ -83,61 +83,86 @@ class ActivitiesController < ApplicationController
   end
 
   def upload_evidence
-    if params[:activity] && params[:activity][:evidence].present?
-      @activity.evidence.attach(params[:activity][:evidence])
-      @activity.update(
-        completed: true, 
-        user: current_user, 
-        completed_day: Time.current.day,
-        evidence_uploaded_at: Time.current
-      )
+  if params[:activity] && params[:activity][:evidence].present?
+    @activity.evidence.attach(params[:activity][:evidence])
+    
+    # Tomamos como base la fecha de creación de la actividad para el sellado
+    # Esto mantiene la coherencia con el plan de trabajo original
+    @activity.update(
+      completed: true, 
+      user: current_user, 
+      completed_day: @activity.created_at.day,
+      evidence_uploaded_at: @activity.created_at
+    )
+    
+    @activity.activity_logs.create!(
+      user: current_user,
+      status: 'pending',
+      comment: "📁 Subió la evidencia formal de la actividad (Sellado con fecha de registro)."
+    )
+
+    redirect_to client_project_path(@client, @project), notice: "Evidencia cargada y registrada con fecha base."
+  else
+    redirect_to client_project_path(@client, @project), alert: "Debes adjuntar un archivo."
+  end
+end
+
+def update_evidence_date
+  @activity = Activity.find(params[:id])
+
+  # Blindaje de seguridad: Solo permitir si el rol es admin
+  if current_user.role == 'admin'
+    if @activity.update(evidence_uploaded_at: params[:evidence_uploaded_at])
+      # Opcional: Actualizamos también completed_day para coherencia en reportes mensuales
+      new_date = params[:evidence_uploaded_at].to_date
+      @activity.update(completed_day: new_date.day)
       
-      # El log usa current_user: si estás personificando, guardará el nombre del cliente
-      @activity.activity_logs.create!(
-        user: current_user,
-        status: 'pending',
-        comment: "📁 Subió la evidencia formal de la actividad."
-      )
-
-      redirect_to client_project_path(@client, @project), notice: "Evidencia cargada y registrada."
+      redirect_back fallback_location: root_path, notice: "Fecha de evidencia actualizada correctamente."
     else
-      redirect_to client_project_path(@client, @project), alert: "Debes adjuntar un archivo."
+      redirect_back fallback_location: root_path, alert: "Error al actualizar la fecha."
     end
+  else
+    redirect_back fallback_location: root_path, alert: "No tienes permisos para modificar fechas de evidencia."
+  end
+end
+
+def update_status
+  @activity = @project.activities.find(params[:id])
+  new_status = params[:status] # "pending", "rejected" o "completed"
+  comment = params[:comment]
+
+  # Preparamos los parámetros de actualización
+  update_params = { status: new_status }
+  
+  # Lógica: Marcamos como completada si el estatus es 'approved' o 'completed' (Listo p/V.B.)
+  # Esto habilita la sumatoria de "Inversión Ejecutada" en el Dashboard
+  update_params[:completed] = ['approved', 'completed'].include?(new_status)
+  
+  # Si es la primera vez que se marca como completada y no hay evidencia, 
+  # sellamos con la fecha de creación original para mantener el historial técnico.
+  if update_params[:completed] && @activity.evidence_uploaded_at.nil?
+    update_params[:evidence_uploaded_at] = @activity.created_at
+    update_params[:completed_day] = @activity.created_at.day
   end
 
-  def update_evidence_date
-    @activity = Activity.find(params[:id])
+  # Intentamos actualizar la actividad
+  if @activity.update(update_params)
+    # Creamos el log de seguimiento
+    # Usamos .to_s para el status por seguridad si el Enum del Log no está 100% sincronizado
+    log = @activity.activity_logs.create!(
+      user: current_user,
+      status: new_status.to_s,
+      comment: comment
+    )
+    
+    # Adjuntamos archivos si el consultor subió fotos o documentos de avance
+    log.attachments.attach(params[:attachments]) if params[:attachments].present?
 
-    # Blindaje de seguridad: Solo permitir si el rol es admin
-    if current_user.role == 'admin'
-      if @activity.update(evidence_uploaded_at: params[:evidence_uploaded_at])
-        redirect_back fallback_location: root_path, notice: "Fecha de evidencia actualizada correctamente."
-      else
-        redirect_back fallback_location: root_path, alert: "Error al actualizar la fecha."
-      end
-    else
-      redirect_back fallback_location: root_path, alert: "No tienes permisos para modificar fechas de evidencia."
-    end
+    redirect_to client_project_path(@client, @project), notice: "Seguimiento registrado y estatus actualizado."
+  else
+    redirect_to client_project_path(@client, @project), alert: "No se pudo actualizar el estatus de la actividad."
   end
-
-  def update_status
-    @activity = @project.activities.find(params[:id])
-    new_status = params[:status]
-    comment = params[:comment]
-
-    if @activity.update(status: new_status, completed: (new_status == 'approved'))
-      log = @activity.activity_logs.create!(
-        user: current_user,
-        status: new_status,
-        comment: comment
-      )
-      log.attachments.attach(params[:attachments]) if params[:attachments].present?
-
-      redirect_to client_project_path(@client, @project), notice: "Seguimiento guardado."
-    else
-      redirect_to client_project_path(@client, @project), alert: "Error al guardar el seguimiento."
-    end
-  end
+end
 
   def toggle_user_approval
     new_state = !@activity.user_approved
