@@ -112,6 +112,29 @@
                 </div>
             </div>
 
+            <%# Card de Contrato Vigente (Versión Sobria) %>
+            <div class="px-3 py-2 bg-white border border-light shadow-none" style="border-radius: 8px; border-left: 3px solid #727cf5 !important; min-width: 170px;">
+                <div class="d-flex align-items-center">
+                    <%# Icono de documento/contrato %>
+                    <div class="me-2">
+                        <i class="ri-file-paper-2-line text-primary font-20 opacity-75"></i>
+                    </div>
+                    <div class="ms-1">
+                        <p class="text-muted mb-0 font-9 fw-bold text-uppercase tracking-widest opacity-60">Contrato Vigente</p>
+                        <h6 class="mb-0 fw-bold" style="letter-spacing: -0.2px;">
+                            <% if @client.contract.attached? %>
+                                <%= link_to rails_blob_path(@client.contract, disposition: "attachment"), 
+                                    class: "text-primary text-decoration-none d-flex align-items-center" do %>
+                                    Descargar <i class="ri-download-2-line ms-1 font-12"></i>
+                                <% end %>
+                            <% else %>
+                                <span class="text-dark opacity-50 italic" style="font-size: 11px;">No disponible</span>
+                            <% end %>
+                        </h6>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>

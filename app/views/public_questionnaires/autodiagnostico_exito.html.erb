@@ -1,6 +1,12 @@
 <%# ========================================== %>
 <%# ESTILOS BLINDADOS PARA GROVER / PUPPETEER  %>
 <%# ========================================== %>
+<% 
+  # MAGIA PARA PRODUCCIÓN: Convertimos la imagen a Base64 para que Puppeteer NUNCA falle al buscarla.
+  logo_path = Rails.root.join('app/assets/images/consilium_rec.png')
+  logo_base64 = "data:image/png;base64,#{Base64.strict_encode64(File.read(logo_path))}" if File.exist?(logo_path)
+%>
+
 <style>
   * { 
     box-sizing: border-box; 
@@ -8,73 +14,86 @@
     print-color-adjust: exact !important; 
   }
 
-  /* Márgenes limpios y simétricos para la página */
-  @page {
-    margin: 1.5cm 1.5cm 1.5cm 1.5cm;
-    size: Letter;
-  }
-
-  body {
+  /* Forzar el fondo blanco absoluto desde la raíz del documento */
+  html, body {
+    background-color: #ffffff !important;
     font-family: 'Helvetica', 'Arial', sans-serif;
     color: #1e293b;
-    background-color: white;
     margin: 0;
     padding: 0;
   }
 
-  /* --- CONTROL EXACTO DE SALTOS DE PÁGINA --- */
+  /* Márgenes limpios y profesionales para la página */
+  @page {
+    margin: 15mm 15mm 20mm 15mm; 
+    size: Letter;
+  }
+
+  /* --- LOGO FIJO EN TODAS LAS PÁGINAS --- */
+  .fixed-logo {
+    position: fixed;
+    top: 10px; 
+    right: 15px; 
+    height: 50px; 
+    z-index: 9999;
+    background-color: #ffffff; 
+  }
+  .fixed-logo img {
+    height: 100%;
+    opacity: 1; 
+  }
+
+  /* El espacio fantasma súper-ampliado en el thead que protegerá al logo en cada hoja */
+  .header-spacer {
+    height: 85px; 
+    background-color: #ffffff !important;
+  }
+
+  /* --- CONTROL EXACTO DE SALTOS DE PÁGINA APLICADO A TBODY --- */
   .page-start { 
     page-break-before: always !important; 
     break-before: page !important;
-    padding-top: 10px;
   }
 
-  /* El truco definitivo para evitar cortes a la mitad: usar inline-block */
+  /* Evita que una pregunta se parta a la mitad entre dos hojas */
   .avoid-break { 
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     display: inline-block !important;
     width: 100%;
-    margin-bottom: 15px;
+    margin-bottom: 25px;
     vertical-align: top;
+    background-color: #ffffff !important;
   }
 
-  /* --- SISTEMA DE COLUMNAS INFALIBLE (SIN FLEX NI FLOATS) --- */
-  .pdf-grid {
-    width: 100%;
-    font-size: 0; /* Elimina el espacio fantasma entre inline-blocks */
-    text-align: left;
-  }
-  .pdf-col-50 {
-    display: inline-block;
-    width: 48%;
-    vertical-align: top;
-    font-size: 12px; /* Restauramos la fuente */
-    margin-right: 4%;
-  }
+  /* --- SISTEMA DE COLUMNAS INFALIBLE --- */
+  .pdf-grid { width: 100%; font-size: 0; text-align: left; background-color: #ffffff !important;}
+  .pdf-col-50 { display: inline-block; width: 48%; vertical-align: top; font-size: 12px; margin-right: 4%; }
   .pdf-col-50.last { margin-right: 0; }
-
   .pdf-col-60 { display: inline-block; width: 56%; vertical-align: middle; font-size: 12px; margin-right: 4%; }
   .pdf-col-40 { display: inline-block; width: 40%; vertical-align: middle; font-size: 12px; }
 
-  /* --- ELEMENTOS VISUALES --- */
+  /* --- ELEMENTOS VISUALES (100% BLANCOS) --- */
   .verdict-box { 
     border-left: 4px solid; 
-    padding: 10px 15px; 
+    border-top: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 15px; 
     margin: 8px 0; 
     border-radius: 6px; 
-    background-color: #f8fafc;
+    background-color: #ffffff !important; 
   }
-  .verdict-danger  { border-color: #ef4444; background-color: #fef2f2; }
-  .verdict-warning { border-color: #f59e0b; background-color: #fffbeb; }
-  .verdict-success { border-color: #22c55e; background-color: #f0fdf4; }
+  .verdict-danger  { border-left-color: #ef4444; }
+  .verdict-warning { border-left-color: #f59e0b; }
+  .verdict-success { border-left-color: #22c55e; }
 
-  .rec-list { list-style: none; padding-left: 0; margin-top: 5px; margin-bottom: 0; }
+  .rec-list { list-style: none; padding-left: 0; margin-top: 5px; margin-bottom: 0; background-color: #ffffff !important;}
   .rec-list li { 
     position: relative; 
     padding-left: 15px; 
     font-size: 11px; 
-    margin-bottom: 4px; 
+    margin-bottom: 5px; 
     color: #334155; 
   }
   .rec-list li::before { 
@@ -85,225 +104,258 @@
     font-weight: bold; 
   }
 
-  /* --- OCULTAR EN WEB --- */
   @media screen {
     .pdf-only { display: none !important; }
     .page-start { border-top: 3px dashed #cbd5e1; margin-top: 40px; padding-top: 40px; page-break-before: auto !important; }
   }
 </style>
 
-<div>
+<div class="fixed-logo">
+  <img src="<%= logo_base64 %>" alt="Consilium Logo">
+</div>
+
+<table style="width: 100%; border: none; border-collapse: collapse; background-color: #ffffff !important;">
+  
+  <%# CABECERA MAESTRA (Aplica el hueco a cada página) %>
+  <thead>
+    <tr>
+      <th style="border: none; padding: 0; background-color: #ffffff !important;">
+        <div class="header-spacer"></div>
+      </th>
+    </tr>
+  </thead>
 
   <%# ========================================== %>
-  <%# PÁGINA 1: PORTADA                          %>
+  <%# TBODY 1: PORTADA                           %>
   <%# ========================================== %>
-  <div style="text-align: center; padding-top: 120px; padding-bottom: 20px;">
-    <div style="width: 70px; height: 6px; background: #6366f1; margin: 0 auto 25px auto; border-radius: 10px;"></div>
-    <h1 style="font-size: 42px; font-weight: bold; color: #0f172a; margin: 0 0 10px 0; letter-spacing: -1px;">Cons<span style="color: #6366f1;">ilium</span></h1>
-    <h3 style="font-size: 20px; color: #64748b; font-weight: 300; margin: 0; font-style: italic;">Reporte Ejecutivo de Autodiagnóstico</h3>
-    <div style="display: inline-block; background: #eef2ff; color: #6366f1; padding: 6px 16px; border-radius: 20px; font-size: 12px; margin-top: 20px; font-weight: bold; border: 1px solid #c7d2fe;">Generación 2026</div>
-    
-    <div style="max-width: 550px; margin: 80px auto 0 auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; text-align: left;">
-      <h5 style="font-weight: bold; color: #475569; text-align: center; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; margin-top: 0; margin-bottom: 20px;">Perfil del Análisis</h5>
-      
-      <div class="pdf-grid" style="margin-bottom: 15px;">
-        <div class="pdf-col-50">
-          <span style="color: #94a3b8; display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 3px;">Empresa</span>
-          <strong style="color: #0f172a; font-size: 14px;"><%= @questionnaire.company_name %></strong>
-        </div>
-        <div class="pdf-col-50 last">
-          <span style="color: #94a3b8; display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 3px;">Representante</span>
-          <strong style="color: #0f172a; font-size: 14px;"><%= @questionnaire.name %></strong>
-        </div>
-      </div>
-      
-      <div class="pdf-grid">
-        <div class="pdf-col-50">
-          <span style="color: #94a3b8; display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 3px;">Cargo</span>
-          <strong style="color: #0f172a; font-size: 14px;"><%= @questionnaire.position %></strong>
-        </div>
-        <div class="pdf-col-50 last">
-          <span style="color: #94a3b8; display: block; font-size: 9px; text-transform: uppercase; margin-bottom: 3px;">Fecha de Emisión</span>
-          <strong style="color: #0f172a; font-size: 14px;"><%= Time.current.strftime("%d/%m/%Y") %></strong>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <%# ========================================== %>
-  <%# PÁGINA 2: RADIOGRAFÍA (GRÁFICA)            %>
-  <%# ========================================== %>
-  <div class="page-start">
-    <div style="text-align: center; margin-bottom: 30px;">
-      <h2 style="font-size: 24px; font-weight: bold; color: #0f172a; margin: 0 0 5px 0;">Radiografía de Madurez</h2>
-      <p style="color: #64748b; font-size: 13px; margin: 0;">Desempeño consolidado por pilar estratégico</p>
-    </div>
-
-    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 25px;">
-      <div class="pdf-grid">
+  <tbody style="background-color: #ffffff !important;">
+    <tr>
+      <td style="border: none; padding: 0; vertical-align: top; background-color: #ffffff !important;">
         
-        <%# GRÁFICA %>
-        <div class="pdf-col-60" style="text-align: center;">
-          <div data-controller="chart" data-chart-scores-value="<%= @scores.to_json %>" style="width: 100%; height: 320px; position: relative; margin: 0 auto;">
-              <canvas id="radarChart" data-chart-target="canvas"></canvas>
-          </div>
-        </div>
-
-        <%# BARRAS DE PUNTUACIÓN %>
-        <div class="pdf-col-40">
-          <h6 style="font-weight: bold; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-top: 0; margin-bottom: 15px;">Puntuación por Área</h6>
+        <%# Alturas ajustadas para asegurar que no brinque de página accidentalmente %>
+        <div style="text-align: center; padding-top: 5px; padding-bottom: 10px; background-color: #ffffff !important;">
           
-          <% categories = ["Dirección y Estrategia", "Administración y Finanzas", "Operación y Procesos", "Ventas y Mercadotecnia", "Organización y C. Humano"] %>
-          <% @scores.each_with_index do |score, i| %>
-            <div style="margin-bottom: 15px;">
-              <div style="display: block; margin-bottom: 4px; width: 100%;">
-                <span style="font-size: 11px; font-weight: bold; color: #0f172a;"><%= categories[i] %></span>
-                <span style="font-size: 11px; font-weight: bold; color: #6366f1; float: right;"><%= score %> / 5.0</span>
-                <div style="clear: both;"></div>
+          <div style="margin-bottom: 25px; background-color: #ffffff !important;">
+            <img src="<%= logo_base64 %>" style="width: 320px; height: auto;">
+          </div>
+
+          <div style="width: 70px; height: 4px; background: #6366f1; margin: 0 auto 20px auto; border-radius: 10px; opacity: 0.3;"></div>
+          
+          <h3 style="font-size: 24px; color: #1e293b; font-weight: bold; margin: 0; letter-spacing: -0.5px;">Reporte Ejecutivo de Autodiagnóstico</h3>
+          <p style="font-size: 16px; color: #64748b; margin-top: 5px; font-weight: 300;">Análisis de Madurez Institucional</p>
+          
+          <div style="display: inline-block; background-color: #ffffff !important; color: #6366f1; padding: 6px 16px; border-radius: 20px; font-size: 12px; margin-top: 20px; font-weight: bold; border: 1px solid #c7d2fe;">Generación 2026</div>
+          
+          <div style="max-width: 550px; margin: 50px auto 0 auto; background-color: #ffffff !important; border: 1px solid #cbd5e1; border-radius: 16px; padding: 35px; text-align: left;">
+            <h5 style="font-weight: bold; color: #475569; text-align: center; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; margin-top: 0; margin-bottom: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">Perfil del Análisis</h5>
+            
+            <div class="pdf-grid" style="margin-bottom: 20px;">
+              <div class="pdf-col-50">
+                <span style="color: #94a3b8; display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 4px;">Empresa</span>
+                <strong style="color: #0f172a; font-size: 15px;"><%= @questionnaire.company_name %></strong>
               </div>
-              <div style="height: 6px; border-radius: 10px; background: #f1f5f9; width: 100%; position: relative;">
-                <div style="height: 100%; width: <%= (score/5.0)*100 %>%; background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%); border-radius: 10px;"></div>
+              <div class="pdf-col-50 last">
+                <span style="color: #94a3b8; display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 4px;">Representante</span>
+                <strong style="color: #0f172a; font-size: 15px;"><%= @questionnaire.name %></strong>
               </div>
             </div>
-          <% end %>
+            
+            <div class="pdf-grid">
+              <div class="pdf-col-50">
+                <span style="color: #94a3b8; display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 4px;">Cargo</span>
+                <strong style="color: #0f172a; font-size: 15px;"><%= @questionnaire.position %></strong>
+              </div>
+              <div class="pdf-col-50 last">
+                <span style="color: #94a3b8; display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 4px;">Fecha de Emisión</span>
+                <strong style="color: #0f172a; font-size: 15px;"><%= Time.current.strftime("%d/%m/%Y") %></strong>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 60px;">
+            <p style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px;">Propiedad de Consilium Strategic Advisors</p>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+
+  <%# ========================================== %>
+  <%# TBODY 2: RADIOGRAFÍA (SALTO DE PÁGINA)     %>
+  <%# ========================================== %>
+  <tbody class="page-start" style="background-color: #ffffff !important;">
+    <tr>
+      <td style="border: none; padding: 0; vertical-align: top; background-color: #ffffff !important;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h2 style="font-size: 24px; font-weight: bold; color: #0f172a; margin: 0 0 5px 0;">Radiografía de Madurez</h2>
+          <p style="color: #64748b; font-size: 13px; margin: 0;">Desempeño consolidado por pilar estratégico</p>
         </div>
 
-      </div>
-    </div>
-  </div>
+        <div style="background-color: #ffffff !important; border: 1px solid #e2e8f0; border-radius: 16px; padding: 25px;">
+          <div class="pdf-grid">
+            
+            <div class="pdf-col-60" style="text-align: center;">
+              <div data-controller="chart" data-chart-scores-value="<%= @scores.to_json %>" style="width: 100%; height: 320px; position: relative; margin: 0 auto; background-color: #ffffff !important;">
+                  <canvas id="radarChart" data-chart-target="canvas"></canvas>
+              </div>
+            </div>
 
-  <%# ========================================== %>
-  <%# PÁGINA 3+: ANÁLISIS DETALLADO              %>
-  <%# ========================================== %>
-  <div class="page-start">
-    <div style="border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; padding-bottom: 10px;">
-        <h3 style="font-size: 20px; font-weight: bold; color: #0f172a; margin: 0;">Análisis Detallado de Hallazgos</h3>
-    </div>
-    
-    <% q_num = 1 %> <%# <-- INICIAMOS EL CONTADOR DE PREGUNTAS %>
-    
-    <% get_autodiagnostico_questions.each_with_index do |(category, questions), cat_index| %>
-      <div style="margin-bottom: 30px;">
-        
-        <h5 style="color: #6366f1; font-weight: bold; font-size: 13px; background: #f8faff; padding: 8px 12px; border-left: 4px solid #6366f1; text-transform: uppercase; margin-top: 0; margin-bottom: 15px; page-break-after: avoid !important;">
-          Pilar <%= cat_index + 1 %>: <%= category %>
-        </h5>
-        
-        <% questions.each do |key, q_text| %>
-          <% 
-            score = @questionnaire.answers[key]
-            analysis = get_autodiagnostico_analysis(key, score)
-            status_class = case score.to_i
-                           when 1..2 then "danger"
-                           when 3 then "warning"
-                           else "success"
-                           end
-            bg_color = case score.to_i
-                       when 1..2 then "#ef4444"
-                       when 3 then "#f59e0b"
-                       else "#22c55e"
-                       end
-          %>
-          
-          <%# PREGUNTA INDIVIDUAL: BLOQUE INSEPARABLE %>
-          <div class="avoid-break">
-            <table style="width: 100%; border-collapse: collapse; border: none;">
-              <tr>
-                <td style="width: 40px; vertical-align: top; padding-top: 2px;">
-                  <%# Badge de color con la calificación (ej. 2) %>
-                  <div style="background-color: <%= bg_color %>; color: white; border-radius: 50px; width: 22px; height: 22px; text-align: center; line-height: 22px; font-size: 11px; font-weight: bold;"><%= score %></div>
-                </td>
-                <td style="vertical-align: top; padding-bottom: 10px;">
-                  
-                  <%# TEXTO DE LA PREGUNTA (CON NUMERACIÓN) %>
-                  <p style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 0 0 3px 0; line-height: 1.3;">
-                    <%= q_num %>. <%= q_text %>
-                  </p>
-                  
-                  <%# TEXTO DE LA RESPUESTA SELECCIONADA POR EL CLIENTE (CON NIVEL DE OPCIÓN) %>
-                  <p style="font-size: 11px; color: #475569; margin: 0 0 8px 0; font-style: italic; line-height: 1.4;">
-                    <span style="color: <%= bg_color %>; font-weight: bold; font-style: normal;">Respuesta (Opción <%= score %>):</span> "<%= analysis[:text] %>"
-                  </p>
-                  
-                  <div style="border-left: 2px solid #e2e8f0; margin-left: 2px; padding-left: 15px; margin-top: 6px;">
-                    <%# DICTAMEN %>
-                    <div class="verdict-box verdict-<%= status_class %>">
-                      <span style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 3px;">Dictamen Técnico:</span>
-                      <span style="font-size: 11px; color: #334155; line-height: 1.4;">"<%= analysis[:dictamen] %>"</span>
-                    </div>
-                    
-                    <%# RECOMENDACIONES %>
-                    <div style="margin-top: 8px;">
-                      <span style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">Acciones Recomendadas:</span>
-                      <ul class="rec-list">
-                        <% analysis[:recs].each do |rec| %>
-                          <li><%= rec %></li>
-                        <% end %>
-                      </ul>
-                    </div>
+            <div class="pdf-col-40">
+              <h6 style="font-weight: bold; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-top: 0; margin-bottom: 15px;">Puntuación por Área</h6>
+              
+              <% categories = ["Dirección y Estrategia", "Administración y Finanzas", "Operación y Procesos", "Ventas y Mercadotecnia", "Organización y C. Humano"] %>
+              <% @scores.each_with_index do |score, i| %>
+                <div style="margin-bottom: 15px;">
+                  <div style="display: block; margin-bottom: 4px; width: 100%;">
+                    <span style="font-size: 11px; font-weight: bold; color: #0f172a;"><%= categories[i] %></span>
+                    <span style="font-size: 11px; font-weight: bold; color: #6366f1; float: right;"><%= score %> / 5.0</span>
+                    <div style="clear: both;"></div>
                   </div>
-                </td>
-              </tr>
-            </table>
+                  <%# 100% fondo blanco en la barra de progreso %>
+                  <div style="height: 8px; border-radius: 10px; background-color: #ffffff !important; border: 1px solid #cbd5e1; width: 100%; position: relative; padding: 1px;">
+                    <div style="height: 100%; width: <%= (score/5.0)*100 %>%; background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%); border-radius: 10px;"></div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+
           </div>
-          
-          <% q_num += 1 %> <%# <-- INCREMENTAMOS EL CONTADOR %>
-        <% end %>
-      </div>
-    <% end %>
-  </div>
+        </div>
+      </td>
+    </tr>
+  </tbody>
 
   <%# ========================================== %>
-  <%# PÁGINA FINAL: CONCLUSIÓN (RIESGOS DINÁMICOS) %>
+  <%# TBODY 3: ANÁLISIS (SALTO DE PÁGINA)        %>
   <%# ========================================== %>
-  <div class="page-start">
-    <% 
-      avg_global = ((@scores.sum / 25.0) * 100).round 
-      
-      # EXTRAEMOS LOS 3 PEORES PUNTAJES PARA HACER LOS RIESGOS DINÁMICOS
-      worst_answers = @questionnaire.answers.select { |k, v| k.start_with?('a') }.sort_by { |k, v| v.to_i }.first(3)
-    %>
-    
-    <div style="background-color: #0f172a; padding: 30px; border-radius: 16px; margin-bottom: 30px;">
-        <h3 style="font-weight: bold; font-size: 20px; color: white; margin: 0 0 10px 0;">Interpretación Ejecutiva Final</h3>
-        <p style="font-size: 13px; line-height: 1.6; color: #cbd5e1; margin: 0;">
-          Su organización presenta un índice de madurez operativa del <strong style="color: white;"><%= avg_global %>%</strong>. 
-          Este resultado lo sitúa en una etapa de 
-          <span style="color: #f59e0b; font-weight: bold;">
-            <%= avg_global < 50 ? "SUPERVIVENCIA Y REACTIVIDAD" : (avg_global < 80 ? "INSTITUCIONALIZACIÓN EN CURSO" : "EXCELENCIA Y LIDERAZGO") %>
-          </span>.
-        </p>
-    </div>
-
-    <div class="pdf-grid avoid-break">
-      <div class="pdf-col-50">
-        <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 25px; border-radius: 16px; height: 100%;">
-          <h5 style="font-weight: bold; color: #dc2626; font-size: 14px; margin: 0 0 15px 0;"><i class="ri-alarm-warning-line"></i> Riesgos Críticos Detectados</h5>
-          
-          <ul style="padding-left: 15px; margin: 0; font-size: 11px; color: #7f1d1d; line-height: 1.5;">
-            <% worst_answers.each do |key, score| %>
-              <% analysis = get_autodiagnostico_analysis(key, score) %>
-              <li style="margin-bottom: 10px;">
-                <%= analysis[:dictamen].split(';').first || analysis[:dictamen] %>
-              </li>
+  <tbody class="page-start" style="background-color: #ffffff !important;">
+    <tr>
+      <td style="border: none; padding: 0; vertical-align: top; background-color: #ffffff !important;">
+        <div style="border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; padding-bottom: 10px;">
+            <h3 style="font-size: 20px; font-weight: bold; color: #0f172a; margin: 0;">Análisis Detallado de Hallazgos</h3>
+        </div>
+        
+        <% q_num = 1 %> 
+        
+        <% get_autodiagnostico_questions.each_with_index do |(category, questions), cat_index| %>
+          <div style="margin-bottom: 35px; background-color: #ffffff !important;">
+            
+            <h5 style="color: #6366f1; font-weight: bold; font-size: 13px; background-color: #ffffff !important; padding: 5px 0; border-bottom: 2px solid #6366f1; text-transform: uppercase; margin-top: 0; margin-bottom: 20px; page-break-after: avoid !important;">
+              Pilar <%= cat_index + 1 %>: <%= category %>
+            </h5>
+            
+            <% questions.each do |key, q_text| %>
+              <% 
+                score = @questionnaire.answers[key]
+                analysis = get_autodiagnostico_analysis(key, score)
+                status_class = case score.to_i
+                               when 1..2 then "danger"
+                               when 3 then "warning"
+                               else "success"
+                               end
+                bg_color = case score.to_i
+                           when 1..2 then "#ef4444"
+                           when 3 then "#f59e0b"
+                           else "#22c55e"
+                           end
+              %>
+              
+              <div class="avoid-break" style="background-color: #ffffff !important;">
+                <table style="width: 100%; border-collapse: collapse; border: none; background-color: #ffffff !important;">
+                  <tr>
+                    <td style="width: 40px; vertical-align: top; padding-top: 2px;">
+                      <div style="background-color: <%= bg_color %> !important; color: white; border-radius: 50px; width: 22px; height: 22px; text-align: center; line-height: 22px; font-size: 11px; font-weight: bold;"><%= score %></div>
+                    </td>
+                    <td style="vertical-align: top; padding-bottom: 15px;">
+                      
+                      <p style="font-size: 12px; font-weight: bold; color: #0f172a; margin: 0 0 3px 0; line-height: 1.3;">
+                        <%= q_num %>. <%= q_text %>
+                      </p>
+                      
+                      <p style="font-size: 11px; color: #475569; margin: 0 0 8px 0; font-style: italic; line-height: 1.4;">
+                        <span style="color: <%= bg_color %>; font-weight: bold; font-style: normal;">Respuesta (Opción <%= score %>):</span> "<%= analysis[:text] %>"
+                      </p>
+                      
+                      <div style="border-left: 2px solid #e2e8f0; margin-left: 2px; padding-left: 15px; margin-top: 6px;">
+                        <div class="verdict-box verdict-<%= status_class %>">
+                          <span style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 3px;">Dictamen Técnico:</span>
+                          <span style="font-size: 11px; color: #334155; line-height: 1.4;">"<%= analysis[:dictamen] %>"</span>
+                        </div>
+                        
+                        <div style="margin-top: 8px;">
+                          <span style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">Acciones Recomendadas:</span>
+                          <ul class="rec-list">
+                            <% analysis[:recs].each do |rec| %>
+                              <li><%= rec %></li>
+                            <% end %>
+                          </ul>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              
+              <% q_num += 1 %> 
             <% end %>
-          </ul>
+          </div>
+        <% end %>
+      </td>
+    </tr>
+  </tbody>
 
+  <%# ========================================== %>
+  <%# TBODY 4: CONCLUSIÓN (SALTO DE PÁGINA)      %>
+  <%# ========================================== %>
+  <tbody class="page-start" style="background-color: #ffffff !important;">
+    <tr>
+      <td style="border: none; padding: 0; vertical-align: top; background-color: #ffffff !important;">
+        <% 
+          avg_global = ((@scores.sum / 25.0) * 100).round 
+          worst_answers = @questionnaire.answers.select { |k, v| k.start_with?('a') }.sort_by { |k, v| v.to_i }.first(3)
+        %>
+        
+        <div style="background-color: #ffffff !important; padding: 30px; border-radius: 16px; margin-bottom: 30px; border: 2px solid #0f172a;">
+            <h3 style="font-weight: bold; font-size: 20px; color: #0f172a; margin: 0 0 10px 0;">Interpretación Ejecutiva Final</h3>
+            <p style="font-size: 13px; line-height: 1.6; color: #475569; margin: 0;">
+              Su organización presenta un índice de madurez operativa del <strong style="color: #0f172a; font-size: 15px;"><%= avg_global %>%</strong>. 
+              Este resultado lo sitúa en una etapa de 
+              <span style="color: #6366f1; font-weight: bold; text-decoration: underline;">
+                <%= avg_global < 50 ? "SUPERVIVENCIA Y REACTIVIDAD" : (avg_global < 80 ? "INSTITUCIONALIZACIÓN EN CURSO" : "EXCELENCIA Y LIDERAZGO") %>
+              </span>.
+            </p>
         </div>
-      </div>
 
-      <div class="pdf-col-50 last">
-        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 25px; border-radius: 16px; height: 100%;">
-          <h5 style="font-weight: bold; color: #166534; font-size: 14px; margin: 0 0 10px 0;"><i class="ri-rocket-line"></i> Próximos Pasos</h5>
-          <p style="font-size: 12px; color: #475569; margin: 0 0 20px 0; line-height: 1.5;">Le recomendamos agendar una sesión estratégica sin costo para estructurar un plan de acción enfocado en mitigar los riesgos detectados.</p>
-          <div style="text-align: center;">
-             <a href="http://74.208.227.22" style="display: block; background: #166534; color: white; padding: 12px 0; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 11px;">
-                AGENDAR SESIÓN DE REVISIÓN
-             </a>
+        <div class="pdf-grid avoid-break">
+          <div class="pdf-col-50">
+            <div style="background-color: #ffffff !important; border: 1px solid #fca5a5; padding: 25px; border-radius: 16px; height: 100%;">
+              <h5 style="font-weight: bold; color: #dc2626; font-size: 14px; margin: 0 0 15px 0;"><i class="ri-alarm-warning-line"></i> Riesgos Críticos Detectados</h5>
+              
+              <ul style="padding-left: 15px; margin: 0; font-size: 11px; color: #7f1d1d; line-height: 1.5;">
+                <% worst_answers.each do |key, score| %>
+                  <% analysis = get_autodiagnostico_analysis(key, score) %>
+                  <li style="margin-bottom: 10px;">
+                    <%= analysis[:dictamen].split(';').first || analysis[:dictamen] %>
+                  </li>
+                <% end %>
+              </ul>
+
+            </div>
+          </div>
+
+          <div class="pdf-col-50 last">
+            <div style="background-color: #ffffff !important; border: 1px solid #86efac; padding: 25px; border-radius: 16px; height: 100%;">
+              <h5 style="font-weight: bold; color: #166534; font-size: 14px; margin: 0 0 10px 0;"><i class="ri-rocket-line"></i> Próximos Pasos</h5>
+              <p style="font-size: 12px; color: #475569; margin: 0 0 20px 0; line-height: 1.5;">Le recomendamos agendar una sesión estratégica para estructurar un plan de acción enfocado en mitigar los riesgos detectados.</p>
+              <div style="text-align: center;">
+                 <a href="http://74.208.227.22" style="display: block; background: #166534; color: white; padding: 12px 0; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 11px;">
+                    AGENDAR SESIÓN DE REVISIÓN
+                 </a>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-</div>
+      </td>
+    </tr>
+  </tbody>
+</table>

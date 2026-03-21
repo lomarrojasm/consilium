@@ -33,6 +33,7 @@
                     <th class="text-center">RFC</th>
                     <th>Industria</th>
                     <th>Contacto Principal</th>
+                    <th class="text-center">Contrato</th>
                     <th class="text-center">Timeline</th>
                 </tr>
             </thead>
@@ -77,6 +78,19 @@
                             <span class="font-13 fw-medium"><%= client.sponsor_name %></span>
                             <small class="text-info"><%= client.sponsor_email rescue '' %></small>
                         </div>
+                    </td>
+                    <td class="text-center">
+                        <% if client.contract.attached? %>
+                            <%= link_to rails_blob_path(client.contract, disposition: "attachment"), 
+                                class: "btn btn-xs btn-outline-primary rounded-pill", 
+                                data: { bs_toggle: "tooltip" }, title: "Descargar Contrato (#{client.contract.filename})" do %>
+                                <i class="ri-file-download-line"></i>
+                            <% end %>
+                        <% else %>
+                            <span class="text-muted opacity-25" data-bs-toggle="tooltip" title="Sin contrato cargado">
+                                <i class="ri-file-forbid-line font-16"></i>
+                            </span>
+                        <% end %>
                     </td>
                     <td class="text-center">
                         <%= link_to timeline_client_path(client), class: "btn btn-xs btn-outline-secondary rounded-pill" do %>

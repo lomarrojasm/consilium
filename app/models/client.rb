@@ -2,6 +2,7 @@ class Client < ApplicationRecord
   include TimelineRecordable # <--- Para Timeline
   #Imagen de Ciente
   has_one_attached :avatar
+  has_one_attached :contract
 
   validate :correct_avatar_mime_type
 

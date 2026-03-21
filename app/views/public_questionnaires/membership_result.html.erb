@@ -1,92 +1,209 @@
 <%# app/views/public_questionnaires/membership_result.html.erb %>
 
-<div class="container py-5">
-  <div class="row justify-content-center">
-    <div class="col-lg-8">
-      
-      <%# Botón de Descarga PDF (Solo se muestra en web, se oculta al imprimir el PDF) %>
-      <% if request.format.html? %>
-        <div class="text-end mb-3">
-            <%= link_to membership_pdf_path(id: @questionnaire.signed_id), 
-                        class: "btn btn-danger shadow-sm rounded-pill px-4 fw-bold", 
-                        target: "_blank", data: { turbo: false } do %>
-            <i class="ri-file-pdf-2-line me-1"></i> Descargar Reporte en PDF
-            <% end %>
-        </div>
-        <% end %>
+<% 
+  # MAGIA PARA PRODUCCIÓN: Convertimos la imagen a Base64 para que Puppeteer NUNCA falle al buscarla.
+  logo_path = Rails.root.join('app/assets/images/consilium_rec.png')
+  logo_base64 = "data:image/png;base64,#{Base64.strict_encode64(File.read(logo_path))}" if File.exist?(logo_path)
 
-      <div class="card shadow-lg border-0" style="border-radius: 16px; overflow: hidden;">
+  badge_color = case @membership_level
+                when "Platinum" then "#1f2937" 
+                when "Gold" then "#f5b225"     
+                else "#6366f1"                 
+                end
+%>
+
+<style>
+  /* --- CONTROL DE VISUALIZACIÓN DUAL --- */
+  @media screen {
+    .print-only { display: none !important; }
+    .screen-only { display: block !important; }
+  }
+
+  @media print {
+    .screen-only { display: none !important; }
+    .print-only { display: block !important; }
+
+    /* ESTILOS BLINDADOS PARA PDF */
+    @page { margin: 15mm 15mm 15mm 15mm; size: Letter; } /* Margen inferior reducido para dar más espacio */
+    html, body { background-color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; padding: 0; font-family: 'Helvetica', 'Arial', sans-serif; }
+
+    /* LOGO FIJO Y ESCUDO */
+    .fixed-logo { position: fixed; top: 10px; right: 15px; height: 50px; z-index: 9999; background-color: #ffffff; }
+    .fixed-logo img { height: 100%; opacity: 1; }
+    .header-spacer { height: 80px; background-color: #ffffff !important; } /* Ligeramente reducido */
+
+    /* SISTEMA DE REJILLA PDF */
+    .pdf-grid { width: 100%; font-size: 0; text-align: left; background-color: #ffffff !important; }
+    .pdf-col-50 { display: inline-block; width: 48%; vertical-align: top; font-size: 12px; margin-right: 4%; }
+    .pdf-col-50.last { margin-right: 0; }
+    
+    /* SALTOS DE PÁGINA Y COLORES */
+    .avoid-break { page-break-inside: avoid !important; break-inside: avoid !important; display: inline-block !important; width: 100%; margin-bottom: 15px; vertical-align: top; background-color: #ffffff !important; }
+    .print-bg-white { background-color: #ffffff !important; }
+    .print-text-dark { color: #0f172a !important; }
+    .print-border { border: 1px solid #e2e8f0 !important; }
+  }
+</style>
+
+<%# ========================================================= %>
+<%# VISTA WEB: Optimizada con Bootstrap (Oculta en PDF)       %>
+<%# ========================================================= %>
+<div class="screen-only">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
         
-        <%# Encabezado %>
-        <div class="card-header border-0 text-center py-4 text-white" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
-          <h2 class="fw-bold mb-0">Reporte de Perfil Operativo</h2>
-          <p class="text-white-50 font-14 mt-1 mb-0">Consilium - Diagnóstico Estructural</p>
+        <div class="text-end mb-3">
+          <%= link_to membership_pdf_path(id: @questionnaire.signed_id), class: "btn btn-danger shadow-sm rounded-pill px-4 fw-bold", target: "_blank", data: { turbo: false } do %>
+            <i class="ri-file-pdf-2-line me-1"></i> Descargar Reporte en PDF
+          <% end %>
         </div>
 
-        <div class="card-body p-4 p-md-5">
-          
-          <%# Datos de la Empresa %>
-          <div class="row border-bottom pb-4 mb-4">
-            <div class="col-sm-6">
-              <p class="text-muted font-11 text-uppercase fw-bold mb-1">Empresa Evaluada</p>
-              <h4 class="text-dark fw-bold m-0"><%= @questionnaire.company_name %></h4>
+        <div class="card shadow-lg border-0" style="border-radius: 16px; overflow: hidden;">
+          <div class="card-header border-0 text-center py-4 text-white" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+            <h2 class="fw-bold mb-0">Reporte de Perfil Operativo</h2>
+            <p class="text-white-50 font-14 mt-1 mb-0">Consilium - Diagnóstico Estructural</p>
+          </div>
+
+          <div class="card-body p-4 p-md-5">
+            <div class="row border-bottom pb-4 mb-4">
+              <div class="col-sm-6">
+                <p class="text-muted font-11 text-uppercase fw-bold mb-1">Empresa Evaluada</p>
+                <h4 class="text-dark fw-bold m-0"><%= @questionnaire.company_name %></h4>
+              </div>
+              <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                <p class="text-muted font-11 text-uppercase fw-bold mb-1">Representante</p>
+                <h5 class="text-secondary m-0"><%= @questionnaire.name %></h5>
+                <small class="text-muted"><%= @questionnaire.position %></small>
+              </div>
             </div>
-            <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
-              <p class="text-muted font-11 text-uppercase fw-bold mb-1">Representante</p>
-              <h5 class="text-secondary m-0"><%= @questionnaire.name %> (<%= @questionnaire.position %>)</h5>
+
+            <div class="text-center p-4 rounded-4 mb-4" style="background-color: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.1);">
+              <p class="text-primary font-12 fw-bold text-uppercase tracking-wider mb-2">Nivel de Acompañamiento Sugerido</p>
+              <h1 class="display-4 fw-bold mb-3" style="color: <%= badge_color %>;">Membresía <%= @membership_level %></h1>
+              <span class="badge bg-white text-dark shadow-sm border font-13 px-3 py-2">Puntaje de Complejidad: <%= @total_score %> puntos</span>
+            </div>
+
+            <div class="mb-5">
+              <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="ri-survey-line text-primary me-2"></i>Justificación del Sistema</h5>
+              <p class="text-muted" style="font-size: 15px; line-height: 1.7; text-align: justify;"><%= @justification %></p>
+            </div>
+
+            <div>
+              <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="ri-list-check-2 text-primary me-2"></i>Factores Evaluados y Respuestas</h5>
+              <ul class="list-group list-group-flush">
+                <% @questionnaire.answers.select { |k, v| k.start_with?('m') }.each_with_index do |(key, val), index| %>
+                  <li class="list-group-item px-0 py-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <div style="max-width: 80%;">
+                        <p class="mb-0 font-13 fw-bold text-dark"><%= index + 1 %>. <%= get_question_text(key) %></p>
+                      </div>
+                      <span class="badge bg-soft-primary text-primary rounded-pill font-11 border px-2">Impacto: <%= val %> pts</span>
+                    </div>
+                    <div class="p-2 rounded bg-light border-start border-3 border-primary mt-2">
+                      <p class="font-12 text-muted mb-0">
+                        <strong class="text-dark">Respuesta:</strong> <%= get_membership_option_text(key, val) %>
+                      </p>
+                    </div>
+                  </li>
+                <% end %>
+              </ul>
             </div>
           </div>
-
-          <%# Nivel de Membresía Recomendado %>
-          <% 
-             badge_color = case @membership_level
-                           when "Platinum" then "#1f2937" # Dark Slate
-                           when "Gold" then "#f5b225"     # Gold
-                           else "#6366f1"                 # Indigo/Básica
-                           end
-          %>
-          
-          <div class="text-center p-4 rounded-4 mb-4" style="background-color: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.1);">
-            <p class="text-primary font-12 fw-bold text-uppercase tracking-wider mb-2">Nivel de Acompañamiento Sugerido</p>
-            <h1 class="display-4 fw-bold mb-2" style="color: <%= badge_color %>;">
-              Membresía <%= @membership_level %>
-            </h1>
-            <span class="badge bg-light text-dark border">Puntaje de Complejidad: <%= @total_score %> puntos</span>
-          </div>
-
-          <%# Justificación Técnica %>
-          <div class="mb-5">
-            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="ri-survey-line text-primary me-2"></i>Justificación del Sistema</h5>
-            <p class="text-muted" style="font-size: 15px; line-height: 1.7; text-align: justify;">
-              <%= @justification %>
-            </p>
-          </div>
-
-          <%# Detalle de Respuestas %>
-          <div>
-            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="ri-list-check-2 text-primary me-2"></i>Factores Evaluados</h5>
-            <ul class="list-group list-group-flush">
-              <% @questionnaire.answers.select { |k, v| k.start_with?('m') }.each do |key, val| %>
-                <li class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
-                  <div style="max-width: 80%;">
-                    <p class="mb-0 font-13 fw-bold text-dark"><%= get_question_text(key) %></p>
-                  </div>
-                  <span class="badge bg-soft-secondary text-secondary rounded-pill font-12 border">Puntos: <%= val %></span>
-                </li>
-              <% end %>
-            </ul>
-          </div>
-
-        </div>
-
-        <%# Footer del PDF %>
-        <div class="card-footer bg-light text-center border-0 py-3">
-          <p class="text-muted font-12 mb-0">
-            Este reporte es generado automáticamente. Para cotizaciones o dudas, contacta a tu asesor en Consilium.
-          </p>
         </div>
       </div>
-      
     </div>
   </div>
+</div>
+
+<%# ========================================================= %>
+<%# VISTA PDF: Estructura de Tabla Rígida (Oculta en Web)     %>
+<%# ========================================================= %>
+<div class="print-only print-bg-white">
+  
+  <div class="fixed-logo">
+    <img src="<%= logo_base64 %>" alt="Consilium Logo">
+  </div>
+
+  <table style="width: 100%; border: none; border-collapse: collapse; background-color: #ffffff !important;">
+    <thead>
+      <tr><th style="border: none; padding: 0; background-color: #ffffff !important;"><div class="header-spacer"></div></th></tr>
+    </thead>
+    
+    <tbody style="background-color: #ffffff !important;">
+      <tr>
+        <td style="border: none; padding: 0; vertical-align: top; background-color: #ffffff !important;">
+
+          <%# ENCABEZADO PDF (Espacios ajustados) %>
+          <div style="text-align: center; border-bottom: 2px solid #6366f1; padding-bottom: 15px; margin-bottom: 20px;">
+            <h2 style="font-size: 24px; color: #0f172a; font-weight: bold; margin: 0;">Reporte de Perfil Operativo</h2>
+            <p style="font-size: 14px; color: #64748b; margin-top: 5px; font-weight: bold;">Consilium - Diagnóstico Estructural</p>
+          </div>
+
+          <%# DATOS DE EMPRESA %>
+          <div class="pdf-grid" style="margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">
+            <div class="pdf-col-50">
+              <span style="color: #94a3b8; display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; font-weight: bold;">Empresa Evaluada</span>
+              <strong style="color: #0f172a; font-size: 16px;"><%= @questionnaire.company_name %></strong>
+            </div>
+            <div class="pdf-col-50 last" style="text-align: right;">
+              <span style="color: #94a3b8; display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; font-weight: bold;">Representante</span>
+              <strong style="color: #0f172a; font-size: 14px;"><%= @questionnaire.name %></strong><br>
+              <span style="color: #64748b; font-size: 12px; font-style: italic;"><%= @questionnaire.position %></span>
+            </div>
+          </div>
+
+          <%# NIVEL RECOMENDADO %>
+          <div class="avoid-break print-border" style="text-align: center; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+            <p style="color: #6366f1; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Nivel de Acompañamiento Sugerido</p>
+            <h1 style="font-size: 28px; font-weight: bold; margin: 0 0 10px 0; color: <%= badge_color %>;">Membresía <%= @membership_level %></h1>
+            <div style="display: inline-block; border: 1px solid #cbd5e1; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; color: #0f172a;">
+              Puntaje de Complejidad: <%= @total_score %> puntos
+            </div>
+          </div>
+
+          <%# JUSTIFICACIÓN %>
+          <div class="avoid-break" style="margin-bottom: 25px;">
+            <h5 style="font-size: 15px; font-weight: bold; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px;">Justificación del Sistema</h5>
+            <p style="font-size: 12px; color: #475569; line-height: 1.5; margin: 0; text-align: justify;"><%= @justification %></p>
+          </div>
+
+          <%# PREGUNTAS Y RESPUESTAS (Márgenes compactados) %>
+          <div class="avoid-break">
+            <h5 style="font-size: 15px; font-weight: bold; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px;">Factores Evaluados y Respuestas</h5>
+            
+            <% @questionnaire.answers.select { |k, v| k.start_with?('m') }.each_with_index do |(key, val), index| %>
+              
+              <div class="avoid-break print-border" style="padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; background-color: #ffffff !important;">
+                
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; background-color: #ffffff !important;">
+                  <tr>
+                    <td style="vertical-align: top; width: 80%; padding: 0;">
+                      <span style="font-size: 12px; font-weight: bold; color: #0f172a;"><%= index + 1 %>. <%= get_question_text(key) %></span>
+                    </td>
+                    <td style="vertical-align: top; width: 20%; padding: 0; text-align: right;">
+                      <span style="font-size: 10px; font-weight: bold; color: #6366f1; border: 1px solid #c7d2fe; padding: 3px 6px; border-radius: 12px; white-space: nowrap;">Impacto: <%= val %> pts</span>
+                    </td>
+                  </tr>
+                </table>
+                
+                <div style="background-color: #ffffff !important; border-left: 3px solid #6366f1; padding: 6px 12px;">
+                  <span style="font-size: 11px; font-weight: bold; color: #0f172a;">Respuesta seleccionada:</span>
+                  <span style="font-size: 11px; color: #475569;"><%= get_membership_option_text(key, val) %></span>
+                </div>
+              </div>
+
+            <% end %>
+          </div>
+
+          <%# FOOTER %>
+          <div style="margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center;">
+             <p style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; margin-bottom: 4px;">Propiedad de Consilium Strategic Advisors</p>
+             <p style="font-size: 10px; color: #64748b; font-style: italic; margin: 0;">Este reporte es generado automáticamente. Para cotizaciones o dudas, contacta a tu asesor en Consilium.</p>
+          </div>
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>

@@ -35,6 +35,7 @@ $(document).on('turbo:load', function () {
             { orderable: true },  // RFC
             { orderable: true },  // Industria
             { orderable: true },  // Contacto
+            { orderable: true },  // Contrato
             { orderable: false },  // Timeline
         ],
         order: [[1, "asc"]],
