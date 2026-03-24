@@ -1,41 +1,52 @@
 <%# app/views/projects/show.html.erb %>
 
+<%# ========================================== %>
+<%# 1. ENCABEZADO Y BREADCRUMBS RESPONSIVOS    %>
+<%# ========================================== %>
 <div class="row">
     <div class="col-12">
-        <div class="page-title-box">
-            <div class="page-title-right">
-                <div class="d-flex flex-wrap gap-2 justify-content-md-end align-items-center">
-                    
-                    <%# --- ACCIONES PRINCIPALES --- %>
-                    <%= link_to schedule_view_client_project_path(@client, @project), 
-                        class: "btn btn-soft-info rounded-pill shadow-sm px-3", target: "_blank" do %> 
-                        <i class="ri-calendar-todo-line me-1 align-middle"></i> 
-                        <span class="d-none d-xxl-inline">Cronograma</span>
-                    <% end %>
+        <div class="page-title-box d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 py-3">
+            
+            <%# Título (Alineado a la izquierda) %>
+            <div class="w-100 w-lg-auto mb-1 mb-lg-0">
+                <h4 class="page-title m-0">Detalle del Proyecto</h4>
+                <ol class="breadcrumb m-0 d-none d-md-flex mt-1">
+                    <li class="breadcrumb-item"><%= link_to "Consilium", current_user.role == "admin" ? root_path : client_dashboard_path %></li>
+                    <li class="breadcrumb-item"><%= link_to "Clientes", clients_path if current_user.role == "admin" %></li> 
+                    <li class="breadcrumb-item"><%= link_to @client.company_name, client_path(@client) %></li>                  
+                    <li class="breadcrumb-item active text-truncate" style="max-width: 150px;"><%= @project.name %></li>
+                </ol>
+            </div>
 
-                    <%# --- SEGURIDAD: Acciones de Administrador --- %>
-                    <% if current_user.role == 'admin' %>
-                    
-                    <%# Botón de Finanzas: Ahora integrado y destacado como acción principal %>
+            <%# Botones de Acción (Se apilan en móvil, se alinean a la derecha en PC) %>
+            <div class="w-100 w-lg-auto d-flex flex-wrap gap-2 justify-content-start justify-content-lg-end align-items-center">
+                
+                <%= link_to schedule_view_client_project_path(@client, @project), 
+                    class: "btn btn-soft-info rounded-pill shadow-sm px-3 flex-grow-1 flex-md-grow-0 text-center", target: "_blank" do %> 
+                    <i class="ri-calendar-todo-line me-1 align-middle"></i> 
+                    <span class="d-inline d-xxl-inline">Cronograma</span>
+                <% end %>
+
+                <% if current_user.role == 'admin' %>
+                
                     <%= link_to client_project_financials_path(@client, @project), 
-                        class: "btn btn-success rounded-pill shadow-sm px-3 fw-bold", 
+                        class: "btn btn-success rounded-pill shadow-sm px-3 fw-bold flex-grow-1 flex-md-grow-0 text-center", 
                         data: { turbo: false } do %>
                         <i class="ri-wallet-3-line me-1 align-middle"></i> 
-                        <span class="d-none d-sm-inline">Finanzas</span>
+                        <span class="d-inline">Finanzas</span>
                     <% end %>
 
-                    <button type="button" class="btn btn-soft-primary rounded-pill shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#membersModal">
+                    <button type="button" class="btn btn-soft-primary rounded-pill shadow-sm px-3 flex-grow-1 flex-md-grow-0 text-center" data-bs-toggle="modal" data-bs-target="#membersModal">
                         <i class="ri-group-line me-1 align-middle"></i> 
-                        <span class="d-none d-xxl-inline">Equipo</span>
+                        <span class="d-inline d-xxl-inline">Equipo</span>
                     </button>
 
-                    <%# --- GRUPO DE UTILIDADES (Ajustes y Borrar) --- %>
-                    <div class="btn-group shadow-sm rounded-pill bg-white p-1 border">
+                    <div class="btn-group shadow-sm rounded-pill bg-white p-1 border ms-auto ms-md-0">
                         <%= link_to edit_client_project_path(@client, @project), 
                             class: "btn btn-ghost-secondary btn-sm rounded-circle", 
                             style: "width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;",
                             title: "Configuración del Proyecto" do %>
-                        <i class="ri-settings-3-line font-16"></i>
+                            <i class="ri-settings-3-line font-16"></i>
                         <% end %>
 
                         <button type="button" 
@@ -43,45 +54,40 @@
                                 style: "width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;"
                                 onclick="confirmDeleteProject()"
                                 title="Eliminar Proyecto">
-                        <i class="ri-delete-bin-line font-16"></i>
+                            <i class="ri-delete-bin-line font-16"></i>
                         </button>
                     </div>
 
-                    <% end %>
-                </div>
+                <% end %>
             </div>
-            <h4 class="page-title">Detalle del Proyecto</h4>
-            <ol class="breadcrumb m-0 d-none d-md-flex">
-                <li class="breadcrumb-item"><%= link_to "Consilium", current_user.role == "admin" ? root_path : client_dashboard_path %></li>
-                <li class="breadcrumb-item"><%= link_to "Clientes", clients_path if current_user.role == "admin" %></li> 
-                <li class="breadcrumb-item"><%= link_to @client.company_name, client_path(@client) %></li>                  
-                <li class="breadcrumb-item active text-truncate" style="max-width: 150px;"><%= @project.name %></li>
-            </ol>
         </div>
     </div>
 </div>
 
+<%# ========================================== %>
+<%# 2. KPIs GLOBALES                           %>
+<%# ========================================== %>
 <div class="row">
     <div class="col-12">
         <div class="card bg-primary text-white border-0 mb-3 shadow">
             <div class="card-body">
                 <div class="row align-items-center text-center text-md-start">
-                    <div class="col-md-4">
+                    <div class="col-md-4 mb-3 mb-md-0">
                         <h3 class="mt-0 text-white"><%= @project.name %></h3>
                         <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 flex-wrap">
                             <span class="badge bg-white text-primary px-2"><%= @client.company_name %></span>
                             <span class="badge bg-info-lighten text-info border border-info"><%= @project.status&.humanize&.upcase || "SIN ESTATUS" %></span>
                         </div>
                     </div>
-                    <div class="col-md-2 mt-3 mt-md-0 responsive-border-start border-opacity-25">
-                        <p class="mb-0 opacity-75 font-12 text-uppercase fw-bold">Pagado</p>
-                        <h3 class="text-white my-0"><%= number_to_currency(@project.activities.sum(:activity_cost)) %></h3>
+                    <div class="col-6 col-md-2 mt-2 mt-md-0 responsive-border-start border-opacity-25">
+                        <p class="mb-0 opacity-75 font-11 text-uppercase fw-bold">Pagado</p>
+                        <h3 class="text-white my-0 font-20"><%= number_to_currency(@project.payments.sum(:amount)) %></h3>
                     </div>
-                    <div class="col-md-2 mt-3 mt-md-0 responsive-border-start border-opacity-25">
-                        <p class="mb-0 opacity-75 font-12 text-uppercase fw-bold">Inversión Actual</p>
-                        <h3 class="text-white my-0"><%= number_to_currency(@project.activities.where(completed: true, user_approved: true, admin_approved: true).sum(:activity_cost)) %></h3>
+                    <div class="col-6 col-md-2 mt-2 mt-md-0 responsive-border-start border-opacity-25">
+                        <p class="mb-0 opacity-75 font-11 text-uppercase fw-bold">Devengado</p>
+                        <h3 class="text-white my-0 font-20"><%= number_to_currency(@project.activities.where(completed: true, user_approved: true, admin_approved: true).sum(:activity_cost)) %></h3>
                     </div>
-                    <div class="col-md-4 mt-3 mt-md-0 responsive-border-start border-opacity-25">
+                    <div class="col-md-4 mt-4 mt-md-0 responsive-border-start border-opacity-25">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <p class="mb-0 opacity-75 font-12 text-uppercase fw-bold">Progreso General</p>
                             <p class="mb-0 font-14 fw-bold"><%= @project.progress_percentage %>%</p>
@@ -96,19 +102,22 @@
     </div>
 </div>
 
+<%# ========================================== %>
+<%# 3. DETALLES Y EQUIPO                       %>
+<%# ========================================== %>
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-lg-8">
         <% if current_user.role == 'admin' %>
             <div class="card mb-3 border-dashed shadow-none border-primary bg-light bg-opacity-10">
                 <div class="card-body py-2 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
                     <div>
                         <h6 class="m-0 fw-bold text-primary"><i class="ri-eye-off-line me-1"></i> Control de Etapas Secuenciales</h6>
-                        <small class="text-muted">Si está activo, el cliente solo verá la siguiente etapa cuando la actual supere el 90%.</small>
+                        <small class="text-muted d-block font-12">El cliente solo verá la siguiente etapa cuando la actual supere el 90%.</small>
                     </div>
-                    <%= form_with(model: [@client, @project], local: true, class: "d-inline") do |f| %>
-                        <div class="form-check form-switch m-0">
-                            <%= f.check_box :sequential_stages, class: "form-check-input cursor-pointer", onchange: "this.form.submit()" %>
-                            <label class="form-check-label fw-bold"><%= @project.sequential_stages ? "Activo" : "Inactivo" %></label>
+                    <%= form_with(model: [@client, @project], local: true, class: "d-inline mt-2 mt-sm-0") do |f| %>
+                        <div class="form-check form-switch m-0 d-flex align-items-center gap-2">
+                            <%= f.check_box :sequential_stages, class: "form-check-input cursor-pointer mt-0", onchange: "this.form.submit()" %>
+                            <label class="form-check-label fw-bold mb-0"><%= @project.sequential_stages ? "Activo" : "Inactivo" %></label>
                         </div>
                     <% end %>
                 </div>
@@ -123,7 +132,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-lg-4">
         <div class="card shadow-none border mb-2">
             <div class="card-body py-2">
                 <h5 class="text-uppercase mt-0 mb-2 font-11 fw-bold text-primary"><i class="ri-shield-user-line me-1"></i> Responsable del Proyecto</h5>
@@ -159,7 +168,7 @@
                                 <% if member.avatar.attached? %>
                                     <%= image_tag url_for(member.avatar), class: "rounded-circle border", style: "width: 28px; height: 28px; object-fit: cover;" %>
                                 <% else %>
-                                    <span class="avatar-title rounded-circle bg-soft-secondary text-secondary font-10 fw-bold">
+                                    <span class="avatar-title rounded-circle bg-soft-secondary text-white font-10 fw-bold">
                                         <%= member.first_name[0] %><%= member.last_name[0] %>
                                     </span>
                                 <% end %>
@@ -174,26 +183,28 @@
     </div>
 </div>
 
+<%# ========================================== %>
+<%# 4. PLAN DE TRABAJO Y ETAPAS                %>
+<%# ========================================== %>
 <div class="row">
     <div class="col-12">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-3">
             <h4 class="header-title m-0 text-primary"><i class="ri-list-check-2 me-1"></i> Plan de Trabajo y Etapas</h4>
-            <div class="d-flex flex-wrap gap-2">
-                <%= link_to comments_client_project_path(@client, @project), class: "btn btn-sm btn-outline-primary" do %>
+            <div class="d-flex flex-wrap gap-2 w-100 w-sm-auto justify-content-start justify-content-sm-end">
+                <%= link_to comments_client_project_path(@client, @project), class: "btn btn-sm btn-outline-primary flex-grow-1 flex-sm-grow-0" do %>
                     <i class="ri-chat-history-line me-1"></i> Bitácora (<%= @project.comments.count %>)
                 <% end %>
                 
-                <%# Nueva tarea habilitada para el equipo (no clientes) %>
                 <% if current_user.role == 'admin' || ['lider', 'senior', 'analista'].include?(current_project_role) %>
                     <% has_unlocked_stages = @stages.any? { |stage| !stage.locked_for?(current_user) } %>
                     
                     <% if has_unlocked_stages %>
-                        <%= link_to new_client_project_activity_path(@client, @project), class: "btn btn-sm btn-primary shadow-sm" do %>
+                        <%= link_to new_client_project_activity_path(@client, @project), class: "btn btn-sm btn-primary shadow-sm flex-grow-1 flex-sm-grow-0" do %>
                             <i class="ri-add-line"></i> Nueva Tarea
                         <% end %>
                     <% else %>
-                        <span data-bs-toggle="tooltip" title="Todas las etapas están cerradas o no hay etapas creadas.">
-                            <button class="btn btn-sm btn-secondary shadow-none" style="pointer-events: none;" disabled>
+                        <span data-bs-toggle="tooltip" title="Todas las etapas están cerradas o no hay etapas creadas." class="flex-grow-1 flex-sm-grow-0 d-flex">
+                            <button class="btn btn-sm btn-secondary shadow-none w-100" style="pointer-events: none;" disabled>
                                 <i class="ri-lock-line me-1"></i> Nueva Tarea
                             </button>
                         </span>
@@ -214,8 +225,10 @@
                 <% if should_show %>
                     <div class="card mb-2 border shadow-none <%= 'border-primary' if is_unlocked && stage.progress_percentage < 100 %>">
                         <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom py-2">
+                            
+                            <%# Control principal del acordeón %>
                             <a class="text-dark d-flex align-items-center flex-grow-1 <%= 'collapsed' unless index == 0 || (is_unlocked && stage.progress_percentage < 100) %>" 
-                            data-bs-toggle="collapse" href="#stage-<%= stage.id %>" style="padding: 0.4rem 0;">
+                               data-bs-toggle="collapse" href="#stage-<%= stage.id %>" style="padding: 0.4rem 0; min-width: 0;">
 
                                 <span class="text-muted font-9 fw-medium d-none d-sm-flex align-items-center me-3" style="white-space: nowrap; letter-spacing: 0.5px; opacity: 0.8;">
                                     <i class="ri-calendar-event-line me-1"></i>
@@ -239,6 +252,7 @@
                                     <% end %>
                                 </h6>
 
+                                <%# KPIs de la etapa (Se ocultan en móvil para no romper la vista) %>
                                 <div class="ms-auto d-none d-lg-flex align-items-center" style="min-width: 400px;">
                                     <div class="d-flex align-items-center flex-grow-1 me-4">
                                         <div class="progress w-100 me-2" style="height: 8px; background-color: #f1f3fa; border-radius: 12px;">
@@ -269,7 +283,6 @@
                                 </div>
                             </a>
                             
-                            <%# --- SEGURIDAD: Solo Admin edita o elimina Etapas --- %>
                             <% if current_user.role == 'admin' %>
                                 <div class="dropdown ms-3 ps-3 border-start" style="border-color: #f1f3fa !important;">
                                     <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" style="padding: 5px 10px;">
@@ -300,8 +313,9 @@
 
                         <div id="stage-<%= stage.id %>" class="collapse <%= 'show' if index == 0 || (is_unlocked && stage.progress_percentage < 100 && stage.progress_percentage > 0) %>">
                             <div class="card-body p-0">
-                                <div class="table-responsive-sm">
-                                    <table class="table table-centered table-hover mb-0 align-middle">
+                                <%# FIX RESPONSIVE: 'table-responsive' fuerza scroll horizontal en cualquier celular %>
+                                <div class="table-responsive">
+                                    <table class="table table-centered table-hover mb-0 align-middle" style="min-width: 600px;">
                                         <thead class="table-light text-muted font-11 uppercase">
                                             <tr>
                                                 <th class="text-center px-1 px-md-2" style="width: 40px;" title="Estatus">Estado</th>
@@ -444,9 +458,7 @@
                                                                     <input type="checkbox" 
                                                                         class="form-check-input shadow-none cursor-pointer <%= activity.admin_approved ? 'bg-success border-success' : 'border-warning' %>" 
                                                                         <%= 'checked' if activity.admin_approved %> 
-                                                                        <%# Nueva función de validación %>
                                                                         onchange="confirmarDesaprobacionAdmin(this, '<%= j activity.name %>')"
-                                                                        <%# Permitimos al admin clickear si el usuario ya aprobó, aunque esté finalizado %>
                                                                         <%= 'disabled' unless current_user.role == 'admin' && activity.user_approved %>>
                                                                 </div>
                                                             <% end %>
@@ -462,8 +474,6 @@
                                                                     <i class="ri-eye-line me-1"></i> Abrir Panel
                                                                 </a>
                                                                 
-                                                                <%# --- SEGURIDAD: Solo Admin puede editar/borrar la Actividad --- %>
-                                                                <%# Además, se ocultan si la actividad está FINALIZADA o la etapa bloqueada %>
                                                                 <% if current_user.role == 'admin' %>
                                                                     <% unless stage_locked || is_finalized %>
                                                                         <div class="dropdown-divider"></div>
@@ -503,14 +513,17 @@
     </div>
 </div>
 
+<%# ========================================== %>
+<%# 5. REPOSITORIO DE ARCHIVOS                 %>
+<%# ========================================== %>
 <div class="row">
     <div class="col-12">
         <div class="card border shadow-none">
-            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center py-2 gap-2">
+            <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center py-2 gap-2">
                 <h5 class="card-title m-0 font-14"><i class="ri-folder-zip-line me-1 text-primary"></i> Repositorio de Documentos</h5>
                 <% if current_user.role == 'admin' || ['lider', 'senior', 'analista'].include?(current_project_role) %>
-                    <%= form_with(model: [@client, @project], local: true, html: { multipart: true, class: "d-flex gap-2 flex-grow-1 flex-md-grow-0" }) do |f| %>
-                        <%= f.file_field :files, multiple: true, class: "form-control form-control-sm flex-grow-1", style: "max-width: 250px;" %>
+                    <%= form_with(model: [@client, @project], local: true, html: { multipart: true, class: "d-flex gap-2 w-100 w-md-auto mt-2 mt-md-0" }) do |f| %>
+                        <%= f.file_field :files, multiple: true, class: "form-control form-control-sm flex-grow-1" %>
                         <button type="submit" class="btn btn-sm btn-primary"><i class="ri-upload-cloud-2-line"></i></button>
                     <% end %>
                 <% end %>
@@ -568,7 +581,9 @@
     </div>
 </div>
 
-<%# --- MODALES --- %>
+<%# ========================================== %>
+<%# MODALES Y SCRIPTS INTACTOS                 %>
+<%# ========================================== %>
 <div class="modal fade" id="membersModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content shadow-lg border-0">
@@ -720,73 +735,9 @@
         new bootstrap.Modal(document.getElementById('uploadEvidenceModal')).show();
     }
 
-    //Funcion para que los textos cambien dinámicamente según lo que el usuario elija y entienda qué está haciendo
-    function updateStatusHelp(status) {
-        const helpText = document.getElementById('status-help-text');
-        const helpBox = helpText.closest('.alert');
-        
-        switch(status) {
-            case 'pending':
-                helpText.innerHTML = "<strong>En Proceso:</strong> La actividad sigue activa. Úsalo para registrar avances parciales sin finalizar la tarea.";
-                helpBox.className = "alert alert-soft-warning border-0 p-2 mb-3";
-                break;
-            case 'rejected':
-                helpText.innerHTML = "<strong>Rechazada:</strong> Indica un problema o error. Esto notificará que la actividad necesita corrección urgente.";
-                helpBox.className = "alert alert-soft-danger border-0 p-2 mb-3";
-                break;
-            case 'completed':
-                helpText.innerHTML = "<strong>Listo para V.B.:</strong> Informa al cliente que el trabajo terminó y ya puede realizar la <strong>Aprobación (Paso 2)</strong>.";
-                helpBox.className = "alert alert-soft-success border-0 p-2 mb-3";
-                break;
-        }
-    }
-
-    // Inserta texto en el textarea sin borrar lo anterior
-function insertPresetText(text) {
-    const textarea = document.getElementById('activity_comment_field');
-    if (textarea) {
-        if (textarea.value.trim().length > 0) {
-            textarea.value = textarea.value.trim() + "\n" + text;
-        } else {
-            textarea.value = text;
-        }
-        textarea.focus();
-    }
-}
-
-// Limpia el campo de texto por completo
-function clearCommentField() {
-    const textarea = document.getElementById('activity_comment_field');
-    if (textarea) {
-        textarea.value = "";
-        textarea.focus();
-    }
-}
-
-// Actualiza las instrucciones según el radio button seleccionado
-function updateStatusHelp(status) {
-    const helpContainer = document.getElementById('status-instructions');
-    let message = "";
-    
-    switch(status) {
-        case 'pending':
-            message = "<i class='ri-information-line'></i> <strong>En Proceso:</strong> Úsalo para registrar avances parciales. La tarea se mantiene activa.";
-            break;
-        case 'rejected':
-            message = "<i class='ri-error-warning-line'></i> <strong>Rechazada:</strong> Indica un error o falta de información. Se marcará en rojo.";
-            break;
-        case 'completed':
-            message = "<i class='ri-checkbox-circle-line'></i> <strong>Listo p/V.B.:</strong> Avisa al cliente que el trabajo terminó y ya puede aprobar.";
-            break;
-    }
-    helpContainer.innerHTML = message;
-}
-
-    // NUEVA FUNCIÓN: Definida globalmente para que funcione dentro del modal cargado por Fetch
     function insertPresetText(text) {
         const textarea = document.getElementById('activity_comment_field');
         if (textarea) {
-            // Si ya hay texto, agregamos el preset en una nueva línea
             if (textarea.value.trim().length > 0) {
                 textarea.value = textarea.value.trim() + "\n" + text;
             } else {
@@ -794,7 +745,6 @@ function updateStatusHelp(status) {
             }
             textarea.focus();
             
-            // Feedback visual
             textarea.style.transition = "background-color 0.3s";
             textarea.style.backgroundColor = "#f0fff4"; 
             setTimeout(() => {
@@ -803,7 +753,14 @@ function updateStatusHelp(status) {
         }
     }
 
-    // Scroll y Apertura
+    function clearCommentField() {
+        const textarea = document.getElementById('activity_comment_field');
+        if (textarea) {
+            textarea.value = "";
+            textarea.focus();
+        }
+    }
+
     function verSeguimientoActividad(activityId) {
         const url = `/clients/<%= @client.id %>/projects/<%= @project.id %>/activities/${activityId}/tracking`; 
         const contentArea = document.getElementById('modalActivityDetailContent');
@@ -819,52 +776,44 @@ function updateStatusHelp(status) {
     }
 
     function confirmarDesaprobacionAdmin(checkbox, activityName) {
-        // Si el checkbox está marcado (true), significa que el admin lo está activando. 
-        // No pedimos confirmación para aprobar, solo para quitar la aprobación.
         if (!checkbox.checked) {
             Swal.fire({
                 title: '¿Quitar validación de Consilium?',
                 text: `Al desmarcar "${activityName}", la actividad dejará de estar finalizada y se permitirá que el equipo realice cambios nuevamente.`,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#fa5c7c', // Color rojo/danger de tu tema
+                confirmButtonColor: '#fa5c7c',
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Sí, reabrir actividad',
                 cancelButtonText: 'No, mantener cerrada',
                 reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Si confirma, enviamos el formulario
                     checkbox.form.submit();
                 } else {
-                    // Si cancela, volvemos a marcar el checkbox visualmente
                     checkbox.checked = true;
                 }
             });
         } else {
-            // Si lo está marcando por primera vez, enviamos directo
             checkbox.form.submit();
         }
     }
 
-    // Objeto con los mensajes para no repetir código
     const statusMessages = {
-        'pending': "<i class='ri-information-line text-warning'></i> <strong>En Proceso:</strong> La actividad sigue abierta para registrar más avances internos.",
-        'rejected': "<i class='ri-error-warning-line text-danger'></i> <strong>Revisar:</strong> Indica un bloqueo o error que el equipo debe corregir.",
-        'completed': "<i class='ri-checkbox-circle-line text-success'></i> <strong>Listo p/V.B.:</strong> Notifica al cliente que el trabajo terminó y requiere su aprobación."
+        'pending': "<i class='ri-information-line text-warning'></i> <strong>En Proceso:</strong> Úsalo para registrar avances parciales. La tarea se mantiene activa.",
+        'rejected': "<i class='ri-error-warning-line text-danger'></i> <strong>Rechazada:</strong> Indica un error o falta de información. Se marcará en rojo.",
+        'completed': "<i class='ri-checkbox-circle-line text-success'></i> <strong>Listo p/V.B.:</strong> Avisa al cliente que el trabajo terminó y ya puede aprobar."
     };
 
-    // Al poner el mouse sobre un botón
     function showStatusHoverHelp(status) {
         const helpContainer = document.getElementById('status-instructions');
         if (helpContainer) {
             helpContainer.innerHTML = statusMessages[status];
             helpContainer.classList.remove('text-muted');
-            helpContainer.classList.add('text-dark'); // Resaltar mientras se previsualiza
+            helpContainer.classList.add('text-dark');
         }
     }
 
-    // Al quitar el mouse del botón (Vuelve a lo que esté seleccionado)
     function resetStatusHelp() {
         const helpContainer = document.getElementById('status-instructions');
         const selectedRadio = document.querySelector('input[name="status"]:checked');
@@ -881,9 +830,7 @@ function updateStatusHelp(status) {
         }
     }
 
-    // Al hacer CLIC (Cambio definitivo)
     function updateStatusHelp(status) {
-        // En este caso, simplemente reforzamos el texto (resetStatusHelp ya lo haría)
         showStatusHoverHelp(status);
     }
 
@@ -919,6 +866,8 @@ function updateStatusHelp(status) {
     .bg-light-subtle { background-color: rgba(250, 92, 124, 0.05) !important; }
     .accordion-button:not(.collapsed) { background-color: transparent; box-shadow: none; }
     .cursor-pointer { cursor: pointer; }
+    
+    .w-lg-auto { width: auto !important; }
     
     @media (max-width: 767px) {
         .responsive-border-start { border-left: none !important; border-top: 1px solid rgba(255,255,255,0.25) !important; padding-top: 1rem; }

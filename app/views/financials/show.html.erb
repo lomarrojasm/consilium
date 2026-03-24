@@ -5,30 +5,41 @@
   <%# ENCABEZADO Y BREADCRUMBS %>
   <div class="row mb-4">
     <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        
+        <%# Lado Izquierdo: Títulos %>
         <div>
           <h4 class="mb-1 fw-bold text-dark">
             <i class="ri-wallet-3-line text-primary me-2"></i>Finanzas y Cobranza
           </h4>
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0 font-13">
-              <li class="breadcrumb-item"><%= link_to "Proyectos", client_projects_path(@client) %></li>
-              <li class="breadcrumb-item"><%= link_to @project.name, client_project_path(@client, @project) %></li>
-              <li class="breadcrumb-item active" aria-current="page">Control Financiero</li>
+              <li class="breadcrumb-item"><%= link_to "Proyectos", client_projects_path(@client), class: "text-muted text-decoration-none" %></li>
+              <li class="breadcrumb-item"><%= link_to @project.name, client_project_path(@client, @project), class: "text-muted text-decoration-none" %></li>
+              <li class="breadcrumb-item active fw-bold" aria-current="page">Control Financiero</li>
             </ol>
           </nav>
         </div>
 
-        <% if @accruals_by_stage.any? %>
-          <div>
+        <%# Lado Derecho: Botones de Acción %>
+        <div class="d-flex align-items-center gap-2">
+          
+          <%# NUEVO: Botón de Regresar al Proyecto %>
+          <%= link_to client_project_path(@client, @project), class: "btn btn-soft-secondary btn-sm rounded-pill shadow-sm px-3 fw-medium" do %>
+            <i class="ri-arrow-left-line me-1 align-middle"></i> Volver al Proyecto
+          <% end %>
+
+          <%# Botón de Reiniciar Matriz %>
+          <% if @accruals_by_stage.any? %>
             <%= button_to reset_template_client_project_financials_path(@client, @project), 
                 method: :delete, 
-                form: { data: { turbo_confirm: "⚠️ ¿Estás seguro? Esto borrará el presupuesto de devengos y pagos para que puedas volver a sincronizarlo." } }, 
-                class: "btn btn-outline-danger btn-sm rounded-pill shadow-sm" do %>
-              <i class="ri-refresh-line me-1"></i> Reiniciar Matriz
+                form: { style: "margin: 0;", data: { turbo_confirm: "⚠️ ¿Estás seguro? Esto borrará el presupuesto de devengos y pagos para que puedas volver a sincronizarlo." } }, 
+                class: "btn btn-outline-danger btn-sm rounded-pill shadow-sm px-3" do %>
+              <i class="ri-refresh-line me-1 align-middle"></i> Reiniciar Matriz
             <% end %>
-          </div>
-        <% end %>
+          <% end %>
+
+        </div>
       </div>
     </div>
   </div>
@@ -126,14 +137,16 @@
             <h5 class="card-title mb-0 fw-bold"><i class="ri-task-line text-primary me-2"></i>Estado de Cuenta</h5>
             
             <div class="input-group input-group-sm shadow-sm" style="max-width: 250px;">
-              <span class="input-group-text border-end-0"><i class="ri-search-line text-muted"></i></span>
+              <span class="input-group-text bg-light border-end-0"><i class="ri-search-line text-muted"></i></span>
               <input type="text" id="global-activity-search" class="form-control border-start-0 bg-light" placeholder="Buscar actividad o monto...">
             </div>
           </div>
 
           <div class="card-body p-3">
             <div class="accordion" id="accrualsAccordion">
-              <% @accruals_by_stage.each_with_index do |(stage, accruals), index| %>
+              
+              <% @accruals_by_stage.sort_by { |stage_name, accruals_array| accruals_array.map(&:id).min }.each_with_index do |(stage, accruals), index| %>
+                
                 <div class="accordion-item border mb-2 rounded shadow-none stage-accordion-item">
                   <h2 class="accordion-header" id="heading<%= index %>">
                     <button class="accordion-button <%= 'collapsed' if index > 0 %> fw-bold bg-light py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%= index %>">
@@ -152,19 +165,47 @@
                           </tr>
                         </thead>
                         <tbody class="accrual-tbody">
-                          <% accruals.each do |accrual| %>
-                            <tr class="accrual-row">
-                              <td class="fw-medium text-dark accrual-concept" style="max-width: 250px; white-space: normal;"><%= accrual.concept_name %></td>
-                              <td class="text-end fw-bold text-dark accrual-amount"><%= number_to_currency(accrual.amount) %></td>
+                          
+                          <% accruals.sort_by(&:id).each do |accrual| %>
+                            <% 
+                              # LÓGICA DE COBRO: Buscamos si el nombre de esta actividad está dentro de las notas de algún pago realizado.
+                              is_paid = @payments.any? { |p| p.notes.to_s.include?(accrual.concept_name) }
+                            %>
+                            
+                            <%# Añadimos un fondo ligeramente gris y opacidad si ya está pagado, para que visualmente se vea "liquidado" %>
+                            <tr class="accrual-row <%= 'bg-light bg-opacity-50' if accrual.status == 'accrued' && is_paid %>">
+                              
+                              <td class="fw-medium text-dark accrual-concept" style="max-width: 250px; white-space: normal;">
+                                <%= accrual.concept_name %>
+                              </td>
+                              
+                              <td class="text-end fw-bold text-dark accrual-amount">
+                                <%= number_to_currency(accrual.amount) %>
+                              </td>
+                              
                               <td class="text-center">
                                 <% if accrual.status == 'accrued' %>
-                                  <span class="badge bg-success-subtle text-success rounded-pill"><i class="ri-check-line me-1"></i>Devengado</span>
+                                  <% if is_paid %>
+                                    <%# ESTATUS: PAGADO (Azul) %>
+                                    <span class="badge bg-primary text-white rounded-pill px-2 py-1 shadow-sm" data-bs-toggle="tooltip" title="Cobrado en el historial de pagos">
+                                      <i class="ri-check-double-line me-1"></i>Pagado
+                                    </span>
+                                  <% else %>
+                                    <%# ESTATUS: DEVENGADO (Verde Claro) %>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" data-bs-toggle="tooltip" title="Trabajo finalizado, pendiente de cobro">
+                                      <i class="ri-check-line me-1"></i>Devengado
+                                    </span>
+                                    <div class="font-10 text-muted mt-1"><%= accrual.accrued_date&.strftime("%d %b, %y") %></div>
+                                  <% end %>
                                 <% else %>
-                                  <span class="badge bg-light text-secondary rounded-pill">Pendiente</span>
+                                  <%# ESTATUS: PENDIENTE (Gris) %>
+                                  <span class="badge bg-light text-secondary rounded-pill px-2 py-1 border">Pendiente</span>
                                 <% end %>
                               </td>
+
                             </tr>
                           <% end %>
+                          
                         </tbody>
                       </table>
                     </div>

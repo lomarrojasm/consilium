@@ -23,7 +23,7 @@ class Activity < ApplicationRecord
   validates :name, presence: true
 
   # NUEVO: Sincronización automática con Finanzas
-  after_save :sync_financial_accrual
+  after_commit :sync_financial_accrual, on: [:create, :update]
 
   
   # Opcional: Validar que el área sea una de las permitidas
@@ -45,25 +45,31 @@ class Activity < ApplicationRecord
     return unless self.stage && self.stage.project
     project = self.stage.project
     
-    # 2. BÚSQUEDA EXTREMA EN RUBY (A prueba de mayúsculas, minúsculas y espacios invisibles)
-    # Extraemos todos los conceptos y los comparamos limpiándolos por completo.
+    # 2. MATCH PERFECTO (Etapa + Actividad)
+    # Limpiamos los nombres para evitar errores de espacios o mayúsculas
+    nombre_etapa_real = self.stage.name.to_s.strip.downcase
+    nombre_actividad_real = self.name.to_s.strip.downcase
+
+    # Buscamos que coincida EXACTAMENTE la actividad dentro de su respectiva etapa
     accrual = project.financial_accruals.to_a.find do |f|
-      f.concept_name.to_s.strip.downcase == self.name.to_s.strip.downcase
+      (f.concept_name.to_s.strip.downcase == nombre_actividad_real) && 
+      (f.stage_name.to_s.strip.downcase == nombre_etapa_real)
     end
 
-    # Si por alguna razón no lo encuentra, nos avisará en la terminal negra del servidor
-    unless accrual 
-      Rails.logger.error "🛑 ALERTA FINANCIERA: No se encontró coincidencia para la actividad '#{self.name}'"
-      return 
+    # PLAN B (Seguridad): Si por alguna razón la etapa no tenía nombre y se guardó como "Etapa 3", 
+    # buscamos solo por actividad, pero empezando desde el final (reverse) para atrapar las últimas etapas.
+    accrual ||= project.financial_accruals.to_a.reverse.find do |f|
+      f.concept_name.to_s.strip.downcase == nombre_actividad_real
     end
 
-    # 3. Lógica de completado (Evalúa tanto el checkbox como el estatus de texto)
+    # Si definitivamente no existe, abortamos silenciosamente sin romper el sistema
+    return unless accrual 
+
+    # 3. Lógica de completado (Evalúa checkboxes y estatus de texto)
     estatus_ok = ['approved', 'aprobado', 'completado', 'terminado', 'done', 'listo p/v.b.', 'listo']
     esta_terminada = (self.completed == true) || estatus_ok.include?(self.status.to_s.downcase)
 
-    Rails.logger.info "✅ ÉXITO FINANCIERO: Sincronizando '#{accrual.concept_name}' -> ¿Terminada? #{esta_terminada}"
-
-    # 4. ACTUALIZACIÓN DIRECTA (Escribe directo en la base de datos)
+    # 4. ACTUALIZACIÓN DIRECTA EN FINANZAS
     if esta_terminada
       fecha = accrual.accrued_date || Date.current
       accrual.update_columns(status: 'accrued', accrued_date: fecha)

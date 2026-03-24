@@ -1,111 +1,194 @@
+<%# app/views/projects/schedule_view.html.erb %>
+
 <style>
-  body { 
-    background-color: #f4f5f7; 
-    font-family: var(--bs-body-font-family);
+  :root {
+    --brand-primary: #0d2e66;
+    --brand-success: #0acf97;
+    --brand-info: #39afd1;
+    --bg-light: #f4f5f7;
+    --border-color: #dee2e6;
   }
 
-  /* Contenedor principal para permitir scroll */
+  body { 
+    background-color: var(--bg-light); 
+    font-family: var(--bs-body-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif);
+  }
+
+  /* ==========================================
+     CONTENEDOR Y SCROLL
+     ========================================== */
+  .schedule-wrapper {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    padding: 15px;
+    margin-bottom: 30px;
+  }
+
   .schedule-container {
     max-width: 100%;
     overflow-x: auto; 
-    background: white;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    max-height: 90vh; /* Altura máxima para permitir scroll vertical también */
+    overflow-y: auto;
+    max-height: 80vh; 
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
   }
 
+  /* ==========================================
+     TABLA BASE
+     ========================================== */
   .schedule-table { 
     font-size: 11px; 
     border-collapse: separate; 
     border-spacing: 0;
-    min-width: 2000px; 
+    min-width: 1800px; 
+    width: 100%;
   }
 
   .schedule-table th, .schedule-table td { 
-      border: 1px solid #dee2e6; 
-      padding: 4px; 
-      vertical-align: middle;
-      height: 30px;
+    border-bottom: 1px solid var(--border-color); 
+    border-right: 1px solid var(--border-color); 
+    padding: 6px 8px; 
+    vertical-align: middle;
   }
 
-  /* Encabezado Azul Oscuro (Etapa) */
-  .header-stage { 
-      background-color: #0d2e66 !important; 
-      color: white; 
-      text-align: left; 
-      padding-left: 15px !important;
-      font-weight: bold; 
-      text-transform: uppercase;
-      font-size: 13px;
-      position: sticky;
-      left: 0;
-      z-index: 20; /* Mayor z-index para estar sobre todo */
+  .schedule-table th {
+    background-color: #f8f9fa;
+    color: #313a46;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
   }
 
-  /* COLUMNAS FIJAS (Sticky) */
+  /* ==========================================
+     COLUMNAS FIJAS (STICKY)
+     ========================================== */
+  thead th { 
+    position: sticky; 
+    top: 0; 
+    z-index: 15; 
+  }
+
   .sticky-col {
     position: sticky;
-    background-color: white;
+    background-color: #fff;
     z-index: 10;
-    border-right: 2px solid #ccc !important;
   }
   
-  /* Posiciones */
-  .col-idx { left: 0; width: 40px; text-align: center; }
-  .col-name { left: 40px; width: 300px; } 
-  .col-doc  { left: 340px; width: 150px; }
+  thead th.sticky-col { 
+    z-index: 25; 
+    background-color: #f8f9fa;
+  }
 
-  /* Encabezados de tabla pegajosos al hacer scroll vertical */
-  thead th { position: sticky; top: 0; z-index: 15; background-color: #f8f9fa; }
-  
-  /* Ajuste para la intersección de headers y columnas fijas */
-  thead th.sticky-col { z-index: 25; }
+  .col-idx { left: 0; width: 40px; min-width: 40px; text-align: center; }
+  .col-name { 
+    left: 40px; 
+    width: 320px; 
+    min-width: 320px; 
+    max-width: 320px;
+    white-space: normal; 
+    border-right: 2px solid #cbd3da !important; 
+  }
 
-  /* Celdas especiales */
-  .day-cell { width: 25px; min-width: 25px; text-align: center; font-size: 9px; color: #ccc; }
-  .area-cell { width: 22px; text-align: center; font-size: 9px; font-weight: bold; }
-  .area-active { background-color: #28a745; color: white; }
-  .completed-day { background-color: #0acf97 !important; color: white !important; font-weight: bold; border: 1px solid #08a578; }
-  .bg-light-gray { background-color: #e9ecef; }
-  
-  /* Separador de Mes */
+  .col-doc { width: 150px; min-width: 150px; }
+
+  /* ==========================================
+     ETAPAS Y MESES
+     ========================================== */
+  .header-stage { 
+    background-color: var(--brand-primary) !important; 
+    color: white !important; 
+    font-weight: bold; 
+    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: 1px;
+    padding: 10px 15px !important;
+    position: sticky;
+    left: 0;
+    z-index: 20; 
+    border-right: none !important;
+  }
+
   .month-separator {
-      background-color: #eef2f7 !important;
-      font-weight: bold;
-      color: #313a46;
-      border-top: 2px solid #dde2e7;
+    background-color: #eef2f7 !important;
+    font-weight: 800;
+    color: var(--brand-primary);
+    font-size: 12px;
   }
 
+  /* ==========================================
+     CELDAS DE CRONOGRAMA Y ÁREAS
+     ========================================== */
+  .day-cell { width: 24px; min-width: 24px; text-align: center; font-size: 9px; color: #aab8c5; padding: 4px 0 !important; }
+  
+  .bg-planned { background-color: #e3e8ee !important; } 
+  .bg-completed { 
+    background-color: var(--brand-success) !important; 
+    color: white !important; 
+    font-weight: bold; 
+    border: 1px solid #08a578 !important; 
+  }
+
+  .area-cell { width: 22px; text-align: center; font-size: 9px; font-weight: bold; color: #98a6ad; }
+  .area-active { background-color: var(--brand-info) !important; color: white !important; border-color: #2b8baf !important;}
+
+  /* ==========================================
+     REGLAS ESTRICTAS DE IMPRESIÓN
+     ========================================== */
   @media print {
-    .schedule-container { overflow: visible; max-height: none; }
+    @page { size: landscape; margin: 10mm; }
+    body { background-color: #fff; zoom: 0.65; }
+    .schedule-wrapper { box-shadow: none; padding: 0; margin: 0; border: none; }
+    .schedule-container { overflow: visible !important; max-height: none !important; border: none; }
+    .sticky-col, thead th, .header-stage { position: static !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .schedule-table { width: 100%; min-width: 0; border: 2px solid #000; }
+    .schedule-table th, .schedule-table td { border-color: #666 !important; color: #000 !important; }
     .d-print-none { display: none !important; }
   }
 </style>
 
-<div class="container-fluid py-3">
+<div class="container-fluid py-4">
   
-  <div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
+  <%# ENCABEZADO Y CONTROLES %>
+  <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
     <div>
-        <h4 class="m-0 text-primary fw-bold">Cronograma: <%= @project.name %></h4>
-        <p class="text-muted small mb-0">Vista consolidada por Etapas y Meses (1-12).</p>
+      <h3 class="m-0 text-primary fw-bold d-flex align-items-center">
+        <i class="mdi mdi-calendar-month text-success me-2 font-24"></i> 
+        Cronograma Operativo
+      </h3>
+      <p class="text-muted font-14 mb-0 mt-1">
+        Proyecto: <strong class="text-dark"><%= @project.name %></strong> | Vista de Ejecución (Meses 1-12)
+      </p>
     </div>
-    <div>
-      <button onclick="window.print()" class="btn btn-secondary btn-sm me-2"><i class="mdi mdi-printer"></i> Imprimir</button>
-      <button onclick="window.close()" class="btn btn-light btn-sm border">Cerrar</button>
+    
+    <div class="d-flex align-items-center gap-2">
+      <div class="d-none d-md-flex align-items-center bg-white border rounded px-3 py-1 me-3 shadow-sm">
+        <span class="badge bg-planned border text-dark me-2" style="width: 16px; height: 16px;">&nbsp;</span> <small class="font-11 text-muted me-3">Planificado</small>
+        <span class="badge bg-completed me-2" style="width: 16px; height: 16px;"><i class="mdi mdi-check"></i></span> <small class="font-11 text-muted">Ejecutado (Evidencia)</small>
+      </div>
+
+      <button onclick="window.print()" class="btn btn-primary shadow-sm fw-bold">
+        <i class="mdi mdi-printer me-1"></i> Exportar / Imprimir
+      </button>
+      <button onclick="window.close()" class="btn btn-light border shadow-sm">Cerrar</button>
     </div>
   </div>
 
-  <div class="schedule-container">
-    <table class="schedule-table">
-      
-      <thead>
-        <tr class="bg-light text-center fw-bold">
+  <%# CONTENEDOR DE LA TABLA %>
+  <div class="schedule-wrapper">
+    <div class="schedule-container">
+      <table class="schedule-table">
+        
+        <thead>
+          <tr>
             <th class="sticky-col col-idx">#</th>
-            <th class="sticky-col col-name">Actividad</th>
-            <th class="sticky-col col-doc">Documento</th>
+            <th class="sticky-col col-name">Concepto / Actividad</th>
+            <th class="col-doc">Documento Ref.</th>
             
             <% (1..31).each do |day| %>
-                <th class="day-cell"><%= day %></th>
+              <th class="day-cell"><%= day %></th>
             <% end %>
 
             <th class="area-cell" title="Integral">I</th>
@@ -113,85 +196,115 @@
             <th class="area-cell" title="Finanzas">F</th>
             <th class="area-cell" title="Procesos">P</th>
             <th class="area-cell" title="Comercial">C</th>
-            <th class="area-cell" title="RH">R</th>
+            <th class="area-cell" title="Recursos Humanos">R</th>
 
-            <th style="min-width: 90px;">Costo Total</th>
-            <th style="min-width: 40px;">Hrs L</th>
-            <th style="min-width: 40px;">Hrs S</th>
-            <th style="min-width: 40px;">Hrs A</th>
-        </tr>
-      </thead>
+            <th style="min-width: 90px; text-align: right;">Costo Base</th>
+            <th style="min-width: 40px;" title="Horas Líder">H.L</th>
+            <th style="min-width: 40px;" title="Horas Senior">H.S</th>
+            <th style="min-width: 40px;" title="Horas Analista">H.A</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        <% @stages.each do |stage| %>
+        <tbody>
+          <% @stages.each do |stage| %>
             
+            <%# HEADER DE LA ETAPA %>
             <tr>
-                <td colspan="44" class="header-stage sticky-col" style="left:0; width: 100%;">
-                    <%= stage.name %>
-                </td>
+              <td colspan="44" class="header-stage">
+                <i class="mdi mdi-flag-triangle me-1"></i> <%= stage.name %>
+              </td>
             </tr>
 
             <% (1..12).each do |current_month| %>
+              
+              <%# Agrupamos por el mes PLANEADO de la actividad %>
+              <% month_activities = stage.activities.where(month: current_month).order(:week, :id) %>
+
+              <% if month_activities.any? %>
                 
-                <% month_activities = stage.activities.where(month: current_month).order(:week, :id) %>
+                <%# SEPARADOR DE MES %>
+                <tr>
+                  <td class="sticky-col col-idx month-separator border-end-0"></td>
+                  <td class="sticky-col col-name month-separator border-start-0">
+                    <i class="mdi mdi-calendar-clock me-1 text-primary"></i> MES <%= current_month %>
+                  </td>
+                  <td colspan="42" class="month-separator border-start-0"></td>
+                </tr>
 
-                <% if month_activities.any? %>
-                    
-                    <tr class="month-separator">
-                        <td class="sticky-col col-idx month-separator border-end-0"></td>
-                        <td class="sticky-col col-name month-separator border-start-0 border-end-0 text-primary">
-                            MES <%= current_month %>
-                        </td>
-                        <td class="sticky-col col-doc month-separator border-start-0"></td>
-                        <td colspan="41" class="month-separator"></td>
-                    </tr>
+                <%# FILAS DE ACTIVIDADES %>
+                <% month_activities.each_with_index do |activity, index| %>
+                  <tr>
+                    <td class="sticky-col col-idx text-center fw-bold text-muted bg-white"><%= index + 1 %></td>
+                    <td class="sticky-col col-name text-dark fw-medium bg-white" title="<%= activity.name %>">
+                      <%= activity.name %>
+                    </td>
+                    <td class="col-doc text-muted font-10">
+                      <%= activity.document_ref.present? ? activity.document_ref : '-' %>
+                    </td>
 
-                    <% month_activities.each_with_index do |activity, index| %>
-                        <tr>
-                            <td class="sticky-col col-idx text-center bg-white"><%= index + 1 %></td>
-                            <td class="sticky-col col-name bg-white text-truncate" title="<%= activity.name %>">
-                                <%= activity.name %>
-                            </td>
-                            <td class="sticky-col col-doc bg-white text-truncate">
-                                <%= activity.document_ref %>
-                            </td>
+                    <%# Línea de Tiempo (Días 1 al 31) %>
+                    <% (1..31).each do |day| %>
+                      <% 
+                        # -----------------------------------------------------
+                        # 1. LÓGICA DE PLANEACIÓN (Barra Gris)
+                        # Se basa 100% en la semana asignada a la tarea
+                        # -----------------------------------------------------
+                        week_num = activity.week.to_i
+                        week_num = 1 if week_num <= 0 # Fallback por seguridad
+                        
+                        range_start = (week_num - 1) * 7 + 1
+                        range_end   = week_num >= 4 ? 31 : range_start + 6
+                        is_planned_day = (day >= range_start && day <= range_end)
 
-                            <% (1..31).each do |day| %>
-                                <% 
-                                   is_completed_day = activity.completed? && activity.completed_day == day 
-                                   
-                                   # Lógica de Semanas (1-4)
-                                   week_num = activity.week.to_i
-                                   range_start = (week_num - 1) * 7 + 1
-                                   range_end   = week_num >= 4 ? 31 : range_start + 6
-                                   is_planned_day = day >= range_start && day <= range_end
-                                %>
-                                <td class="text-center 
-                                    <%= 'completed-day' if is_completed_day %> 
-                                    <%= 'bg-light-gray' if is_planned_day && !is_completed_day %>">
-                                    <% if is_completed_day %>
-                                        <i class="mdi mdi-check font-10 text-white"></i>
-                                    <% end %>
-                                </td>
-                            <% end %>
+                        # -----------------------------------------------------
+                        # 2. LÓGICA DE EJECUCIÓN (Palomita Verde)
+                        # Ignora la planeación y se basa en la fecha de la evidencia
+                        # -----------------------------------------------------
+                        estatus_ok = ['approved', 'aprobado', 'completado', 'terminado', 'done', 'listo p/v.b.', 'listo']
+                        is_completed_task = activity.completed? || estatus_ok.include?(activity.status.to_s.downcase)
+                        
+                        is_completed_day = false
+                        
+                        if is_completed_task
+                          # Busca el día exacto de la evidencia. Si no hay, usa el día en que se guardó como completada.
+                          dia_real_ejecucion = activity.evidence_uploaded_at&.day || activity.completed_day || activity.updated_at.day
+                          is_completed_day = (dia_real_ejecucion == day)
+                        end
+                      %>
+                      
+                      <td class="text-center <%= 'bg-completed' if is_completed_day %> <%= 'bg-planned' if is_planned_day && !is_completed_day %>">
+                        <% if is_completed_day %>
+                          <i class="mdi mdi-check font-12 text-white"></i>
+                        <% end %>
+                      </td>
+                    <% end %>
 
-                            <td class="<%= 'area-active' if activity.area == 'Integral' %>"></td>
-                            <td class="<%= 'area-active' if activity.area == 'Dirección' %>"></td>
-                            <td class="<%= 'area-active' if activity.area == 'Finanzas' %>"></td>
-                            <td class="<%= 'area-active' if activity.area == 'Procesos' %>"></td>
-                            <td class="<%= 'area-active' if activity.area == 'Comercial' %>"></td>
-                            <td class="<%= 'area-active' if activity.area == 'RH' %>"></td>
+                    <%# Matriz de Áreas %>
+                    <td class="<%= 'area-active' if activity.area == 'Integral' %>"></td>
+                    <td class="<%= 'area-active' if activity.area == 'Dirección' %>"></td>
+                    <td class="<%= 'area-active' if activity.area == 'Finanzas' %>"></td>
+                    <td class="<%= 'area-active' if activity.area == 'Procesos' %>"></td>
+                    <td class="<%= 'area-active' if activity.area == 'Comercial' %>"></td>
+                    <td class="<%= 'area-active' if activity.area == 'RH' || activity.area == 'Recursos Humanos' %>"></td>
 
-                            <td class="text-end fw-bold font-10"><%= number_to_currency(activity.activity_cost) %></td>
-                            <td class="text-center text-muted"><%= activity.leader_hours.to_f > 0 ? activity.leader_hours : '-' %></td>
-                            <td class="text-center text-muted"><%= activity.senior_hours.to_f > 0 ? activity.senior_hours : '-' %></td>
-                            <td class="text-center text-muted"><%= activity.analyst_hours.to_f > 0 ? activity.analyst_hours : '-' %></td>
-                        </tr>
-                    <% end %> <% end %> <% end %> <tr style="height: 20px; border: none; background-color: #f4f5f7;">
-                <td colspan="44" style="border:none;"></td>
+                    <%# Costos y Horas %>
+                    <td class="text-end fw-bold text-dark"><%= number_to_currency(activity.activity_cost) %></td>
+                    <td class="text-center text-muted"><%= activity.leader_hours.to_f > 0 ? activity.leader_hours : '-' %></td>
+                    <td class="text-center text-muted"><%= activity.senior_hours.to_f > 0 ? activity.senior_hours : '-' %></td>
+                    <td class="text-center text-muted"><%= activity.analyst_hours.to_f > 0 ? activity.analyst_hours : '-' %></td>
+                  </tr>
+                <% end %> 
+              <% end %> 
+            <% end %> 
+            
+            <%# ESPACIO EN BLANCO ENTRE ETAPAS %>
+            <tr style="height: 15px; background-color: #fff;">
+              <td colspan="44" style="border:none;"></td>
             </tr>
 
-        <% end %> </tbody>
-    </table>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
