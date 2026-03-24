@@ -38,12 +38,20 @@
                     </div>
                 </div>
 
-                <div class="position-relative d-inline-block mb-2">
-                  <% if @client.avatar.attached? %>
-                      <%= image_tag url_for(@client.avatar), class: "h-100", style: "width: 96px; height: 96px; object-fit: cover;" %>
-                  <% else %>
-                      <%= image_tag "icono_consilium.jpg", class: "h-100", style: "width: 96px; height: 96px; object-fit: cover;" %>
-                  <% end %>
+                <div class="position-relative d-inline-block mb-3">
+                    <% if @client.avatar.attached? %>
+                        <div class="avatar-container shadow-sm border rounded-3 bg-white d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; overflow: hidden;">
+                            <%= image_tag url_for(@client.avatar), 
+                                class: "img-fluid", 
+                                style: "max-width: 85%; max-height: 85%; object-fit: contain;" %>
+                        </div>
+                    <% else %>
+                        <div class="avatar-container shadow-sm border rounded-circle bg-white d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; overflow: hidden;">
+                            <%= image_tag "icono_consilium.jpg", 
+                                class: "img-fluid", 
+                                style: "max-width: 80%; max-height: 80%; object-fit: contain;" %>
+                        </div>
+                    <% end %>
                 </div>
 
                 <h4 class="mb-0 mt-2 text-primary fw-bold"><%= @client.company_name %></h4>
@@ -53,15 +61,72 @@
                     RFC: <%= @client.rfc %>
                 </div>
 
-                <p class="text-muted font-13 fw-bold mb-2">Membresia</p>
+                <p class="text-muted font-11 text-uppercase fw-bold mb-1">Membresía</p>
                 <% badge_class = case @client.membership
                     when 'gold' then 'bg-warning text-dark'
                     when 'platinum' then 'bg-primary'
                     else 'bg-soft-info text-info'
                 end %>
-                <div class="badge <%= badge_class %> rounded-pill px-3 py-1 mb-2">
+                <div class="badge <%= badge_class %> rounded-pill px-3 py-1 mb-3">
                     <i class="ri-medal-line me-1"></i> <%= @client.membership&.upcase %>
                 </div>
+
+                <%# --- NUEVA SECCIÓN: REDES Y WEB --- %>
+                <div class="d-flex flex-column align-items-center gap-2 mb-3">
+            
+                    <%# 1. ENLACE A PÁGINA WEB PRINCIPAL %>
+                    <% if @client.web_page.present? %>
+                        <% display_url = @client.web_page.gsub(/https?:\/\//, '').gsub(/www\./, '').split('/').first %>
+                        <%= link_to "https://#{@client.web_page.gsub(/https?:\/\//, '')}", target: "_blank", 
+                            class: "text-primary font-13 fw-bold text-decoration-none hover-primary mb-1", 
+                            title: "Visitar sitio web oficial" do %>
+                            <i class="ri-global-line me-1 align-middle"></i> <%= display_url %>
+                        <% end %>
+                    <% end %>
+
+                    <%# 2. DETECCIÓN Y SEPARACIÓN DE REDES SOCIALES %>
+                    <% if @client.social_network.present? %>
+                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                            <% 
+                            # Buscamos todas las URLs o dominios en el texto (separa por espacios, comas o saltos de línea)
+                            # Esta regex detecta: http, https, www, o dominios como facebook.com/usuario
+                            urls = @client.social_network.scan(/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}(?:\/\S*)?/) 
+                            %>
+
+                            <% if urls.any? %>
+                                <% urls.each do |url| %>
+                                    <% 
+                                    # Limpiamos el link para el href y el texto para la vista
+                                    clean_url = url.strip.gsub(/[,;]$/, '') # Quita comas al final
+                                    full_link = clean_url.start_with?('http') ? clean_url : "https://#{clean_url}"
+                                    
+                                    # Icono dinámico según la red
+                                    icon_class = case clean_url.downcase
+                                        when /facebook/ then 'ri-facebook-box-fill text-primary'
+                                        when /instagram/ then 'ri-instagram-line text-danger'
+                                        when /linkedin/ then 'ri-linkedin-box-fill text-info'
+                                        when /twitter|x\.com/ then 'ri-twitter-x-fill text-dark'
+                                        when /youtube/ then 'ri-youtube-fill text-danger'
+                                        else 'ri-links-line text-secondary'
+                                    end
+                                    %>
+                                    
+                                    <%= link_to full_link, target: "_blank", 
+                                        class: "badge bg-light text-dark border py-1 px-2 text-decoration-none shadow-sm hover-info d-flex align-items-center",
+                                        title: "Ver perfil" do %>
+                                        <i class="<%= icon_class %> me-1 font-14"></i> 
+                                        <span class="font-11 fw-medium"><%= clean_url.gsub(/https?:\/\//, '').gsub(/www\./, '').truncate(18) %></span>
+                                    <% end %>
+                                <% end %>
+                            <% else %>
+                                <%# Si no detectó URLs, mostramos el texto plano como link de búsqueda o respaldo %>
+                                <span class="text-muted font-11"><i class="ri-links-line me-1"></i><%= @client.social_network.truncate(30) %></span>
+                            <% end %>
+                        </div>
+                    <% end %>
+
+                </div>
+                <%# ---------------------------------- %>
 
                 <div class="text-start border-top pt-3">
                     <h5 class="font-12 text-uppercase text-muted fw-bold mb-2">Datos Fiscales</h5>
