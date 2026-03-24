@@ -33,3 +33,12 @@ tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el))
 }
 
 });
+
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => console.log('SW registrado con éxito'))
+      .catch(err => console.log('SW error de registro:', err));
+  });
+}
