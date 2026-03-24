@@ -11,6 +11,9 @@ class Project < ApplicationRecord
   has_many :project_members, dependent: :destroy
   has_many :users, through: :project_members
   has_many :project_comments, dependent: :destroy
+
+  has_many :financial_accruals, dependent: :destroy
+  has_many :payments, dependent: :destroy
   
   has_many_attached :files
 
@@ -20,7 +23,7 @@ class Project < ApplicationRecord
   enum :status, { borrador: 0, activo: 1, pausado: 2, finalizado: 3 }
 
   # Validaciones
-  validates :name, :start_date, :end_date, presence: true
+  validates :name, :start_date, presence: true
 
   # Agrega esta línea para permitir el checkbox en el formulario
   attr_accessor :include_template
@@ -86,6 +89,19 @@ end
     !stage_unlocked?(stage) && stage != stages.first
   end
 end
+
+# Métodos de ayuda financiera rápidos para mostrar en las vistas
+  def total_accrued
+    financial_accruals.already_accrued.sum(:amount)
+  end
+
+  def total_paid
+    payments.sum(:amount)
+  end
+
+  def financial_balance
+    total_paid - total_accrued
+  end
 
 
 private

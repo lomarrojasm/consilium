@@ -4,23 +4,49 @@
     <div class="col-12">
         <div class="page-title-box">
             <div class="page-title-right">
-                <div class="d-flex flex-wrap gap-2 justify-content-end">
-                    <%= link_to schedule_view_client_project_path(@client, @project), 
-                        class: "btn btn-info shadow-sm", target: "_blank" do %> 
-                        <i class="ri-calendar-todo-line me-1"></i> <span class="d-none d-sm-inline">Ver Cronograma</span>
-                    <% end %>
+                <div class="d-flex flex-wrap gap-2 justify-content-md-end align-items-center">
                     
-                    <%# --- SEGURIDAD: Solo Admin puede editar/borrar el proyecto completo --- %>
+                    <%# --- ACCIONES PRINCIPALES --- %>
+                    <%= link_to schedule_view_client_project_path(@client, @project), 
+                        class: "btn btn-soft-info rounded-pill shadow-sm px-3", target: "_blank" do %> 
+                        <i class="ri-calendar-todo-line me-1 align-middle"></i> 
+                        <span class="d-none d-xxl-inline">Cronograma</span>
+                    <% end %>
+
+                    <%# --- SEGURIDAD: Acciones de Administrador --- %>
                     <% if current_user.role == 'admin' %>
-                        <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#membersModal">
-                            <i class="ri-group-line me-1"></i> <span class="d-none d-sm-inline">Equipo</span>
-                        </button>
-                        <%= link_to edit_client_project_path(@client, @project), class: "btn btn-light shadow-sm" do %>
-                            <i class="ri-settings-3-line"></i>
+                    
+                    <%# Botón de Finanzas: Ahora integrado y destacado como acción principal %>
+                    <%= link_to client_project_financials_path(@client, @project), 
+                        class: "btn btn-success rounded-pill shadow-sm px-3 fw-bold", 
+                        data: { turbo: false } do %>
+                        <i class="ri-wallet-3-line me-1 align-middle"></i> 
+                        <span class="d-none d-sm-inline">Finanzas</span>
+                    <% end %>
+
+                    <button type="button" class="btn btn-soft-primary rounded-pill shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#membersModal">
+                        <i class="ri-group-line me-1 align-middle"></i> 
+                        <span class="d-none d-xxl-inline">Equipo</span>
+                    </button>
+
+                    <%# --- GRUPO DE UTILIDADES (Ajustes y Borrar) --- %>
+                    <div class="btn-group shadow-sm rounded-pill bg-white p-1 border">
+                        <%= link_to edit_client_project_path(@client, @project), 
+                            class: "btn btn-ghost-secondary btn-sm rounded-circle", 
+                            style: "width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;",
+                            title: "Configuración del Proyecto" do %>
+                        <i class="ri-settings-3-line font-16"></i>
                         <% end %>
-                        <button type="button" class="btn btn-outline-danger shadow-sm" onclick="confirmDeleteProject()">
-                            <i class="ri-delete-bin-line"></i>
+
+                        <button type="button" 
+                                class="btn btn-ghost-danger btn-sm rounded-circle ms-1 text-danger" 
+                                style: "width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;"
+                                onclick="confirmDeleteProject()"
+                                title="Eliminar Proyecto">
+                        <i class="ri-delete-bin-line font-16"></i>
                         </button>
+                    </div>
+
                     <% end %>
                 </div>
             </div>

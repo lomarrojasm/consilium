@@ -22,6 +22,9 @@ class Activity < ApplicationRecord
   # Validaciones
   validates :name, presence: true
 
+  # NUEVO: Sincronización automática con Finanzas
+  after_save :sync_financial_accrual
+
   
   # Opcional: Validar que el área sea una de las permitidas
   validates :area, inclusion: { 
@@ -35,4 +38,47 @@ class Activity < ApplicationRecord
     (senior_hours.to_f * senior_rate.to_f) + 
     (analyst_hours.to_f * analyst_rate.to_f)
   end
+
+  # Actualiza el módulo de facturación
+  def sync_financial_accrual
+    # 1. Aseguramos que tenga proyecto
+    return unless self.stage && self.stage.project
+    project = self.stage.project
+    
+    # 2. BÚSQUEDA EXTREMA EN RUBY (A prueba de mayúsculas, minúsculas y espacios invisibles)
+    # Extraemos todos los conceptos y los comparamos limpiándolos por completo.
+    accrual = project.financial_accruals.to_a.find do |f|
+      f.concept_name.to_s.strip.downcase == self.name.to_s.strip.downcase
+    end
+
+    # Si por alguna razón no lo encuentra, nos avisará en la terminal negra del servidor
+    unless accrual 
+      Rails.logger.error "🛑 ALERTA FINANCIERA: No se encontró coincidencia para la actividad '#{self.name}'"
+      return 
+    end
+
+    # 3. Lógica de completado (Evalúa tanto el checkbox como el estatus de texto)
+    estatus_ok = ['approved', 'aprobado', 'completado', 'terminado', 'done', 'listo p/v.b.', 'listo']
+    esta_terminada = (self.completed == true) || estatus_ok.include?(self.status.to_s.downcase)
+
+    Rails.logger.info "✅ ÉXITO FINANCIERO: Sincronizando '#{accrual.concept_name}' -> ¿Terminada? #{esta_terminada}"
+
+    # 4. ACTUALIZACIÓN DIRECTA (Escribe directo en la base de datos)
+    if esta_terminada
+      fecha = accrual.accrued_date || Date.current
+      accrual.update_columns(status: 'accrued', accrued_date: fecha)
+    else
+      accrual.update_columns(status: 'pending', accrued_date: nil)
+    end
+  end
+
+
+  private
+
+  # Verifica si realmente cambió el estatus o la casilla de completado
+  def status_or_completion_changed?
+    saved_change_to_completed? || saved_change_to_status?
+  end
+
+  
 end

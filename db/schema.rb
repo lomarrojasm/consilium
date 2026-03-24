@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_14_024451) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_21_033929) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -180,6 +180,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_14_024451) do
     t.index ["sender_id"], name: "index_conversations_on_sender_id"
   end
 
+  create_table "financial_accruals", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.string "stage_name"
+    t.string "concept_name"
+    t.decimal "amount", precision: 10
+    t.date "accrued_date"
+    t.string "status", default: "pending"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id"], name: "index_financial_accruals_on_project_id"
+  end
+
   create_table "messages", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "conversation_id", null: false
     t.bigint "user_id", null: false
@@ -205,6 +217,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_14_024451) do
     t.index ["actor_type", "actor_id"], name: "index_notifications_on_actor"
     t.index ["notifiable_type", "notifiable_id"], name: "index_notifications_on_notifiable"
     t.index ["recipient_type", "recipient_id"], name: "index_notifications_on_recipient"
+  end
+
+  create_table "payments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.decimal "amount", precision: 10
+    t.date "payment_date"
+    t.string "invoice_number"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id"], name: "index_payments_on_project_id"
   end
 
   create_table "project_comments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -477,8 +500,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_14_024451) do
   add_foreign_key "conversations", "clients"
   add_foreign_key "conversations", "users", column: "recipient_id"
   add_foreign_key "conversations", "users", column: "sender_id"
+  add_foreign_key "financial_accruals", "projects"
   add_foreign_key "messages", "conversations"
   add_foreign_key "messages", "users"
+  add_foreign_key "payments", "projects"
   add_foreign_key "project_comments", "projects"
   add_foreign_key "project_comments", "users"
   add_foreign_key "project_comments", "users", column: "recipient_id"

@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  project: one
+  stage_name: MyString
+  concept_name: MyString
+  amount: 9.99
+  accrued_date: 2026-03-20
+  status: MyString
+
+two:
+  project: two
+  stage_name: MyString
+  concept_name: MyString
+  amount: 9.99
+  accrued_date: 2026-03-20
+  status: MyString

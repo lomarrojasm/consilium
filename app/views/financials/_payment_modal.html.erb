@@ -1,0 +1,106 @@
+<%# app/views/financials/_payment_modal.html.erb %>
+<div class="modal fade" id="<%= modal_id %>" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow payment-form-container">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold text-white"><i class="ri-money-dollar-circle-line me-2"></i><%= title %></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <%= form_with model: payment, url: url, method: method, local: true, html: { multipart: true } do |f| %>
+        <div class="modal-body p-4">
+          
+          <div class="row g-4">
+            <%# ========================================== %>
+            <%# COLUMNA IZQ: Selección de Actividades      %>
+            <%# ========================================== %>
+            <div class="col-md-6 border-end">
+              <h6 class="fw-bold text-primary mb-3">1. ¿Qué cubre este pago?</h6>
+              
+              <div class="mb-3">
+                <div class="form-check mb-2">
+                  <input class="form-check-input payment-type-radio" type="radio" name="ptype_<%= modal_id %>" value="general" checked>
+                  <label class="form-check-label fw-medium">Pago General / Anticipo</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input payment-type-radio" type="radio" name="ptype_<%= modal_id %>" value="specific">
+                  <label class="form-check-label fw-medium">Pago de Actividades Específicas</label>
+                  <small class="d-block text-muted font-11">El sistema calculará el total automáticamente.</small>
+                </div>
+              </div>
+
+              <%# Caja de Actividades Oculta con Buscador en Vivo %>
+              <div class="specific-activities-box bg-light border rounded p-3 mt-2" style="display: none;">
+                
+                <%# Buscador Inteligente %>
+                <div class="input-group input-group-sm mb-3 shadow-sm">
+                  <span class="input-group-text bg-white border-end-0 text-muted"><i class="ri-search-line"></i></span>
+                  <input type="text" class="form-control border-start-0 ps-0 activity-search-input" placeholder="Buscar actividad o monto (Ej. 10200)...">
+                </div>
+
+                <%# Lista scrolleable %>
+                <div class="activities-list-container pe-2" style="max-height: 220px; overflow-y: auto;">
+                  <% if @project.financial_accruals.any? %>
+                    <% @project.financial_accruals.each do |accrual| %>
+                      <div class="form-check font-13 mb-2 border-bottom pb-2 activity-item">
+                        <input class="form-check-input activity-checkbox mt-1" type="checkbox" value="<%= accrual.concept_name %>" data-amount="<%= accrual.amount %>">
+                        <label class="form-check-label text-dark d-block" style="line-height: 1.3;">
+                          <%= accrual.concept_name %> <br>
+                          <span class="text-success fw-bold">(<%= number_to_currency(accrual.amount) %>)</span>
+                        </label>
+                      </div>
+                    <% end %>
+                  <% else %>
+                    <p class="text-muted font-12 mb-0">No hay matriz financiera generada.</p>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+            <%# ========================================== %>
+            <%# COLUMNA DER: Monto y Comprobante           %>
+            <%# ========================================== %>
+            <div class="col-md-6">
+              <h6 class="fw-bold text-primary mb-3">2. Detalles del Ingreso</h6>
+
+              <div class="mb-3">
+                <%= f.label :amount, "Monto Total (MXN)", class: "form-label fw-bold font-13" %>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">$</span>
+                  <%= f.number_field :amount, class: "form-control payment-amount-input fw-bold", step: "0.01", required: true %>
+                </div>
+              </div>
+              
+              <div class="row">
+                <div class="col-6 mb-3">
+                  <%= f.label :payment_date, "Fecha", class: "form-label fw-bold font-13" %>
+                  <%= f.date_field :payment_date, class: "form-control", value: payment.payment_date || Date.current, required: true %>
+                </div>
+                <div class="col-6 mb-3">
+                  <%= f.label :invoice_number, "Folio/Factura", class: "form-label fw-bold font-13" %>
+                  <%= f.text_field :invoice_number, class: "form-control", placeholder: "Opcional", value: payment.invoice_number %>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <%= f.label :notes, "Concepto y Notas", class: "form-label fw-bold font-13" %>
+                <%= f.text_area :notes, class: "form-control payment-notes-input font-12", rows: 3, placeholder: "Detalles del pago...", value: payment.notes %>
+              </div>
+
+              <div class="mb-0">
+                <%= f.label :receipt, "Comprobante (PDF/Img)", class: "form-label fw-bold font-13" %>
+                <%= f.file_field :receipt, class: "form-control font-12" %>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+        
+        <div class="modal-footer bg-light border-0">
+          <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+          <%= f.submit "Guardar Pago", class: "btn btn-success rounded-pill shadow-sm px-4" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

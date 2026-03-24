@@ -183,47 +183,47 @@
                                         
                                         <%# Lógica visual dependiendo del tipo de llave (a = Auto, m = Membresía, q = Profundo) %>
                                         <% if key.start_with?('a') %>
-    <% analysis = get_autodiagnostico_analysis(key, value) %>
-    
-    <div class="row">
-        <%# Resumen de respuesta %>
-        <div class="col-md-12 mb-3">
-            <div class="d-flex align-items-center gap-3">
-                <span class="badge bg-primary rounded-pill px-3 py-2 font-16 shadow-sm">
-                    <%= value %> / 5
-                </span>
-                <div class="text-dark fw-bold font-14 italic">
-                    "<%= analysis[:text] %>"
-                </div>
-            </div>
-        </div>
+                                            <% analysis = get_autodiagnostico_analysis(key, value) %>
+                                            
+                                            <div class="row">
+                                                <%# Resumen de respuesta %>
+                                                <div class="col-md-12 mb-3">
+                                                    <div class="d-flex align-items-center gap-3">
+                                                        <span class="badge bg-primary rounded-pill px-3 py-2 font-16 shadow-sm">
+                                                            <%= value %> / 5
+                                                        </span>
+                                                        <div class="text-dark fw-bold font-14 italic">
+                                                            "<%= analysis[:text] %>"
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-        <%# Dictamen / Hallazgo %>
-        <div class="col-md-6">
-            <div class="p-3 rounded-3 border-start border-4 border-danger bg-danger bg-opacity-10 h-100">
-                <h6 class="text-danger fw-bold text-uppercase font-11 mb-2">
-                    <i class="ri-error-warning-line me-1"></i> Dictamen de Hallazgos
-                </h6>
-                <p class="mb-0 text-dark font-13" style="line-height: 1.5;">
-                    <%= analysis[:dictamen] %>
-                </p>
-            </div>
-        </div>
+                                                <%# Dictamen / Hallazgo %>
+                                                <div class="col-md-6">
+                                                    <div class="p-3 rounded-3 border-start border-4 border-danger bg-danger bg-opacity-10 h-100">
+                                                        <h6 class="text-danger fw-bold text-uppercase font-11 mb-2">
+                                                            <i class="ri-error-warning-line me-1"></i> Dictamen de Hallazgos
+                                                        </h6>
+                                                        <p class="mb-0 text-dark font-13" style="line-height: 1.5;">
+                                                            <%= analysis[:dictamen] %>
+                                                        </p>
+                                                    </div>
+                                                </div>
 
-        <%# Recomendaciones %>
-        <div class="col-md-6">
-            <div class="p-3 rounded-3 border-start border-4 border-success bg-success bg-opacity-10 h-100">
-                <h6 class="text-success fw-bold text-uppercase font-11 mb-2">
-                    <i class="ri-checkbox-circle-line me-1"></i> Recomendaciones Consilium
-                </h6>
-                <ul class="mb-0 ps-3 font-13 text-dark">
-                    <% analysis[:recs].each do |rec| %>
-                        <li class="mb-1"><%= rec %></li>
-                    <% end %>
-                </ul>
-            </div>
-        </div>
-    </div>
+                                                <%# Recomendaciones %>
+                                                <div class="col-md-6">
+                                                    <div class="p-3 rounded-3 border-start border-4 border-success bg-success bg-opacity-10 h-100">
+                                                        <h6 class="text-success fw-bold text-uppercase font-11 mb-2">
+                                                            <i class="ri-checkbox-circle-line me-1"></i> Recomendaciones Consilium
+                                                        </h6>
+                                                        <ul class="mb-0 ps-3 font-13 text-dark">
+                                                            <% analysis[:recs].each do |rec| %>
+                                                                <li class="mb-1"><%= rec %></li>
+                                                            <% end %>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         <% elsif key.start_with?('m') %>
                                             <div class="d-flex align-items-center">
                                                 <%# Llamamos al nuevo helper para obtener el texto (ej: "1–3") %>

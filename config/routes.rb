@@ -75,6 +75,16 @@ Rails.application.routes.draw do
         get :comments, :schedule_view
         delete :delete_file
       end
+    
+      # NUEVO MÓDULO FINANCIERO INDEPENDIENTE
+      resource :financials, only: [:show] do
+        post :generate_template
+        delete :reset_template
+        post :create_payment
+        patch :update_payment
+        delete :destroy_payment
+        patch :update_accrual
+      end
 
       resources :comments, controller: 'project_comments', only: [:create, :index]
       resources :stages, except: [:index, :show]

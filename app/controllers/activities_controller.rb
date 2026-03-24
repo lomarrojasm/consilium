@@ -3,7 +3,6 @@ class ActivitiesController < ApplicationController
   before_action :set_context
 
   # --- SEGURIDAD AJUSTADA PARA EL FLUJO CLIENTE/SOPORTE ---
-  # Ahora el cliente (y el admin en impersonate) pueden subir evidencia y hacer seguimiento
   before_action :authorize_project_member!, only: [
     :edit, :tracking, :toggle_user_approval, :toggle_admin_approval, 
     :upload_evidence, :update_status
@@ -13,7 +12,6 @@ class ActivitiesController < ApplicationController
     :new, :create, :update, :destroy, :toggle
   ]
 
-  # Añadimos este filtro para las acciones que modifican el estado de la tarea
   before_action :check_stage_lock_on_activity!, only: [:update_status, :toggle_user_approval, :upload_evidence]
 
   def new
@@ -30,7 +28,6 @@ class ActivitiesController < ApplicationController
   def create
     stage = @project.stages.find(activity_params[:stage_id])
     
-    # SEGURIDAD BACKEND: Evita guardar la tarea si la etapa está bloqueada para el usuario activo
     if stage.locked_for?(current_user)
       redirect_to client_project_path(@client, @project), alert: "No puedes añadir tareas a una etapa finalizada y bloqueada." and return
     end
@@ -55,7 +52,6 @@ class ActivitiesController < ApplicationController
   end
 
   def update
-    # SEGURIDAD: Solo el admin real puede modificar la fecha de creación original
     unless current_user.role == 'admin'
       params[:activity].delete(:created_at)
     end
@@ -63,6 +59,7 @@ class ActivitiesController < ApplicationController
     if @activity.update(activity_params)
       total_cost = (@activity.leader_cost || 0) + (@activity.senior_cost || 0) + (@activity.analyst_cost || 0)
       @activity.update_column(:activity_cost, total_cost)
+      
       redirect_to client_project_path(@client, @project), notice: 'Actividad actualizada.'
     else
       render :edit, status: :unprocessable_entity
@@ -74,8 +71,24 @@ class ActivitiesController < ApplicationController
     redirect_to client_project_path(@client, @project), notice: 'Actividad eliminada.'
   end
 
+  # ====================================================================
+  # MAGIA 1: Checkbox rápido unificado
+  # ====================================================================
   def toggle
-    @activity.update(completed: !@activity.completed)
+    new_completed = !@activity.completed
+    updates = { completed: new_completed }
+    
+    # Si la desmarcamos, se caen todas las aprobaciones y regresa a pendiente
+    if !new_completed
+      updates[:status] = 'pending'
+      updates[:admin_approved] = false
+      updates[:user_approved] = false
+    else
+      updates[:status] = 'completed'
+    end
+    
+    @activity.update(updates)
+    
     respond_to do |format|
       format.html { redirect_to client_project_path(@client, @project), notice: "Estatus actualizado." }
       format.turbo_stream { head :ok }
@@ -83,95 +96,85 @@ class ActivitiesController < ApplicationController
   end
 
   def upload_evidence
-  if params[:activity] && params[:activity][:evidence].present?
-    @activity.evidence.attach(params[:activity][:evidence])
-    
-    # Tomamos como base la fecha de creación de la actividad para el sellado
-    # Esto mantiene la coherencia con el plan de trabajo original
-    @activity.update(
-      completed: true, 
-      user: current_user, 
-      completed_day: @activity.created_at.day,
-      evidence_uploaded_at: @activity.created_at
-    )
-    
-    @activity.activity_logs.create!(
-      user: current_user,
-      status: 'pending',
-      comment: "📁 Subió la evidencia formal de la actividad (Sellado con fecha de registro)."
-    )
-
-    redirect_to client_project_path(@client, @project), notice: "Evidencia cargada y registrada con fecha base."
-  else
-    redirect_to client_project_path(@client, @project), alert: "Debes adjuntar un archivo."
-  end
-end
-
-def update_evidence_date
-  @activity = Activity.find(params[:id])
-
-  # Blindaje de seguridad: Solo permitir si el rol es admin
-  if current_user.role == 'admin'
-    if @activity.update(evidence_uploaded_at: params[:evidence_uploaded_at])
-      # Opcional: Actualizamos también completed_day para coherencia en reportes mensuales
-      new_date = params[:evidence_uploaded_at].to_date
-      @activity.update(completed_day: new_date.day)
+    if params[:activity] && params[:activity][:evidence].present?
+      @activity.evidence.attach(params[:activity][:evidence])
       
-      redirect_back fallback_location: root_path, notice: "Fecha de evidencia actualizada correctamente."
+      @activity.update(
+        completed: true, 
+        user: current_user, 
+        completed_day: @activity.created_at.day,
+        evidence_uploaded_at: @activity.created_at
+      )
+      
+      @activity.activity_logs.create!(
+        user: current_user,
+        status: 'pending',
+        comment: "📁 Subió la evidencia formal de la actividad (Sellado con fecha de registro)."
+      )
+
+      redirect_to client_project_path(@client, @project), notice: "Evidencia cargada y registrada con fecha base."
     else
-      redirect_back fallback_location: root_path, alert: "Error al actualizar la fecha."
+      redirect_to client_project_path(@client, @project), alert: "Debes adjuntar un archivo."
     end
-  else
-    redirect_back fallback_location: root_path, alert: "No tienes permisos para modificar fechas de evidencia."
-  end
-end
-
-def update_status
-  @activity = @project.activities.find(params[:id])
-  new_status = params[:status] # "pending", "rejected" o "completed"
-  comment = params[:comment]
-
-  # Preparamos los parámetros de actualización
-  update_params = { status: new_status }
-  
-  # Lógica: Marcamos como completada si el estatus es 'approved' o 'completed' (Listo p/V.B.)
-  # Esto habilita la sumatoria de "Inversión Ejecutada" en el Dashboard
-  update_params[:completed] = ['approved', 'completed'].include?(new_status)
-  
-  # Si es la primera vez que se marca como completada y no hay evidencia, 
-  # sellamos con la fecha de creación original para mantener el historial técnico.
-  if update_params[:completed] && @activity.evidence_uploaded_at.nil?
-    update_params[:evidence_uploaded_at] = @activity.created_at
-    update_params[:completed_day] = @activity.created_at.day
   end
 
-  # Intentamos actualizar la actividad
-  if @activity.update(update_params)
-    # Creamos el log de seguimiento
-    # Usamos .to_s para el status por seguridad si el Enum del Log no está 100% sincronizado
-    log = @activity.activity_logs.create!(
-      user: current_user,
-      status: new_status.to_s,
-      comment: comment
-    )
+  def update_evidence_date
+    @activity = Activity.find(params[:id])
+
+    if current_user.role == 'admin'
+      if @activity.update(evidence_uploaded_at: params[:evidence_uploaded_at])
+        new_date = params[:evidence_uploaded_at].to_date
+        @activity.update(completed_day: new_date.day)
+        redirect_back fallback_location: root_path, notice: "Fecha de evidencia actualizada correctamente."
+      else
+        redirect_back fallback_location: root_path, alert: "Error al actualizar la fecha."
+      end
+    else
+      redirect_back fallback_location: root_path, alert: "No tienes permisos para modificar fechas de evidencia."
+    end
+  end
+
+  def update_status
+    @activity = @project.activities.find(params[:id])
+    new_status = params[:status]
+    comment = params[:comment]
+
+    update_params = { status: new_status }
+    update_params[:completed] = ['approved', 'completed'].include?(new_status)
     
-    # Adjuntamos archivos si el consultor subió fotos o documentos de avance
-    log.attachments.attach(params[:attachments]) if params[:attachments].present?
+    if update_params[:completed] && @activity.evidence_uploaded_at.nil?
+      update_params[:evidence_uploaded_at] = @activity.created_at
+      update_params[:completed_day] = @activity.created_at.day
+    end
 
-    redirect_to client_project_path(@client, @project), notice: "Seguimiento registrado y estatus actualizado."
-  else
-    redirect_to client_project_path(@client, @project), alert: "No se pudo actualizar el estatus de la actividad."
+    if @activity.update(update_params)
+      log = @activity.activity_logs.create!(
+        user: current_user,
+        status: new_status.to_s,
+        comment: comment
+      )
+      
+      log.attachments.attach(params[:attachments]) if params[:attachments].present?
+
+      redirect_to client_project_path(@client, @project), notice: "Seguimiento registrado y estatus actualizado."
+    else
+      redirect_to client_project_path(@client, @project), alert: "No se pudo actualizar el estatus de la actividad."
+    end
   end
-end
 
+  # ====================================================================
+  # MAGIA 2: Aprobación del Cliente unificada
+  # ====================================================================
   def toggle_user_approval
     new_state = !@activity.user_approved
     updates = { user_approved: new_state, user_approved_at: new_state ? Time.current : nil }
     
-    # Cascada: Si el cliente retira su aprobación, se cae la del Admin
+    # Si el cliente retira su aprobación, se cae todo lo demás y se reabre la tarea
     if !new_state
       updates[:admin_approved] = false
       updates[:admin_approved_at] = nil
+      updates[:completed] = false
+      updates[:status] = 'pending'
     end
     
     @activity.update(updates)
@@ -182,11 +185,25 @@ end
     redirect_back fallback_location: client_project_path(@client, @project), notice: "Aprobación de cliente actualizada."
   end
 
+  # ====================================================================
+  # MAGIA 3: Aprobación del Admin unificada
+  # ====================================================================
   def toggle_admin_approval
-    # SEGURIDAD IMPERSONATE: Usamos current_user. Si entraste como cliente, no pasas de aquí.
     if current_user.role == 'admin'
       new_state = !@activity.admin_approved
-      @activity.update(admin_approved: new_state, admin_approved_at: new_state ? Time.current : nil)
+      
+      updates = { admin_approved: new_state, admin_approved_at: new_state ? Time.current : nil }
+      
+      # Si el Admin retira el visto bueno, forzamos a que la actividad se marque como Incompleta
+      if !new_state
+        updates[:completed] = false
+        updates[:status] = 'pending'
+      else
+        updates[:completed] = true
+        updates[:status] = 'approved'
+      end
+
+      @activity.update(updates)
       
       action_text = new_state ? "🛡️ Otorgó" : "↩️ Retiró"
       @activity.activity_logs.create!(user: current_user, status: (new_state ? 'approved' : 'pending'), comment: "#{action_text} el Visto Bueno definitivo (Admin).")
@@ -225,10 +242,7 @@ end
   end
 
   def check_stage_lock_on_activity!
-    # Obtenemos la actividad
     activity = @project.activities.find(params[:id])
-    
-    # Si la etapa está bloqueada para el usuario actual (incluyendo impersonate)
     if activity.stage.locked_for?(current_user)
       redirect_to client_project_path(@client, @project), 
                   alert: "Acción no permitida: La etapa está finalizada y bloqueada."
