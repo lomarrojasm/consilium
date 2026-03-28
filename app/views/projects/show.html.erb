@@ -21,21 +21,26 @@
             <%# Botones de Acción (Se apilan en móvil, se alinean a la derecha en PC) %>
             <div class="w-100 w-lg-auto d-flex flex-wrap gap-2 justify-content-start justify-content-lg-end align-items-center">
                 
+                <%# --- ACCIÓN PARA TODOS: Cronograma --- %>
                 <%= link_to schedule_view_client_project_path(@client, @project), 
                     class: "btn btn-soft-info rounded-pill shadow-sm px-3 flex-grow-1 flex-md-grow-0 text-center", target: "_blank" do %> 
                     <i class="ri-calendar-todo-line me-1 align-middle"></i> 
                     <span class="d-inline d-xxl-inline">Cronograma</span>
                 <% end %>
 
-                <% if current_user.role == 'admin' %>
-                
+                <%# --- ACCIÓN COMPARTIDA: Finanzas (Visible para Admin y para el Cliente dueño) --- %>
+                <% if current_user.role == 'admin' || current_user.client_id == @client.id %>
                     <%= link_to client_project_financials_path(@client, @project), 
                         class: "btn btn-success rounded-pill shadow-sm px-3 fw-bold flex-grow-1 flex-md-grow-0 text-center", 
                         data: { turbo: false } do %>
                         <i class="ri-wallet-3-line me-1 align-middle"></i> 
                         <span class="d-inline">Finanzas</span>
                     <% end %>
+                <% end %>
 
+                <%# --- ACCIONES EXCLUSIVAS: Solo Administrador --- %>
+                <% if current_user.role == 'admin' %>
+                
                     <button type="button" class="btn btn-soft-primary rounded-pill shadow-sm px-3 flex-grow-1 flex-md-grow-0 text-center" data-bs-toggle="modal" data-bs-target="#membersModal">
                         <i class="ri-group-line me-1 align-middle"></i> 
                         <span class="d-inline d-xxl-inline">Equipo</span>
@@ -76,6 +81,13 @@
                         <h3 class="mt-0 text-white"><%= @project.name %></h3>
                         <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 flex-wrap">
                             <span class="badge bg-white text-primary px-2"><%= @client.company_name %></span>
+                            
+                            <%# INDICADOR DE TIPO DE PROYECTO %>
+                            <% is_methodology = (@project.project_type == 'metodologia' || @project.project_type.blank?) %>
+                            <span class="badge <%= is_methodology ? 'bg-info' : 'bg-warning text-dark' %> border border-white border-opacity-25">
+                                <i class="ri-flag-line me-1"></i><%= is_methodology ? 'METODOLOGÍA' : @project.project_type.humanize.upcase %>
+                            </span>
+
                             <span class="badge bg-info-lighten text-info border border-info"><%= @project.status&.humanize&.upcase || "SIN ESTATUS" %></span>
                         </div>
                     </div>
@@ -200,7 +212,7 @@
                     
                     <% if has_unlocked_stages %>
                         <%= link_to new_client_project_activity_path(@client, @project), class: "btn btn-sm btn-primary shadow-sm flex-grow-1 flex-sm-grow-0" do %>
-                            <i class="ri-add-line"></i> Nueva Tarea
+                            <i class="ri-add-line"></i> Nueva Tarea <%= is_methodology ? "" : "Especial" %>
                         <% end %>
                     <% else %>
                         <span data-bs-toggle="tooltip" title="Todas las etapas están cerradas o no hay etapas creadas." class="flex-grow-1 flex-sm-grow-0 d-flex">
@@ -313,7 +325,6 @@
 
                         <div id="stage-<%= stage.id %>" class="collapse <%= 'show' if index == 0 || (is_unlocked && stage.progress_percentage < 100 && stage.progress_percentage > 0) %>">
                             <div class="card-body p-0">
-                                <%# FIX RESPONSIVE: 'table-responsive' fuerza scroll horizontal en cualquier celular %>
                                 <div class="table-responsive">
                                     <table class="table table-centered table-hover mb-0 align-middle" style="min-width: 600px;">
                                         <thead class="table-light text-muted font-11 uppercase">
@@ -361,7 +372,9 @@
                                                         </a>
                                                         
                                                         <div class="d-flex flex-wrap gap-1 d-lg-none mb-1">
-                                                            <span class="badge bg-light text-dark border font-10">M<%= activity.month %>-S<%= activity.week %></span>
+                                                            <% if is_methodology %>
+                                                                <span class="badge bg-light text-dark border font-10">M<%= activity.month %>-S<%= activity.week %></span>
+                                                            <% end %>
                                                             <span class="badge bg-light text-secondary border font-10"><%= activity.area %></span>
                                                             <% if activity.responsible.present? %>
                                                                 <span class="badge bg-soft-info text-info font-10 d-md-none"><i class="ri-user-line"></i> <%= activity.responsible.first_name %></span>

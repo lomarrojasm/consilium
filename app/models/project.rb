@@ -22,6 +22,18 @@ class Project < ApplicationRecord
   # Estados del proyecto
   enum :status, { borrador: 0, activo: 1, pausado: 2, finalizado: 3 }
 
+
+  #Tipo de proyectos
+
+  # Tipo de proyectos
+    enum :project_type, { 
+    metodologia: 'metodologia', 
+    especial_consultoria: 'especial_consultoria', 
+    especial_tecnico: 'especial_tecnico',
+    especial_administrativo: 'especial_administrativo'
+  }
+  
+
   # Validaciones
   validates :name, :start_date, presence: true
 
@@ -32,6 +44,11 @@ class Project < ApplicationRecord
   before_validation :set_default_status
 
   accepts_nested_attributes_for :stages, allow_destroy: true, reject_if: :all_blank
+
+  # Helper para saber si es cualquier tipo de especial
+  def special?
+    !metodologia?
+  end
 
   # Método para generar etapas (Llamado manualmente desde el controlador)
   def create_default_stages

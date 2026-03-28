@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_21_033929) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_24_234025) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -267,6 +267,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_21_033929) do
     t.bigint "user_id", null: false
     t.bigint "responsible_id"
     t.boolean "sequential_stages", default: true
+    t.string "project_type"
     t.index ["client_id"], name: "index_projects_on_client_id"
     t.index ["responsible_id"], name: "index_projects_on_responsible_id"
     t.index ["user_id"], name: "index_projects_on_user_id"

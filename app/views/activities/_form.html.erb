@@ -41,188 +41,245 @@
     </div>
   <% end %>
 
-  <div class="row">
-    <%# --- COLUMNA IZQUIERDA: INFORMACIÓN GENERAL --- %>
-    <div class="col-lg-4">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <h5 class="card-title mb-3 text-primary d-flex align-items-center">
-            <i class="ri-information-fill me-1"></i> Información General
-          </h5>
+  <%# DEFINICIÓN COMPARTIDA DE ETAPAS (Se usa en ambos formularios) %>
+  <% 
+    available_stages = @project.stages.order(:position).reject { |s| s.locked_for?(current_user) }
+    available_stages << @activity.stage if @activity.stage && !available_stages.include?(@activity.stage)
+  %>
 
-          <%# Etapa del Proyecto con Filtro de Seguridad %>
-          <div class="form-floating mb-3">
-             <%# Lógica: Mostrar solo etapas que NO estén bloqueadas para el usuario, o la actual si ya está guardada %>
-             <% 
-                available_stages = @project.stages.order(:position).reject { |s| s.locked_for?(current_user) }
-                # Si es edición y la etapa actual está bloqueada, la incluimos para que no se pierda el valor
-                available_stages << @activity.stage if @activity.stage && !available_stages.include?(@activity.stage)
-             %>
-             <%= f.collection_select :stage_id, available_stages, :id, :name, {}, { class: "form-select border-light-subtle", required: true } %>
-             <%= f.label :stage_id, "Etapa del Proyecto" %>
-             <% if available_stages.empty? && @activity.new_record? %>
-                <div class="form-text text-danger font-10 mt-1"><i class="ri-error-warning-line"></i> No hay etapas disponibles o todas están finalizadas.</div>
-             <% end %>
-          </div>
+  <%# ========================================================================= %>
+  <%# BIFURCACIÓN DE LÓGICA: ¿Es un Proyecto de Metodología o uno Especial?     %>
+  <%# ========================================================================= %>
 
-          <%# Nombre de la Actividad %>
-          <div class="form-floating mb-3">
-            <%= f.text_area :name, class: "form-control border-light-subtle", placeholder: "Nombre", style: "height: 120px", required: true %>
-            <%= f.label :name, "Nombre de la Actividad" %>
-          </div>
+  <% if @project.project_type == 'metodologia' || @project.project_type.blank? %>
+    
+    <%# ----------------------------------------------------------------------- %>
+    <%# FORMULARIO A: METODOLOGÍA (Mantiene tu tabla de horas y scripts intactos) %>
+    <%# ----------------------------------------------------------------------- %>
+    <div class="row">
+      <div class="col-lg-4">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-body">
+            <h5 class="card-title mb-3 text-primary d-flex align-items-center">
+              <i class="ri-information-fill me-1"></i> Información General
+            </h5>
 
-          <%# Responsable %>
-          <div class="form-floating mb-3">
-            <%= f.collection_select :responsible_id, @project.users.order(:first_name), :id, :full_name, { prompt: "" }, { class: "form-select border-light-subtle", required: true } %>
-            <%= f.label :responsible_id, "Responsable de Ejecución" %>
-          </div>
+            <div class="form-floating mb-3">
+              <%= f.collection_select :stage_id, available_stages, :id, :name, {}, { class: "form-select border-light-subtle", required: true } %>
+              <%= f.label :stage_id, "Etapa del Proyecto" %>
+              <% if available_stages.empty? && @activity.new_record? %>
+                  <div class="form-text text-danger font-10 mt-1"><i class="ri-error-warning-line"></i> No hay etapas disponibles o todas están finalizadas.</div>
+              <% end %>
+            </div>
 
-          <%# Documento / Entregable %>
-          <div class="form-floating mb-3">
-            <%= f.text_field :document_ref, class: "form-control border-light-subtle", placeholder: "Referencia" %>
-            <%= f.label :document_ref, "Documento / Entregable (Ref)" %>
-          </div>
+            <div class="form-floating mb-3">
+              <%= f.text_area :name, class: "form-control border-light-subtle", placeholder: "Nombre", style: "height: 120px", required: true %>
+              <%= f.label :name, "Nombre de la Actividad" %>
+            </div>
 
-          <%# Área Responsable %>
-          <div class="form-floating mb-3">
-            <%= f.select :area, ['Integral', 'Dirección', 'Finanzas', 'Procesos', 'Comercial', 'RH'], { include_blank: '' }, { class: "form-select border-light-subtle" } %>
-            <%= f.label :area, "Área Interna" %>
-          </div>
+            <div class="form-floating mb-3">
+              <%= f.collection_select :responsible_id, @project.users.order(:first_name), :id, :full_name, { prompt: "" }, { class: "form-select border-light-subtle", required: true } %>
+              <%= f.label :responsible_id, "Responsable de Ejecución" %>
+            </div>
 
-          <%# Tiempo: Mes, Semana, Día %>
-          <div class="bg-light p-2 rounded mb-3">
-            <label class="form-label font-11 text-uppercase fw-bold text-muted ms-1 mb-2">Programación Temporal</label>
-            <div class="row g-2">
-              <div class="col-4">
-                <div class="form-floating">
-                  <%= f.number_field :month, class: "form-control border-0", placeholder: "Mes" %>
-                  <%= f.label :month, "Mes" %>
+            <div class="form-floating mb-3">
+              <%= f.text_field :document_ref, class: "form-control border-light-subtle", placeholder: "Referencia" %>
+              <%= f.label :document_ref, "Documento / Entregable (Ref)" %>
+            </div>
+
+            <div class="form-floating mb-3">
+              <%= f.select :area, ['Integral', 'Dirección', 'Finanzas', 'Procesos', 'Comercial', 'RH'], { include_blank: '' }, { class: "form-select border-light-subtle" } %>
+              <%= f.label :area, "Área Interna" %>
+            </div>
+
+            <div class="bg-light p-2 rounded mb-3">
+              <label class="form-label font-11 text-uppercase fw-bold text-muted ms-1 mb-2">Programación Temporal</label>
+              <div class="row g-2">
+                <div class="col-4">
+                  <div class="form-floating">
+                    <%= f.number_field :month, class: "form-control border-0", placeholder: "Mes" %>
+                    <%= f.label :month, "Mes" %>
+                  </div>
                 </div>
-              </div>
-              <div class="col-4">
-                <div class="form-floating">
-                  <%= f.number_field :week, class: "form-control border-0", placeholder: "Semana" %>
-                  <%= f.label :week, "Semana" %>
+                <div class="col-4">
+                  <div class="form-floating">
+                    <%= f.number_field :week, class: "form-control border-0", placeholder: "Semana" %>
+                    <%= f.label :week, "Semana" %>
+                  </div>
                 </div>
-              </div>
-              <div class="col-4">
-                <div class="form-floating">
-                  <%= f.number_field :completed_day, class: "form-control border-0", placeholder: "Día" %>
-                  <%= f.label :completed_day, "Día Fin" %>
+                <div class="col-4">
+                  <div class="form-floating">
+                    <%= f.number_field :completed_day, class: "form-control border-0", placeholder: "Día" %>
+                    <%= f.label :completed_day, "Día Fin" %>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
-    </div>
 
-    <%# --- COLUMNA DERECHA: PRESUPUESTO --- %>
-    <div class="col-lg-8">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <h5 class="card-title mb-3 text-primary d-flex align-items-center">
-            <i class="ri-money-dollar-circle-fill me-1"></i> Presupuesto y Esfuerzo
-          </h5>
-          
-          <div class="table-responsive">
-            <table class="table table-centered mb-0 align-middle">
-              <thead class="table-light">
-                <tr class="font-12 text-muted">
-                  <th class="ps-3">ROL</th>
-                  <th style="width: 20%;">HORAS</th>
-                  <th style="width: 25%;">TARIFA ($/hr)</th>
-                  <th style="width: 25%;" class="text-end pe-3">SUBTOTAL ($)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <%# Leader Row %>
-                <tr>
-                  <td class="fw-bold text-dark ps-3">Líder</td>
-                  <td>
-                    <%= f.number_field :leader_hours, step: 0.5, class: "form-control form-control-sm calc-input", data: { role: 'leader', type: 'hours' }, placeholder: "0" %>
-                  </td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <%= f.number_field :leader_rate, step: 0.01, class: "form-control calc-input", data: { role: 'leader', type: 'rate' }, placeholder: "0" %>
-                    </div>
-                  </td>
-                  <td class="text-end pe-3">
-                    <%= f.number_field :leader_cost, step: 0.01, class: "form-control form-control-sm bg-light text-end border-0 fw-bold", readonly: true, id: "total_leader" %>
-                  </td>
-                </tr>
-
-                <%# Senior Row %>
-                <tr>
-                  <td class="fw-bold text-dark ps-3">Senior</td>
-                  <td>
-                    <%= f.number_field :senior_hours, step: 0.5, class: "form-control form-control-sm calc-input", data: { role: 'senior', type: 'hours' }, placeholder: "0" %>
-                  </td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <%= f.number_field :senior_rate, step: 0.01, class: "form-control calc-input", data: { role: 'senior', type: 'rate' }, placeholder: "0" %>
-                    </div>
-                  </td>
-                  <td class="text-end pe-3">
-                    <%= f.number_field :senior_cost, step: 0.01, class: "form-control form-control-sm bg-light text-end border-0 fw-bold", readonly: true, id: "total_senior" %>
-                  </td>
-                </tr>
-
-                <%# Analyst Row %>
-                <tr>
-                  <td class="fw-bold text-dark ps-3">Analista</td>
-                  <td>
-                    <%= f.number_field :analyst_hours, step: 0.5, class: "form-control form-control-sm calc-input", data: { role: 'analyst', type: 'hours' }, placeholder: "0" %>
-                  </td>
-                  <td>
-                    <div class="input-group input-group-sm">
-                      <span class="input-group-text">$</span>
-                      <%= f.number_field :analyst_rate, step: 0.01, class: "form-control calc-input", data: { role: 'analyst', type: 'rate' }, placeholder: "0" %>
-                    </div>
-                  </td>
-                  <td class="text-end pe-3">
-                    <%= f.number_field :analyst_cost, step: 0.01, class: "form-control form-control-sm bg-light text-end border-0 fw-bold", readonly: true, id: "total_analyst" %>
-                  </td>
-                </tr>
-                
-                <tr class="bg-primary bg-opacity-10">
-                    <td colspan="3" class="text-end fw-bold align-middle py-3">COSTO TOTAL DE LA ACTIVIDAD:</td>
-                    <td class="text-end pe-3 align-middle">
-                        <h3 class="my-0 text-primary fw-bold" id="grand_total">
-                            <%= number_to_currency(@activity.activity_cost || 0) %>
-                        </h3>
+      <div class="col-lg-8">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-body">
+            <h5 class="card-title mb-3 text-primary d-flex align-items-center">
+              <i class="ri-money-dollar-circle-fill me-1"></i> Presupuesto y Esfuerzo
+            </h5>
+            <div class="table-responsive">
+              <table class="table table-centered mb-0 align-middle">
+                <thead class="table-light">
+                  <tr class="font-12 text-muted">
+                    <th class="ps-3">ROL</th>
+                    <th style="width: 20%;">HORAS</th>
+                    <th style="width: 25%;">TARIFA ($/hr)</th>
+                    <th style="width: 25%;" class="text-end pe-3">SUBTOTAL ($)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="fw-bold text-dark ps-3">Líder</td>
+                    <td><%= f.number_field :leader_hours, step: 0.5, class: "form-control form-control-sm calc-input", data: { role: 'leader', type: 'hours' }, placeholder: "0" %></td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">$</span>
+                        <%= f.number_field :leader_rate, step: 0.01, class: "form-control calc-input", data: { role: 'leader', type: 'rate' }, placeholder: "0" %>
+                      </div>
                     </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          
-          <div class="alert alert-soft-info mt-3 mb-0 border-0 font-12">
-            <i class="ri-information-fill me-1 font-16 align-middle"></i> 
-            El cálculo es automático: <strong>(Horas × Tarifa)</strong> por cada rol asignado.
+                    <td class="text-end pe-3"><%= f.number_field :leader_cost, step: 0.01, class: "form-control form-control-sm bg-light text-end border-0 fw-bold", readonly: true, id: "total_leader" %></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold text-dark ps-3">Senior</td>
+                    <td><%= f.number_field :senior_hours, step: 0.5, class: "form-control form-control-sm calc-input", data: { role: 'senior', type: 'hours' }, placeholder: "0" %></td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">$</span>
+                        <%= f.number_field :senior_rate, step: 0.01, class: "form-control calc-input", data: { role: 'senior', type: 'rate' }, placeholder: "0" %>
+                      </div>
+                    </td>
+                    <td class="text-end pe-3"><%= f.number_field :senior_cost, step: 0.01, class: "form-control form-control-sm bg-light text-end border-0 fw-bold", readonly: true, id: "total_senior" %></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold text-dark ps-3">Analista</td>
+                    <td><%= f.number_field :analyst_hours, step: 0.5, class: "form-control form-control-sm calc-input", data: { role: 'analyst', type: 'hours' }, placeholder: "0" %></td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">$</span>
+                        <%= f.number_field :analyst_rate, step: 0.01, class: "form-control calc-input", data: { role: 'analyst', type: 'rate' }, placeholder: "0" %>
+                      </div>
+                    </td>
+                    <td class="text-end pe-3"><%= f.number_field :analyst_cost, step: 0.01, class: "form-control form-control-sm bg-light text-end border-0 fw-bold", readonly: true, id: "total_analyst" %></td>
+                  </tr>
+                  <tr class="bg-primary bg-opacity-10">
+                      <td colspan="3" class="text-end fw-bold align-middle py-3">COSTO TOTAL DE LA ACTIVIDAD:</td>
+                      <td class="text-end pe-3 align-middle">
+                          <h3 class="my-0 text-primary fw-bold" id="grand_total">
+                              <%= number_to_currency(@activity.activity_cost || 0) %>
+                          </h3>
+                          <%# Input oculto para asegurar que Rails reciba el total si no se calcula en el backend %>
+                          <%= f.hidden_field :activity_cost, id: "hidden_activity_cost" %>
+                      </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="alert alert-soft-info mt-3 mb-0 border-0 font-12">
+              <i class="ri-information-fill me-1 font-16 align-middle"></i> El cálculo es automático: <strong>(Horas × Tarifa)</strong> por cada rol asignado.
+            </div>
           </div>
         </div>
       </div>
       
-      <%# Descripción Detallada opcional %>
-      <div class="card shadow-sm border-0 mt-3">
-        <div class="card-body">
-           <h5 class="card-title mb-2 text-muted font-13 text-uppercase">Notas o Descripción de la Tarea</h5>
-           <%= f.text_area :description, class: "form-control border-light-subtle", rows: 3, placeholder: "Instrucciones adicionales para el responsable..." %>
+      <div class="col-12 mt-3">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+             <h5 class="card-title mb-2 text-muted font-13 text-uppercase">Notas o Descripción de la Tarea</h5>
+             <%= f.text_area :description, class: "form-control border-light-subtle", rows: 3, placeholder: "Instrucciones adicionales para el responsable..." %>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
+  <% else %>
+    
+    <%# ----------------------------------------------------------------------- %>
+    <%# FORMULARIO B: PROYECTOS ESPECIALES (Simplificado + Costo Directo)       %>
+    <%# ----------------------------------------------------------------------- %>
+    <div class="row">
+      <div class="col-lg-5">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-body">
+            <h5 class="card-title mb-3 text-warning text-darken d-flex align-items-center">
+              <i class="ri-information-fill me-1"></i> Información General (Especial)
+            </h5>
+
+            <div class="form-floating mb-3">
+               <%= f.collection_select :stage_id, available_stages, :id, :name, {}, { class: "form-select border-light-subtle", required: true } %>
+               <%= f.label :stage_id, "Etapa del Proyecto" %>
+               <% if available_stages.empty? && @activity.new_record? %>
+                  <div class="form-text text-danger font-10 mt-1"><i class="ri-error-warning-line"></i> No hay etapas disponibles o todas están finalizadas.</div>
+               <% end %>
+            </div>
+
+            <div class="form-floating mb-3">
+              <%= f.text_area :name, class: "form-control border-light-subtle", placeholder: "Nombre", style: "height: 120px", required: true %>
+              <%= f.label :name, "Nombre de la Actividad" %>
+            </div>
+
+            <div class="form-floating mb-3">
+              <%= f.collection_select :responsible_id, @project.users.order(:first_name), :id, :full_name, { prompt: "" }, { class: "form-select border-light-subtle", required: true } %>
+              <%= f.label :responsible_id, "Responsable de Ejecución" %>
+            </div>
+
+            <div class="form-floating mb-3">
+              <%= f.text_field :area, class: "form-control border-light-subtle", placeholder: "Ej: Desarrollo / Operaciones" %>
+              <%= f.label :area, "Área o Departamento (Libre)" %>
+            </div>
+
+            <div class="form-floating mb-0">
+              <%= f.text_field :document_ref, class: "form-control border-light-subtle", placeholder: "Referencia" %>
+              <%= f.label :document_ref, "Documento / Entregable (Ref)" %>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <h5 class="card-title mb-3 text-warning text-darken d-flex align-items-center">
+              <i class="ri-money-dollar-circle-fill me-1"></i> Costo / Comisión
+            </h5>
+            
+            <div class="alert alert-soft-warning border-0 font-13 mb-4">
+              <i class="ri-information-line me-1"></i> Como este proyecto es de tipo <strong><%= @project.project_type.humanize.upcase %></strong>, no utiliza la calculadora por horas. Ingresa directamente la comisión o costo total acordado.
+            </div>
+
+            <div class="form-floating mb-3">
+              <%= f.number_field :activity_cost, step: 0.01, class: "form-control border-warning border-opacity-50 shadow-sm fw-bold text-dark font-20", placeholder: "0.00", required: true %>
+              <%= f.label :activity_cost, "Costo Total de la Actividad / Comisión ($)" %>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card shadow-sm border-0 mt-3">
+          <div class="card-body">
+             <h5 class="card-title mb-2 text-muted font-13 text-uppercase">Notas o Descripción de la Tarea</h5>
+             <%= f.text_area :description, class: "form-control border-light-subtle", rows: 5, placeholder: "Instrucciones adicionales para el responsable o detalles del pago..." %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ========================================================================= %>
+  <%# BOTONES DE GUARDADO (Común)                                               %>
+  <%# ========================================================================= %>
   <div class="row mt-4 mb-5">
     <div class="col-12 text-end">
         <hr class="border-dashed opacity-50 mb-4">
         <%= link_to "Volver al Proyecto", client_project_path(@client, @project), class: "btn btn-light me-2 px-4 shadow-none" %>
         
-        <%# Botón bloqueado si no hay etapas disponibles para crear %>
         <% if available_stages.empty? && @activity.new_record? %>
             <button class="btn btn-primary px-5 shadow-sm fw-bold disabled" style="pointer-events: none;">Crear Actividad</button>
         <% else %>
@@ -235,6 +292,7 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const inputs = document.querySelectorAll(".calc-input");
+        const hiddenActivityCost = document.getElementById("hidden_activity_cost");
         
         function calculate() {
             let grandTotal = 0;
@@ -254,18 +312,27 @@
                 }
             });
             
-            // Formato de moneda para el h3
-            document.getElementById('grand_total').innerText = new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-            }).format(grandTotal);
+            const totalElement = document.getElementById('grand_total');
+            if (totalElement) {
+                totalElement.innerText = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                }).format(grandTotal);
+            }
+
+            // Actualizamos el campo oculto para que el controlador reciba el total
+            if (hiddenActivityCost) {
+                hiddenActivityCost.value = grandTotal.toFixed(2);
+            }
         }
 
         inputs.forEach(input => {
             input.addEventListener('input', calculate);
         });
 
-        // Ejecutar cálculo inicial por si ya hay valores cargados (Edición)
-        calculate();
+        // Solo ejecutar si hay elementos calc-input (Metodología)
+        if (inputs.length > 0) {
+            calculate();
+        }
     });
 </script>

@@ -1,13 +1,63 @@
 <%# app/views/financials/show.html.erb %>
 
+<% 
+  # =========================================================================
+  # CEREBRO FINANCIERO: Cálculo Global de Abonos y Pagos Totales
+  # =========================================================================
+  @activity_payments = Hash.new(0.0) 
+  @payment_consumed = Hash.new(0.0)  
+
+  @payments.each do |p|
+    consumed = 0.0
+
+    # 1. Pagos Completos (Etiqueta REF)
+    ref_m = p.notes.to_s.match(/\[REF:\s*([\d,\s]+)\]/)
+    if ref_m
+      ref_m[1].split(',').map(&:to_i).each do |act_id|
+         activity = @accruals_by_stage.values.flatten.find { |a| a.id == act_id }
+         if activity
+           @activity_payments[act_id] += activity.amount.to_f
+           consumed += activity.amount.to_f
+         end
+      end
+    end
+
+    # 2. Pagos Parciales / Abonos (Etiqueta PARTIAL)
+    part_m = p.notes.to_s.match(/\[PARTIAL:\s*(.+?)\]/)
+    if part_m
+      part_m[1].split(',').each do |pair|
+        id_str, amt_str = pair.strip.split('_')
+        if id_str && amt_str
+           @activity_payments[id_str.to_i] += amt_str.to_f
+           consumed += amt_str.to_f
+        end
+      end
+    end
+
+    # 3. Legado (Nombres viejos por si tenías pagos antes de esta actualización)
+    if !ref_m && !part_m
+       name_m = p.notes.to_s.match(/\[Pago:\s*(.+?)\]/)
+       if name_m
+         names = name_m[1].split(',').map(&:strip)
+         @accruals_by_stage.values.flatten.each do |activity|
+            if names.include?(activity.concept_name.strip)
+               @activity_payments[activity.id] += activity.amount.to_f
+               consumed += activity.amount.to_f
+            end
+         end
+       end
+    end
+
+    @payment_consumed[p.id] = consumed.round(2)
+  end
+%>
+
 <div class="container-fluid py-4">
   
   <%# ENCABEZADO Y BREADCRUMBS %>
   <div class="row mb-4">
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-        
-        <%# Lado Izquierdo: Títulos %>
         <div>
           <h4 class="mb-1 fw-bold text-dark">
             <i class="ri-wallet-3-line text-primary me-2"></i>Finanzas y Cobranza
@@ -21,32 +71,48 @@
           </nav>
         </div>
 
-        <%# Lado Derecho: Botones de Acción %>
         <div class="d-flex align-items-center gap-2">
-          
-          <%# NUEVO: Botón de Regresar al Proyecto %>
           <%= link_to client_project_path(@client, @project), class: "btn btn-soft-secondary btn-sm rounded-pill shadow-sm px-3 fw-medium" do %>
             <i class="ri-arrow-left-line me-1 align-middle"></i> Volver al Proyecto
           <% end %>
 
-          <%# Botón de Reiniciar Matriz %>
-          <% if @accruals_by_stage.any? %>
+          <% if current_user.role == 'admin' && @accruals_by_stage.any? %>
             <%= button_to reset_template_client_project_financials_path(@client, @project), 
                 method: :delete, 
-                form: { style: "margin: 0;", data: { turbo_confirm: "⚠️ ¿Estás seguro? Esto borrará el presupuesto de devengos y pagos para que puedas volver a sincronizarlo." } }, 
+                form: { style: "margin: 0;", data: { turbo_confirm: "⚠️ ¿Estás seguro? Esto borrará el presupuesto de devengos y pagos." } }, 
                 class: "btn btn-outline-danger btn-sm rounded-pill shadow-sm px-3" do %>
               <i class="ri-refresh-line me-1 align-middle"></i> Reiniciar Matriz
             <% end %>
           <% end %>
-
         </div>
       </div>
     </div>
   </div>
 
   <%# KPIs FINANCIEROS %>
+  <% total_planned_amount = @accruals_by_stage.values.flatten.sum(&:amount) rescue 0 %>
+  
   <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-xl-3 col-md-6 mb-3 mb-xl-0">
+      <div class="card shadow-sm border-0 border-start border-4 border-primary h-100">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted text-uppercase font-11 fw-bold mb-1">Presupuesto Total</p>
+              <h3 class="text-dark fw-bold mb-0"><%= number_to_currency(total_planned_amount) %></h3>
+              <small class="text-muted font-12">Valor total del proyecto</small>
+            </div>
+            <div class="avatar-sm">
+              <span class="avatar-title bg-primary-subtle text-primary rounded-circle font-24">
+                <i class="ri-stack-line"></i>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3 mb-xl-0">
       <div class="card shadow-sm border-0 border-start border-4 border-info h-100">
         <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-center">
@@ -65,7 +131,7 @@
       </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-xl-3 col-md-6 mb-3 mb-xl-0">
       <div class="card shadow-sm border-0 border-start border-4 border-success h-100">
         <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-center">
@@ -86,9 +152,9 @@
 
     <% balance = @project.financial_balance %>
     <% balance_color = balance < 0 ? 'danger' : (balance > 0 ? 'success' : 'secondary') %>
-    <% balance_text = balance < 0 ? 'Saldo a favor de Consilium (Adeudo)' : (balance > 0 ? 'Saldo a favor del Cliente' : 'Cuentas en cero') %>
+    <% balance_text = balance < 0 ? 'Saldo a favor (Adeudo)' : (balance > 0 ? 'Saldo a favor del Cliente' : 'Cuentas en cero') %>
     
-    <div class="col-md-4">
+    <div class="col-xl-3 col-md-6">
       <div class="card shadow-sm border-0 border-start border-4 border-<%= balance_color %> h-100">
         <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-center">
@@ -114,28 +180,30 @@
         <div class="mb-3">
           <i class="ri-magic-line text-primary display-4"></i>
         </div>
-        <h4 class="fw-bold text-dark">Inicializar Control Financiero</h4>
-        <p class="text-muted mx-auto" style="max-width: 500px;">
-          Haz clic en el botón para sincronizar la matriz financiera con el plan de trabajo operativo generado para este cliente.
-        </p>
-        <%= button_to generate_template_client_project_financials_path(@client, @project), 
-            method: :post, class: "btn btn-primary rounded-pill px-4 py-2 mt-2 shadow", data: { turbo: false } do %>
-          <i class="ri-refresh-line me-1"></i> Sincronizar Presupuesto Operativo
+        <h4 class="fw-bold text-dark">Control Financiero</h4>
+        <% if current_user.role == 'admin' %>
+          <p class="text-muted mx-auto" style="max-width: 500px;">
+            Haz clic en el botón para sincronizar la matriz financiera con el plan de trabajo operativo.
+          </p>
+          <%= button_to generate_template_client_project_financials_path(@client, @project), 
+              method: :post, class: "btn btn-primary rounded-pill px-4 py-2 mt-2 shadow", data: { turbo: false } do %>
+            <i class="ri-refresh-line me-1"></i> Sincronizar Presupuesto Operativo
+          <% end %>
+        <% else %>
+          <p class="text-muted mx-auto" style="max-width: 500px;">
+            La matriz financiera aún no ha sido inicializada por el administrador.
+          </p>
         <% end %>
       </div>
     </div>
   <% else %>
 
     <div class="row">
-      
       <%# COLUMNA IZQUIERDA: PLAN DE DEVENGO %>
       <div class="col-lg-7">
         <div class="card shadow-sm border-0 mb-4">
-          
-          <%# HEADER CON BUSCADOR EN VIVO %>
           <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="card-title mb-0 fw-bold"><i class="ri-task-line text-primary me-2"></i>Estado de Cuenta</h5>
-            
             <div class="input-group input-group-sm shadow-sm" style="max-width: 250px;">
               <span class="input-group-text bg-light border-end-0"><i class="ri-search-line text-muted"></i></span>
               <input type="text" id="global-activity-search" class="form-control border-start-0 bg-light" placeholder="Buscar actividad o monto...">
@@ -144,14 +212,34 @@
 
           <div class="card-body p-3">
             <div class="accordion" id="accrualsAccordion">
-              
               <% @accruals_by_stage.sort_by { |stage_name, accruals_array| accruals_array.map(&:id).min }.each_with_index do |(stage, accruals), index| %>
                 
+                <% 
+                  stage_total = accruals.sum(&:amount)
+                  stage_paid = accruals.sum do |accrual|
+                    [@activity_payments[accrual.id], accrual.amount.to_f].min 
+                  end
+                  stage_balance = stage_total - stage_paid
+                %>
+
                 <div class="accordion-item border mb-2 rounded shadow-none stage-accordion-item">
                   <h2 class="accordion-header" id="heading<%= index %>">
                     <button class="accordion-button <%= 'collapsed' if index > 0 %> fw-bold bg-light py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%= index %>">
-                      <%= stage %> 
-                      <span class="ms-auto me-3 text-primary"><%= number_to_currency(accruals.sum(&:amount)) %></span>
+                      <span class="text-truncate me-2" style="max-width: 35%;"><%= stage %></span>
+                      <div class="ms-auto d-flex text-end gap-3 gap-md-4 font-12 align-items-center me-2 me-md-4">
+                        <div class="d-none d-sm-block">
+                          <span class="d-block text-muted font-9 text-uppercase tracking-wider lh-1 mb-1">Total</span>
+                          <span class="fw-bold text-dark lh-1"><%= number_to_currency(stage_total) %></span>
+                        </div>
+                        <div class="d-none d-sm-block border-start ps-3 ps-md-4">
+                          <span class="d-block text-muted font-9 text-uppercase tracking-wider lh-1 mb-1">Pagado</span>
+                          <span class="fw-bold text-success lh-1"><%= number_to_currency(stage_paid) %></span>
+                        </div>
+                        <div class="border-start-sm ps-sm-3 ps-md-4">
+                          <span class="d-block text-muted font-9 text-uppercase tracking-wider lh-1 mb-1">Restante</span>
+                          <span class="fw-bold <%= stage_balance > 0.01 ? 'text-primary' : 'text-muted' %> lh-1"><%= number_to_currency(stage_balance) %></span>
+                        </div>
+                      </div>
                     </button>
                   </h2>
                   <div id="collapse<%= index %>" class="accordion-collapse collapse <%= 'show' if index == 0 %>" data-bs-parent="#accrualsAccordion">
@@ -165,47 +253,42 @@
                           </tr>
                         </thead>
                         <tbody class="accrual-tbody">
-                          
                           <% accruals.sort_by(&:id).each do |accrual| %>
                             <% 
-                              # LÓGICA DE COBRO: Buscamos si el nombre de esta actividad está dentro de las notas de algún pago realizado.
-                              is_paid = @payments.any? { |p| p.notes.to_s.include?(accrual.concept_name) }
+                               paid = @activity_payments[accrual.id]
+                               cost = accrual.amount.to_f
+                               is_fully_paid = paid >= (cost - 0.01)
+                               is_partially_paid = paid > 0.01 && !is_fully_paid
                             %>
                             
-                            <%# Añadimos un fondo ligeramente gris y opacidad si ya está pagado, para que visualmente se vea "liquidado" %>
-                            <tr class="accrual-row <%= 'bg-light bg-opacity-50' if accrual.status == 'accrued' && is_paid %>">
-                              
+                            <tr class="accrual-row <%= 'bg-light bg-opacity-50' if accrual.status == 'accrued' && is_fully_paid %>">
                               <td class="fw-medium text-dark accrual-concept" style="max-width: 250px; white-space: normal;">
                                 <%= accrual.concept_name %>
                               </td>
-                              
                               <td class="text-end fw-bold text-dark accrual-amount">
-                                <%= number_to_currency(accrual.amount) %>
+                                <%= number_to_currency(cost) %>
                               </td>
-                              
                               <td class="text-center">
                                 <% if accrual.status == 'accrued' %>
-                                  <% if is_paid %>
-                                    <%# ESTATUS: PAGADO (Azul) %>
-                                    <span class="badge bg-primary text-white rounded-pill px-2 py-1 shadow-sm" data-bs-toggle="tooltip" title="Cobrado en el historial de pagos">
+                                  <% if is_fully_paid %>
+                                    <span class="badge bg-primary text-white rounded-pill px-2 py-1 shadow-sm">
                                       <i class="ri-check-double-line me-1"></i>Pagado
                                     </span>
+                                  <% elsif is_partially_paid %>
+                                    <span class="badge bg-warning text-dark border border-warning rounded-pill px-2 py-1 shadow-sm" title="Abono de <%= number_to_currency(paid) %>">
+                                      <i class="ri-pie-chart-2-line me-1"></i>Abono: <%= number_to_currency(paid) %>
+                                    </span>
                                   <% else %>
-                                    <%# ESTATUS: DEVENGADO (Verde Claro) %>
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" data-bs-toggle="tooltip" title="Trabajo finalizado, pendiente de cobro">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1">
                                       <i class="ri-check-line me-1"></i>Devengado
                                     </span>
-                                    <div class="font-10 text-muted mt-1"><%= accrual.accrued_date&.strftime("%d %b, %y") %></div>
                                   <% end %>
                                 <% else %>
-                                  <%# ESTATUS: PENDIENTE (Gris) %>
                                   <span class="badge bg-light text-secondary rounded-pill px-2 py-1 border">Pendiente</span>
                                 <% end %>
                               </td>
-
                             </tr>
                           <% end %>
-                          
                         </tbody>
                       </table>
                     </div>
@@ -222,34 +305,53 @@
         <div class="card shadow-sm border-0">
           <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0 fw-bold"><i class="ri-bank-card-line text-success me-2"></i>Historial de Pagos</h5>
-            <button class="btn btn-sm btn-success rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#newPaymentModal">
-              <i class="ri-add-line me-1"></i> Registrar Ingreso
-            </button>
+            <% if current_user.role == 'admin' %>
+              <button class="btn btn-sm btn-success rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#newPaymentModal">
+                <i class="ri-add-line me-1"></i> Registrar Ingreso
+              </button>
+            <% end %>
           </div>
           
           <div class="card-body p-0">
             <% if @payments.any? %>
               <div class="list-group list-group-flush">
                 <% @payments.each do |payment| %>
+                  
+                  <% 
+                    available_amount = (payment.amount.to_f - @payment_consumed[payment.id]).round(2)
+                  %>
+
                   <div class="list-group-item p-3">
                     <div class="d-flex justify-content-between align-items-start mb-1">
                       <div>
                         <h4 class="text-success fw-bold m-0"><%= number_to_currency(payment.amount) %></h4>
                         <span class="badge bg-light text-dark border font-11"><%= payment.payment_date.strftime("%d %b, %Y") %></span>
                       </div>
-                      <div class="d-flex gap-1">
-                        <button class="btn btn-xs btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editPaymentModal<%= payment.id %>" title="Editar">
-                          <i class="ri-pencil-line"></i>
-                        </button>
-                        <%= button_to destroy_payment_client_project_financials_path(@client, @project, payment_id: payment.id), 
-                            method: :delete, 
-                            form: { style: "display: inline-block;", data: { turbo_confirm: "¿Eliminar este pago del historial?" } }, 
-                            class: "btn btn-xs btn-outline-danger", title: "Eliminar" do %>
-                          <i class="ri-delete-bin-line"></i>
-                        <% end %>
-                      </div>
+                      
+                      <% if current_user.role == 'admin' %>
+                        <div class="d-flex gap-1">
+                          <button class="btn btn-xs btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editPaymentModal<%= payment.id %>" title="Editar">
+                            <i class="ri-pencil-line"></i>
+                          </button>
+                          <%= button_to destroy_payment_client_project_financials_path(@client, @project, payment_id: payment.id), 
+                              method: :delete, 
+                              form: { style: "display: inline-block;", data: { turbo_confirm: "¿Eliminar este pago del historial?" } }, 
+                              class: "btn btn-xs btn-outline-danger", title: "Eliminar" do %>
+                            <i class="ri-delete-bin-line"></i>
+                          <% end %>
+                        </div>
+                      <% end %>
                     </div>
                     
+                    <%# MOSTRAR SALDO DISPONIBLE %>
+                    <% if available_amount > 0.01 %>
+                      <div class="mt-2 mb-1">
+                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 font-11 shadow-sm">
+                          <i class="ri-wallet-3-line me-1"></i> Disponible por asignar: <%= number_to_currency(available_amount) %>
+                        </span>
+                      </div>
+                    <% end %>
+
                     <div class="mt-2 text-muted font-12 bg-light p-2 rounded">
                       <% if payment.invoice_number.present? %>
                         <strong>Folio:</strong> <%= payment.invoice_number %> <br>
@@ -266,8 +368,9 @@
                     <% end %>
                   </div>
 
-                  <%# MODAL EDITAR PAGO (Renderizado dinámicamente) %>
-                  <%= render partial: "payment_modal", locals: { modal_id: "editPaymentModal#{payment.id}", payment: payment, title: "Editar Ingreso", url: update_payment_client_project_financials_path(@client, @project, payment_id: payment.id), method: :patch } %>
+                  <% if current_user.role == 'admin' %>
+                    <%= render partial: "payment_modal", locals: { modal_id: "editPaymentModal#{payment.id}", payment: payment, title: "Editar Ingreso", url: update_payment_client_project_financials_path(@client, @project, payment_id: payment.id), method: :patch } %>
+                  <% end %>
 
                 <% end %>
               </div>
@@ -280,37 +383,30 @@
           </div>
         </div>
       </div>
-
     </div>
   <% end %>
 </div>
 
-<%# MODAL NUEVO PAGO %>
-<%= render partial: "payment_modal", locals: { modal_id: "newPaymentModal", payment: Payment.new, title: "Registrar Nuevo Ingreso", url: create_payment_client_project_financials_path(@client, @project), method: :post } %>
+<% if current_user.role == 'admin' %>
+  <%= render partial: "payment_modal", locals: { modal_id: "newPaymentModal", payment: Payment.new, title: "Registrar Nuevo Ingreso", url: create_payment_client_project_financials_path(@client, @project), method: :post } %>
+<% end %>
 
-<%# ---------------------------------------------------------------------- %>
-<%# SCRIPTS DE FINANZAS: BUSCADOR GLOBAL Y LÓGICA DE PAGOS %>
-<%# ---------------------------------------------------------------------- %>
 <% content_for :javascript do %>
   <script>
     document.addEventListener("turbo:load", function() {
       
-      // ==========================================
-      // 1. LÓGICA DEL BUSCADOR GLOBAL EN LA VISTA PRINCIPAL
-      // ==========================================
+      // 1. BUSCADOR GLOBAL
       const globalSearch = document.getElementById('global-activity-search');
       if (globalSearch) {
         globalSearch.addEventListener('input', function() {
           const searchTerm = this.value.toLowerCase();
-          
           document.querySelectorAll('.stage-accordion-item').forEach(accordionItem => {
             let hasVisibleRows = false;
             const rows = accordionItem.querySelectorAll('.accrual-row');
             const collapsePanel = accordionItem.querySelector('.accordion-collapse');
             
             rows.forEach(row => {
-              const textContent = row.textContent.toLowerCase();
-              if (textContent.includes(searchTerm)) {
+              if (row.textContent.toLowerCase().includes(searchTerm)) {
                 row.style.display = '';
                 hasVisibleRows = true;
               } else {
@@ -318,13 +414,10 @@
               }
             });
             
-            // Ocultar la etapa entera si no hay resultados, o mostrarla si los hay
             if (hasVisibleRows || searchTerm === '') {
               accordionItem.style.display = '';
-              // Opcional: Expandir el acordeón automáticamente si hay búsqueda
               if (searchTerm !== '' && collapsePanel && !collapsePanel.classList.contains('show')) {
-                 let bsCollapse = new bootstrap.Collapse(collapsePanel, { toggle: false });
-                 bsCollapse.show();
+                 new bootstrap.Collapse(collapsePanel, { toggle: false }).show();
               }
             } else {
               accordionItem.style.display = 'none';
@@ -333,73 +426,333 @@
         });
       }
 
-      // ==========================================
-      // 2. LÓGICA DEL MODAL DE PAGOS (CALCULO Y BUSCADOR INTERNO)
-      // ==========================================
-      document.querySelectorAll('.payment-form-container').forEach(container => {
-        
-        const typeRadios = container.querySelectorAll('.payment-type-radio');
-        const activitiesBox = container.querySelector('.specific-activities-box');
-        const checkboxes = container.querySelectorAll('.activity-checkbox');
-        const amountInput = container.querySelector('.payment-amount-input');
-        const notesInput = container.querySelector('.payment-notes-input');
-        const searchInput = container.querySelector('.activity-search-input');
-        const activityItems = container.querySelectorAll('.activity-item');
-        
-        // A) Mostrar/Ocultar y resetear notas según el tipo de pago
-        typeRadios.forEach(radio => {
-          radio.addEventListener('change', function() {
-            if(this.value === 'specific') {
-              activitiesBox.style.display = 'block';
-              calculateSum();
-            } else {
-              activitiesBox.style.display = 'none';
-              notesInput.value = `[${this.nextElementSibling.innerText.trim()}] `;
+      // 2. MODAL DE PAGOS INTELIGENTE CON SWEETALERT
+      function initPaymentModals() {
+        document.querySelectorAll('.payment-form-container').forEach(container => {
+          const typeRadios = container.querySelectorAll('.payment-type-radio');
+          const activitiesBox = container.querySelector('.specific-activities-box');
+          const checkboxes = container.querySelectorAll('.activity-checkbox');
+          const amountInput = container.querySelector('.payment-amount-input');
+          const notesInput = container.querySelector('.payment-notes-input');
+          const searchInput = container.querySelector('.activity-search-input');
+          const autoApplyBtns = container.querySelectorAll('.auto-apply-btn');
+          
+          const balanceBox = container.querySelector('.general-payment-balance-box');
+          const balanceText = container.querySelector('.payment-remaining-balance');
+          const balanceContainerNode = balanceBox ? balanceBox.querySelector('.balance-container') : null;
+          
+          let currentMode = 'specific'; 
+
+          function updateMode() {
+            const checkedRadio = container.querySelector('.payment-type-radio:checked');
+            if(checkedRadio) {
+              currentMode = checkedRadio.value;
+              if (activitiesBox) activitiesBox.style.display = 'block';
+              
+              if(currentMode === 'specific') {
+                if (amountInput) {
+                  amountInput.readOnly = true;
+                  amountInput.classList.remove('bg-white');
+                  amountInput.classList.add('bg-light');
+                }
+                if (balanceBox) balanceBox.style.display = 'none'; 
+                autoApplyBtns.forEach(btn => btn.style.display = 'none');
+                calculateSum(); 
+              } else {
+                if (amountInput) {
+                  amountInput.readOnly = false;
+                  amountInput.classList.remove('bg-light');
+                  amountInput.classList.add('bg-white');
+                }
+                if (balanceBox) balanceBox.style.display = 'block'; 
+                autoApplyBtns.forEach(btn => btn.style.display = 'inline-block');
+                calculateSum(false); 
+              }
             }
-          });
-        });
+          }
 
-        // B) Suma automática al marcar casillas
-        checkboxes.forEach(cb => {
-          cb.addEventListener('change', calculateSum);
-        });
+          function getCheckedTotal() {
+            let total = 0;
+            checkboxes.forEach(cb => {
+              if(cb.checked) {
+                let cost = parseFloat(cb.dataset.amount || 0);
+                let applied = parseFloat(cb.dataset.applied || cost);
+                total += applied;
+              }
+            });
+            return Math.round(total * 100) / 100;
+          }
 
-        function calculateSum() {
-          let total = 0;
-          let selectedNames = [];
+          function calculateSum(updateAmount = true) {
+            let total = getCheckedTotal();
+            let selectedNames = [];
+            let full_ids = [];
+            let partial_pairs = [];
+
+            checkboxes.forEach(cb => {
+              if(cb.checked) {
+                selectedNames.push(cb.value);
+                let originalCost = parseFloat(cb.dataset.originalAmount || cb.dataset.amount);
+                let applied = parseFloat(cb.dataset.applied || originalCost);
+                
+                if (Math.abs(applied - originalCost) < 0.01) {
+                  full_ids.push(cb.dataset.id);
+                } else {
+                  partial_pairs.push(`${cb.dataset.id}_${applied.toFixed(2)}`);
+                }
+              }
+            });
+
+            if(updateAmount && currentMode === 'specific' && amountInput) {
+              amountInput.value = total > 0 ? total.toFixed(2) : '';
+            }
+
+            if (currentMode === 'general' && balanceText && amountInput && balanceContainerNode) {
+              let limit = parseFloat(amountInput.value) || 0;
+              limit = Math.round(limit * 100) / 100;
+              let remaining = Math.round((limit - total) * 100) / 100;
+              
+              const balanceLabel = balanceContainerNode.querySelector('span:first-child');
+              
+              if (remaining === 0 && limit > 0) {
+                balanceLabel.innerHTML = '<i class="ri-check-double-line me-1"></i> Pago cuadrado:';
+                balanceText.innerText = '$0.00';
+                balanceContainerNode.className = 'balance-container d-flex justify-content-between align-items-center bg-success-subtle text-success px-3 py-2 rounded border border-success-subtle transition-all';
+              } else if (remaining < 0) {
+                balanceLabel.innerHTML = '<i class="ri-error-warning-line me-1"></i> Monto excedido:';
+                balanceText.innerText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(remaining);
+                balanceContainerNode.className = 'balance-container d-flex justify-content-between align-items-center bg-danger-subtle text-danger px-3 py-2 rounded border border-danger-subtle transition-all';
+              } else {
+                balanceLabel.innerHTML = '<i class="ri-wallet-3-line me-1"></i> Saldo por asignar:';
+                balanceText.innerText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(remaining);
+                balanceContainerNode.className = 'balance-container d-flex justify-content-between align-items-center bg-info-subtle text-info px-3 py-2 rounded border border-info-subtle transition-all';
+              }
+            }
+
+            if (notesInput) {
+              let oldNotes = notesInput.value
+                 .replace(/\[REF: .*?\]\n?/g, '')
+                 .replace(/\[PARTIAL: .*?\]\n?/g, '')
+                 .replace(/\[Pago: .*?\]\n?/g, '')
+                 .replace(/\[.*?\]\n?/g, '').trim();
+              
+              if(selectedNames.length > 0) {
+                let refStr = full_ids.length > 0 ? `[REF: ${full_ids.join(',')}]\n` : '';
+                let partStr = partial_pairs.length > 0 ? `[PARTIAL: ${partial_pairs.join(',')}]\n` : '';
+                notesInput.value = `${refStr}${partStr}[Pago: ${selectedNames.join(', ')}]\n${oldNotes}`.trim();
+              } else {
+                const checkedRadio = container.querySelector('.payment-type-radio:checked');
+                let prefix = checkedRadio && checkedRadio.nextElementSibling ? checkedRadio.nextElementSibling.innerText.trim() : 'Pago';
+                notesInput.value = `[${prefix}]\n${oldNotes}`.trim();
+              }
+            }
+          }
+
+          typeRadios.forEach(radio => radio.addEventListener('change', updateMode));
 
           checkboxes.forEach(cb => {
-            if(cb.checked) {
-              total += parseFloat(cb.dataset.amount || 0);
-              selectedNames.push(cb.value);
-            }
-          });
-
-          if(total > 0) amountInput.value = total.toFixed(2);
-
-          if(selectedNames.length > 0) {
-            let oldNotes = notesInput.value.replace(/\[Pago: .*?\]\s*/g, ''); 
-            notesInput.value = `[Pago: ${selectedNames.join(', ')}] \n${oldNotes}`;
-          }
-        }
-
-        // C) Buscador en vivo (Live Search) dentro del modal
-        if (searchInput) {
-          searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            
-            activityItems.forEach(item => {
-              const textContent = item.textContent.toLowerCase();
-              if (textContent.includes(searchTerm)) {
-                item.style.display = '';
+            cb.addEventListener('change', function(e) {
+              if (currentMode === 'specific') {
+                this.dataset.applied = this.dataset.amount; 
+                calculateSum();
               } else {
-                item.style.display = 'none';
+                
+                // Si la DESMARCAN, no validamos límite, solo recalculamos
+                if (!this.checked) {
+                  this.dataset.applied = this.dataset.amount; 
+                  calculateSum(false);
+                  return;
+                }
+
+                let total = getCheckedTotal();
+                let limit = parseFloat(amountInput.value) || 0;
+                limit = Math.round(limit * 100) / 100;
+                
+                if (limit === 0) {
+                    if(typeof Swal !== 'undefined') Swal.fire({icon:'warning', title:'Aviso', text:'Primero ingresa el monto total del pago general.', confirmButtonColor: '#fa5c7c'});
+                    else alert("Primero ingresa el monto total del pago general.");
+                    this.checked = false;
+                    return;
+                }
+
+                if (total > (limit + 0.01)) { 
+                  let cost = parseFloat(this.dataset.amount);
+                  let excess = total - limit;
+                  let availableForThis = Math.round((cost - excess) * 100) / 100;
+
+                  this.checked = false; // Desmarcar preventivamente para que no se arruine el visual
+                  calculateSum(false);
+
+                  if (availableForThis > 0.01) {
+                      let msg = `El saldo disponible ($${availableForThis}) no cubre el costo pendiente de la actividad ($${cost}). ¿Deseas aplicar el saldo como un ABONO PARCIAL?`;
+                      
+                      if(typeof Swal !== 'undefined') {
+                          Swal.fire({
+                              title: 'Abono Parcial',
+                              text: msg,
+                              icon: 'question',
+                              showCancelButton: true,
+                              confirmButtonText: 'Sí, aplicar abono',
+                              cancelButtonText: 'Cancelar',
+                              confirmButtonColor: '#10c469',
+                              cancelButtonColor: '#6c757d'
+                          }).then((result) => {
+                              if (result.isConfirmed) {
+                                  this.checked = true;
+                                  this.dataset.applied = availableForThis;
+                                  calculateSum(false);
+                              }
+                          });
+                      } else {
+                          if (confirm(msg)) {
+                              this.checked = true;
+                              this.dataset.applied = availableForThis;
+                              calculateSum(false);
+                          }
+                      }
+                  } else {
+                      if(typeof Swal !== 'undefined') Swal.fire({icon: 'error', title: 'Límite Excedido', text: 'No queda saldo disponible en este pago.', confirmButtonColor: '#fa5c7c'});
+                      else alert("No queda saldo disponible en este pago general.");
+                  }
+                } else {
+                  this.dataset.applied = this.dataset.amount; 
+                  calculateSum(false);
+                }
               }
             });
           });
-        }
-      });
 
+          autoApplyBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.preventDefault();
+              let limit = parseFloat(amountInput.value) || 0;
+              limit = Math.round(limit * 100) / 100;
+              
+              if (limit <= 0) {
+                if(typeof Swal !== 'undefined') Swal.fire({icon:'warning', title:'Aviso', text:'Ingresa un monto válido primero.', confirmButtonColor: '#fa5c7c'});
+                else alert("Ingresa un monto válido primero.");
+                return;
+              }
+
+              let total = getCheckedTotal();
+              let remaining = Math.round((limit - total) * 100) / 100;
+
+              if (remaining <= 0) {
+                if(typeof Swal !== 'undefined') Swal.fire({icon:'warning', title:'Saldo agotado', text:'No tienes saldo suficiente para asignar.', confirmButtonColor: '#fa5c7c'});
+                else alert('No hay saldo suficiente.');
+                return;
+              }
+
+              const stageGroup = this.closest('.stage-group');
+              const stageCheckboxes = stageGroup.querySelectorAll('.activity-checkbox:not(:disabled):not(:checked)');
+              
+              let appliedFull = false;
+              let nextPartialCb = null;
+
+              stageCheckboxes.forEach(cb => {
+                if (remaining > 0.01) {
+                  let cost = parseFloat(cb.dataset.amount || 0);
+                  cost = Math.round(cost * 100) / 100;
+                  
+                  if (remaining >= (cost - 0.01)) { 
+                    cb.checked = true;
+                    cb.dataset.applied = cost;
+                    remaining = Math.round((remaining - cost) * 100) / 100;
+                    appliedFull = true;
+                  } else if (!nextPartialCb) {
+                    nextPartialCb = cb; // Guardamos la que no alcanzó para preguntarle al usuario
+                  }
+                }
+              });
+
+              if (appliedFull) calculateSum(false);
+
+              if (remaining > 0.01 && nextPartialCb) {
+                 let cbName = nextPartialCb.value;
+                 let msg = appliedFull ? `Se aplicaron las tareas completas. Queda un saldo de $${remaining.toFixed(2)}. ¿Deseas aplicarlo como ABONO a la actividad "${cbName}"?` : `Queda un saldo de $${remaining.toFixed(2)}. ¿Deseas aplicarlo como ABONO a la actividad "${cbName}"?`;
+                 
+                 if(typeof Swal !== 'undefined') {
+                   Swal.fire({
+                      title: 'Saldo Sobrante',
+                      text: msg,
+                      icon: 'question',
+                      showCancelButton: true,
+                      confirmButtonText: 'Sí, aplicar abono',
+                      cancelButtonText: 'No',
+                      confirmButtonColor: '#10c469',
+                      cancelButtonColor: '#6c757d'
+                   }).then((result) => {
+                      if (result.isConfirmed) {
+                         nextPartialCb.checked = true;
+                         nextPartialCb.dataset.applied = remaining;
+                         calculateSum(false);
+                      }
+                   });
+                 } else {
+                   if(confirm(msg)) {
+                       nextPartialCb.checked = true;
+                       nextPartialCb.dataset.applied = remaining;
+                       calculateSum(false);
+                   }
+                 }
+              } else if (!appliedFull && !nextPartialCb) {
+                 if(typeof Swal !== 'undefined') Swal.fire({icon:'info', title:'Sin actividades', text:'Todas las actividades de esta etapa ya están cubiertas.', confirmButtonColor: '#39afd1'});
+                 else alert('Todas las actividades de esta etapa ya están cubiertas.');
+              }
+            });
+          });
+
+          if (amountInput) {
+            amountInput.addEventListener('input', function() {
+               if(currentMode === 'general') {
+                  calculateSum(false); 
+                  let total = getCheckedTotal();
+                  let limit = parseFloat(amountInput.value) || 0;
+                  limit = Math.round(limit * 100) / 100;
+                  
+                  if (total > (limit + 0.01) && total > 0) {
+                    amountInput.classList.add('is-invalid', 'border-danger');
+                  } else {
+                    amountInput.classList.remove('is-invalid', 'border-danger');
+                  }
+               }
+            });
+          }
+
+          if (searchInput) {
+            searchInput.addEventListener('input', function() {
+              const searchTerm = this.value.toLowerCase();
+              container.querySelectorAll('.modal-stage-accordion-item').forEach(accItem => {
+                let hasVisible = false;
+                const items = accItem.querySelectorAll('.activity-item');
+                const collapsePanel = accItem.querySelector('.accordion-collapse');
+
+                items.forEach(item => {
+                  if (item.textContent.toLowerCase().includes(searchTerm)) {
+                    item.style.display = '';
+                    hasVisible = true;
+                  } else {
+                    item.style.display = 'none';
+                  }
+                });
+
+                if (hasVisible || searchTerm === '') {
+                  accItem.style.display = '';
+                  if (searchTerm !== '' && collapsePanel && !collapsePanel.classList.contains('show')) {
+                     new bootstrap.Collapse(collapsePanel, { toggle: false }).show();
+                  }
+                } else {
+                  accItem.style.display = 'none';
+                }
+              });
+            });
+          }
+
+          updateMode();
+        });
+      }
+
+      initPaymentModals();
     });
   </script>
 <% end %>

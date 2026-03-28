@@ -1,3 +1,5 @@
+<%# app/views/clients/show.html.erb %>
+
 <%# --- ENCABEZADO Y BREADCRUMBS --- %>
 <div class="row">
     <div class="col-12">
@@ -71,7 +73,7 @@
                     <i class="ri-medal-line me-1"></i> <%= @client.membership&.upcase %>
                 </div>
 
-                <%# --- NUEVA SECCIÓN: REDES Y WEB --- %>
+                <%# --- SECCIÓN: REDES Y WEB --- %>
                 <div class="d-flex flex-column align-items-center gap-2 mb-3">
             
                     <%# 1. ENLACE A PÁGINA WEB PRINCIPAL %>
@@ -87,20 +89,12 @@
                     <%# 2. DETECCIÓN Y SEPARACIÓN DE REDES SOCIALES %>
                     <% if @client.social_network.present? %>
                         <div class="d-flex flex-wrap justify-content-center gap-2">
-                            <% 
-                            # Buscamos todas las URLs o dominios en el texto (separa por espacios, comas o saltos de línea)
-                            # Esta regex detecta: http, https, www, o dominios como facebook.com/usuario
-                            urls = @client.social_network.scan(/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}(?:\/\S*)?/) 
-                            %>
-
+                            <% urls = @client.social_network.scan(/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}(?:\/\S*)?/) %>
                             <% if urls.any? %>
                                 <% urls.each do |url| %>
                                     <% 
-                                    # Limpiamos el link para el href y el texto para la vista
-                                    clean_url = url.strip.gsub(/[,;]$/, '') # Quita comas al final
+                                    clean_url = url.strip.gsub(/[,;]$/, '')
                                     full_link = clean_url.start_with?('http') ? clean_url : "https://#{clean_url}"
-                                    
-                                    # Icono dinámico según la red
                                     icon_class = case clean_url.downcase
                                         when /facebook/ then 'ri-facebook-box-fill text-primary'
                                         when /instagram/ then 'ri-instagram-line text-danger'
@@ -110,7 +104,6 @@
                                         else 'ri-links-line text-secondary'
                                     end
                                     %>
-                                    
                                     <%= link_to full_link, target: "_blank", 
                                         class: "badge bg-light text-dark border py-1 px-2 text-decoration-none shadow-sm hover-info d-flex align-items-center",
                                         title: "Ver perfil" do %>
@@ -119,7 +112,6 @@
                                     <% end %>
                                 <% end %>
                             <% else %>
-                                <%# Si no detectó URLs, mostramos el texto plano como link de búsqueda o respaldo %>
                                 <span class="text-muted font-11"><i class="ri-links-line me-1"></i><%= @client.social_network.truncate(30) %></span>
                             <% end %>
                         </div>
@@ -260,17 +252,37 @@
 
                         <div class="row">
                             <% if @client.projects.any? %>
-                                <% @client.projects.each do |project| %>
+                                <% @client.projects.order(created_at: :desc).each do |project| %>
                                     <div class="col-md-6 mb-3">
                                         <div class="card border-0 shadow-sm mb-0 hover-shadow-lg transition-all" style="border-radius: 12px;">
                                             <div class="card-body p-3">
-                                                <%# Encabezado de Tarjeta %>
+                                                
+                                                <%# ======================================================== %>
+                                                <%# LÓGICA BLINDADA: IDENTIFICADOR DE TIPO DE PROYECTO       %>
+                                                <%# ======================================================== %>
                                                 <div class="d-flex align-items-start justify-content-between mb-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="badge bg-soft-<%= project.status_color %> text-<%= project.status_color %> font-10 px-2 py-1 text-uppercase fw-bold me-2">
+                                                    <div class="d-flex align-items-center flex-wrap gap-1">
+                                                        <div class="badge bg-soft-<%= project.status_color rescue 'secondary' %> text-<%= project.status_color rescue 'secondary' %> font-10 px-2 py-1 text-uppercase fw-bold">
                                                             <%= project.status&.humanize %>
                                                         </div>
+                                                        
+                                                        <% 
+                                                            # Normalizamos el valor por si viene como número (1, 2) o como string ("especial_tecnico")
+                                                            type_val = project.project_type.to_s
+                                                            is_methodology = (type_val.blank? || type_val == '0' || type_val == 'metodologia')
+                                                            
+                                                            display_type = case type_val
+                                                                when '1', 'especial_consultoria' then 'ESPECIAL CONSULTORÍA'
+                                                                when '2', 'especial_tecnico' then 'ESPECIAL TÉCNICO'
+                                                                when '3', 'especial_administrativo' then 'ESPECIAL ADMINISTR.'
+                                                                else 'METODOLOGÍA'
+                                                            end
+                                                        %>
+                                                        <div class="badge <%= is_methodology ? 'bg-info' : 'bg-warning text-dark' %> font-10 px-2 py-1 fw-bold shadow-sm">
+                                                            <i class="ri-flag-line me-1"></i><%= display_type %>
+                                                        </div>
                                                     </div>
+                                                    
                                                     <div class="dropdown">
                                                         <a href="#" class="dropdown-toggle arrow-none text-muted" data-bs-toggle="dropdown">
                                                             <i class="ri-more-2-fill font-18"></i>
@@ -289,17 +301,15 @@
                                                 <%# Título y Descripción %>
                                                 <% 
                                                     membership_val = project.client.membership.to_s.downcase
-                                                    
-                                                    # Definimos la clase y el estilo según la membresía
                                                     name_class = "fw-bold font-15"
                                                     name_style = ""
 
                                                     if membership_val == '1' || membership_val == 'gold'
-                                                        name_style = "color: #B8860B !important;" # Dorado Ejecutivo
+                                                        name_style = "color: #B8860B !important;" 
                                                     elsif membership_val == '2' || membership_val == 'platinum'
-                                                        name_class += " text-primary" # Azul Primary
+                                                        name_class += " text-primary"
                                                     else
-                                                        name_class += " text-dark" # Negro estándar para Básica
+                                                        name_class += " text-dark" 
                                                     end
                                                 %>
 
@@ -466,7 +476,6 @@
                                     <div class="list-group-item d-flex align-items-center px-0 py-2">
                                         
                                         <% if conversation.is_group? %>
-                                            <%# DISEÑO SEGURO PARA GRUPOS %>
                                             <div class="avatar-xs me-2">
                                                 <span class="avatar-title rounded-circle bg-soft-warning text-warning font-12 fw-bold">G</span>
                                             </div>
@@ -479,7 +488,6 @@
                                                 </small>
                                             </div>
                                         <% else %>
-                                            <%# DISEÑO SEGURO PARA CHATS INDIVIDUALES %>
                                             <% other_user = (conversation.sender == current_user) ? conversation.recipient : conversation.sender %>
                                             <% if other_user %>
                                                 <div class="avatar-xs me-2">
