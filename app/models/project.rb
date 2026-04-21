@@ -5,7 +5,7 @@ class Project < ApplicationRecord
   belongs_to :user, optional: true
 
   belongs_to :responsible, class_name: "User", optional: true
-  
+
   has_many :stages, -> { order(position: :asc) }, dependent: :destroy
   has_many :activities, through: :stages
   has_many :project_members, dependent: :destroy
@@ -14,25 +14,26 @@ class Project < ApplicationRecord
 
   has_many :financial_accruals, dependent: :destroy
   has_many :payments, dependent: :destroy
-  
+
   has_many_attached :files
 
-  has_many :comments, class_name: 'ProjectComment', dependent: :destroy
+  has_many :comments, class_name: "ProjectComment", dependent: :destroy
 
+  belongs_to :project_template, foreign_key: "template_id", optional: true
   # Estados del proyecto
   enum :status, { borrador: 0, activo: 1, pausado: 2, finalizado: 3 }
 
 
-  #Tipo de proyectos
+    # Tipo de proyectos
 
-  # Tipo de proyectos
-    enum :project_type, { 
-    metodologia: 'metodologia', 
-    especial_consultoria: 'especial_consultoria', 
-    especial_tecnico: 'especial_tecnico',
-    especial_administrativo: 'especial_administrativo'
+    # Tipo de proyectos
+    enum :project_type, {
+    metodologia: "metodologia",
+    especial_consultoria: "especial_consultoria",
+    especial_tecnico: "especial_tecnico",
+    especial_administrativo: "especial_administrativo"
   }
-  
+
 
   # Validaciones
   validates :name, :start_date, presence: true
@@ -70,17 +71,17 @@ class Project < ApplicationRecord
   def progress_percentage
     total = activities.count
     return 0 if total.zero?
-    
+
     completed = activities.where(completed: true).count
     ((completed.to_f / total) * 100).round
 end
 
   def status_color
     case status
-    when 'activo' then 'success'
-    when 'pausado' then 'warning'
-    when 'finalizado' then 'primary'
-    else 'secondary'
+    when "activo" then "success"
+    when "pausado" then "warning"
+    when "finalizado" then "primary"
+    else "secondary"
     end
   end
 
@@ -88,10 +89,10 @@ end
   def stage_unlocked?(stage)
     # 1. Si la opción secuencial está apagada, todo está desbloqueado
     return true unless sequential_stages?
-    
+
     # 2. La primera etapa siempre está desbloqueada
     return true if stage == stages.first
-    
+
     # 3. Una etapa se desbloquea si la ANTERIOR tiene > 90% de progreso
     previous_stage = stages.where("position < ?", stage.position).last
     previous_stage.present? && previous_stage.progress_percentage > 90
@@ -99,7 +100,7 @@ end
 
   def blocked_stages
   return [] unless sequential_stages?
-  
+
   stages.select do |stage|
     # Una etapa está bloqueada si no es la primera, no está desbloqueada manualmente
     # y su antecesora no ha llegado al 90%
@@ -107,7 +108,7 @@ end
   end
 end
 
-# Métodos de ayuda financiera rápidos para mostrar en las vistas
+  # Métodos de ayuda financiera rápidos para mostrar en las vistas
   def total_accrued
     financial_accruals.already_accrued.sum(:amount)
   end
@@ -124,7 +125,6 @@ end
 private
 
   def set_default_status
-    self.status ||= 'borrador'
+    self.status ||= "borrador"
   end
-
 end

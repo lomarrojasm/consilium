@@ -1,0 +1,25 @@
+<%# app/views/project_templates/edit.html.erb %>
+<div class="row wrapper border-bottom white-bg page-heading">
+  <div class="col-lg-10">
+    <h2>Editar Plantilla Base</h2>
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><%= link_to "Plantillas", project_templates_path %></li>
+      <li class="breadcrumb-item active"><strong>Editar</strong></li>
+    </ol>
+  </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="ibox">
+        <div class="ibox-title">
+          <h5>Configuración de <%= @project_template.name %></h5>
+        </div>
+        <div class="ibox-content p-4">
+          <%= render 'form', project_template: @project_template %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

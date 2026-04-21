@@ -49,9 +49,7 @@
                 <label for="projectStart">Fecha de Inicio</label>
             </div>
         </div>
-    </div>
 
-    <div class="row g-3">
         <div class="col-md-6">
              <div class="form-floating mb-3">
                 <% if @project.new_record? %>
@@ -66,7 +64,7 @@
 
         <%# Selector para corregir el tipo de proyecto en EDICIÓN %>
         <% unless @project.new_record? %>
-            <div class="col-md-6">
+            <div class="col-md-12">
                  <div class="form-floating mb-3">
                     <%= f.select :project_type, Project.project_types.keys.map { |type| [type.humanize.upcase, type] }, {}, { class: "form-select shadow-none border-info border-opacity-50", id: "editProjectType" } %>
                     <label for="editProjectType" class="text-info fw-bold">Categoría de Proyecto</label>
@@ -91,24 +89,21 @@
                     id: "includeTemplateSwitch",
                     onchange: "updateFormLogic()" %>
                 <label class="form-check-label ms-2" for="includeTemplateSwitch">
-                    <strong class="text-primary">Cargar Metodología Consilium</strong>
-                    <p class="text-muted font-12 mb-0">Al activar, se generarán automáticamente las etapas y actividades estándar.</p>
+                    <strong class="text-primary">Cargar Plantilla Estandarizada</strong>
+                    <p class="text-muted font-12 mb-0">Al activar, se clonarán las etapas y actividades del template seleccionado.</p>
                 </label>
             </div>
 
-            <%# Opción de Plantilla: Solo visible si Metodología está ON %>
+            <%# Opción de Plantilla BD: Solo visible si Metodología está ON %>
             <div id="template-options-container">
                 <hr class="border-primary border-opacity-25">
                 <div class="mb-2">
-                    <%= label_tag :template_year, "Generación de Plantilla (Año Histórico)", class: "form-label font-12 fw-bold text-primary mb-1" %>
-                    <%= select_tag :template_year, options_for_select([
-                        ['Sin año (Fechas actuales)', ''],
-                        ['Generación 2026', '2026'],
-                        ['Generación 2025', '2025'],
-                        ['Generación 2024', '2024'],
-                        ['Generación 2023', '2023'],
-                        ['Generación 2022', '2022']
-                    ]), class: "form-select shadow-sm border-0" %>
+                    <%= f.label :template_id, "Seleccionar Template", class: "form-label font-12 fw-bold text-primary mb-1" %>
+                    <%= f.collection_select :template_id, 
+                        ProjectTemplate.order(:name), 
+                        :id, :name, 
+                        { prompt: "-- Elige una plantilla de la base de datos --" }, 
+                        { class: "form-select shadow-sm border-primary border-opacity-25", id: "projectTemplateSelect" } %>
                 </div>
             </div>
 
@@ -125,7 +120,7 @@
                         { class: "form-select shadow-sm border-danger border-opacity-25", id: "projectTypeSelect", disabled: true } %>
                     
                     <small class="text-muted font-11">
-                        <i class="ri-information-line me-1"></i>Obligatorio para proyectos que no siguen la metodología estándar.
+                        <i class="ri-information-line me-1"></i>Obligatorio para proyectos manuales.
                     </small>
                 </div>
             </div>
@@ -180,16 +175,18 @@
         const specialContainer = document.getElementById('special-project-options');
         const nestedWrapper = document.getElementById('nested-form-wrapper');
         const projectTypeSelect = document.getElementById('projectTypeSelect');
+        const templateSelect = document.getElementById('projectTemplateSelect');
         
         if (!checkbox) return; 
 
         if (checkbox.checked) {
-            // MODO METODOLOGÍA
+            // MODO METODOLOGÍA / TEMPLATE
             if (templateContainer) templateContainer.style.display = 'block';
             if (specialContainer) specialContainer.style.display = 'none';
             if (nestedWrapper) nestedWrapper.classList.remove('manual-mode');
             
-            // Bloquea el select para que su valor en blanco NO interfiera con el Controlador
+            // Requerir el template, bloquear la especialidad
+            if (templateSelect) templateSelect.required = true;
             if (projectTypeSelect) {
                 projectTypeSelect.disabled = true;
                 projectTypeSelect.required = false;
@@ -200,7 +197,8 @@
             if (specialContainer) specialContainer.style.display = 'block';
             if (nestedWrapper) nestedWrapper.classList.add('manual-mode');
             
-            // Activa el select para que Rails lea qué especialidad eligió el usuario
+            // Requerir la especialidad, ignorar el template
+            if (templateSelect) templateSelect.required = false;
             if (projectTypeSelect) {
                 projectTypeSelect.disabled = false;
                 projectTypeSelect.required = true;

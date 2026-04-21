@@ -1,0 +1,544 @@
+<%# app/views/project_templates/show.html.erb %>
+
+<%# --- ENCABEZADO Y BREADCRUMBS --- %>
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-flex align-items-center justify-content-between">
+            <div>
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><%= link_to "Inicio", root_path %></li>
+                    <li class="breadcrumb-item"><%= link_to "Metodologías", project_templates_path %></li>
+                    <li class="breadcrumb-item active"><%= @project_template.name %></li>
+                </ol>
+                <h4 class="page-title mb-0">Estructura de Metodología</h4>
+            </div>
+            <%# BOTÓN PARA REGRESAR %>
+            <div>
+                <%= link_to project_templates_path, class: "btn btn-light shadow-sm px-3 rounded-pill" do %>
+                    <i class="ri-arrow-left-line me-1"></i> Regresar al Listado
+                <% end %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-xl-3 col-lg-4">
+        <%# TARJETA RESUMEN DE LA PLANTILLA Y CONTROLES MAESTROS %>
+        <div class="card shadow-sm border-0 text-center mb-3" style="border-radius: 12px;">
+            <div class="card-body p-4">
+                <div class="avatar-lg bg-soft-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                    <i class="ri-git-repository-line font-24 text-primary"></i>
+                </div>
+                <h4 class="mb-1 text-dark fw-bold d-flex justify-content-center align-items-center">
+                    <%= @project_template.name %>
+                    <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-2 hover-primary transition-all" data-bs-toggle="modal" data-bs-target="#editTemplateModal_<%= @project_template.id %>" title="Renombrar Plantilla">
+                        <i class="ri-edit-line font-16"></i>
+                    </button>
+                </h4>
+                <p class="text-muted font-13 mb-4 px-2"><%= @project_template.description.presence || "Plantilla base estandarizada para proyectos de consultoría." %></p>
+                
+                <div class="d-grid gap-2 mb-2 px-2">
+                    <%# BOTÓN DE CLONAR %>
+                    <%= button_to clone_project_template_path(@project_template), class: "btn btn-soft-primary btn-sm rounded-pill w-100 shadow-none fw-bold", data: { turbo_confirm: "¿Estás seguro de crear una copia exacta de esta metodología?" } do %>
+                        <i class="ri-file-copy-line me-1"></i> Duplicar Metodología
+                    <% end %>
+                    
+                    <%# BOTÓN NUEVA ETAPA %>
+                    <button class="btn btn-soft-secondary btn-sm rounded-pill w-100 shadow-none fw-bold" data-bs-toggle="modal" data-bs-target="#newStageModal">
+                        <i class="ri-add-box-line me-1"></i> Agregar Nueva Etapa
+                    </button>
+
+                    <%# BOTÓN DE ELIMINAR %>
+                    <button class="btn btn-soft-danger btn-sm rounded-pill w-100 shadow-none fw-bold mt-2" onclick="confirmDeleteTemplate()">
+                        <i class="ri-delete-bin-line me-1"></i> Eliminar Plantilla
+                    </button>
+                </div>
+
+                <div class="row text-center border-top pt-3 mx-1 mt-3">
+                    <div class="col-6 border-end">
+                        <h3 class="text-primary my-1 fw-bold"><%= @stages.count %></h3>
+                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold tracking-wider">Etapas</p>
+                    </div>
+                    <div class="col-6">
+                        <%# CORRECCIÓN DEL CONTADOR GLOBAL DE TAREAS %>
+                        <h3 class="text-info my-1 fw-bold"><%= @stages.sum { |stage| stage.activity_templates.size } %></h3>
+                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold tracking-wider">Tareas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-9 col-lg-8">
+        <%# LISTADO DE ETAPAS (Acordeones estilo Card) %>
+        <div class="accordion custom-accordion" id="stagesAccordion">
+            <% @stages.each_with_index do |stage, index| %>
+                <div class="card shadow-sm border-0 mb-3" style="border-radius: 10px; overflow: hidden;">
+                    <div class="card-header bg-white p-0 border-bottom-0" id="heading<%= stage.id %>">
+                        <h5 class="m-0">
+                            <div class="d-flex justify-content-between align-items-center pe-3">
+                                <%# AQUÍ CAMBIAMOS EL COLLAPSED Y EL ARIA-EXPANDED %>
+                                <button class="custom-accordion-title collapsed flex-grow-1 d-flex justify-content-between align-items-center py-3 ps-4 pe-3 fw-bold text-dark text-start border-0 bg-transparent shadow-none"
+                                        type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%= stage.id %>"
+                                        aria-expanded="false" aria-controls="collapse<%= stage.id %>">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-soft-primary text-primary me-3 font-11 px-2 py-1 rounded-pill">Etapa <%= stage.position %></span>
+                                        <span class="font-14"><%= stage.name %></span>
+                                    </div>
+                                    <i class="ri-arrow-down-s-line font-22 text-muted accordion-arrow ms-3"></i>
+                                </button>
+                                
+                                <%# CONTROLES DE LA ETAPA %>
+                                <div class="d-flex gap-1 align-items-center ms-1 border-start ps-3 border-light">
+                                    <button class="btn btn-xs btn-light shadow-none rounded-circle hover-warning transition-all" data-bs-toggle="modal" data-bs-target="#editStageModal_<%= stage.id %>" title="Editar Nombre de Etapa">
+                                        <i class="ri-pencil-line font-14 text-muted"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-light shadow-none rounded-circle hover-danger transition-all" onclick="confirmDeleteStage(<%= stage.id %>, '<%= j stage.name %>')" title="Eliminar Etapa">
+                                        <i class="ri-delete-bin-line font-14 text-danger"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </h5>
+                    </div>
+
+                    <%# Mantenemos la primera etapa abierta por defecto %>
+                    <div id="collapse<%= stage.id %>" class="collapse"
+                         aria-labelledby="heading<%= stage.id %>" data-bs-parent="#stagesAccordion">
+                        <div class="card-body p-0 border-top border-light">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-centered table-hover table-nowrap mb-0 font-12">
+                                    <thead class="table-light bg-opacity-50">
+                                        <tr>
+                                            <th style="width: 8%;" class="ps-4 text-muted text-uppercase font-10 tracking-wider">Tiempos</th>
+                                            <th style="width: 25%;" class="text-muted text-uppercase font-10 tracking-wider">Actividad</th>
+                                            <th style="width: 15%;" class="text-muted text-uppercase font-10 tracking-wider">Área Principal</th>
+                                            <th style="width: 15%;" class="text-muted text-uppercase font-10 tracking-wider">Referencia</th>
+                                            <th class="text-center text-muted text-uppercase font-10 tracking-wider" style="width: 15%;">Horas (L/S/A)</th>
+                                            <th class="text-end text-muted text-uppercase font-10 tracking-wider" style="width: 15%;">Tarifas por Hora</th>
+                                            <th class="text-center pe-4" style="width: 7%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% if stage.activity_templates.any? %>
+                                            <% stage.activity_templates.each do |activity| %>
+                                                <tr>
+                                                    <td class="ps-4">
+                                                        <span class="badge badge-outline-secondary font-10">M<%= activity.month %> - S<%= activity.week %></span>
+                                                    </td>
+                                                    <td class="fw-bold text-dark text-wrap"><%= activity.name %></td>
+                                                    <td><span class="badge bg-soft-info text-info font-10"><%= activity.area %></span></td>
+                                                    <td class="text-muted"><%= activity.document_ref.to_s.truncate(20) %></td>
+                                                    <td class="text-center font-monospace font-11">
+                                                        <span class="text-primary fw-bold" title="Líder"><%= activity.leader_hours %></span> / 
+                                                        <span class="text-info fw-bold" title="Senior"><%= activity.senior_hours %></span> / 
+                                                        <span class="text-warning fw-bold" title="Analista"><%= activity.analyst_hours %></span>
+                                                    </td>
+                                                    <td class="text-end font-monospace font-10 text-muted">
+                                                        <div title="Líder" class="mb-1"><span class="badge bg-soft-primary text-primary px-1 me-1">L</span><%= number_to_currency(activity.leader_rate, precision: 0) %></div>
+                                                        <div title="Senior" class="mb-1"><span class="badge bg-soft-info text-info px-1 me-1">S</span><%= number_to_currency(activity.senior_rate, precision: 0) %></div>
+                                                        <div title="Analista"><span class="badge bg-soft-warning text-warning px-1 me-1">A</span><%= number_to_currency(activity.analyst_rate, precision: 0) %></div>
+                                                    </td>
+                                                    <td class="text-center pe-4">
+                                                        <div class="d-flex justify-content-center gap-1">
+                                                            <button class="btn btn-xs btn-light shadow-none rounded-circle hover-primary transition-all" onclick="openEditModal(<%= activity.to_json %>)" data-bs-toggle="tooltip" title="Ajustar Tarea">
+                                                                <i class="ri-pencil-line font-14 text-muted"></i>
+                                                            </button>
+                                                            <button class="btn btn-xs btn-light shadow-none rounded-circle hover-danger transition-all" onclick="confirmDeleteActivity(<%= activity.id %>, '<%= j activity.name %>')" data-bs-toggle="tooltip" title="Eliminar Tarea">
+                                                                <i class="ri-delete-bin-line font-14 text-danger"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            <% end %>
+                                        <% else %>
+                                            <tr>
+                                                <td colspan="7" class="text-center py-4 text-muted font-13">
+                                                    <i class="ri-inbox-line font-24 mb-2 d-block text-light"></i>
+                                                    No hay actividades registradas en esta etapa.
+                                                </td>
+                                            </tr>
+                                        <% end %>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <%# BOTÓN PARA ABRIR MODAL DE NUEVA ACTIVIDAD %>
+                            <div class="bg-light bg-opacity-50 p-2 border-top border-light text-center">
+                                <button class="btn btn-sm btn-primary shadow-sm px-4 rounded-pill" data-bs-toggle="modal" data-bs-target="#newActivityModal_<%= stage.id %>">
+                                    <i class="ri-add-line me-1"></i> Añadir Tarea a <%= stage.name %>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            <% end %>
+        </div>
+    </div>
+</div>
+
+<%# ========================================================= %>
+<%# ZONA DE MODALES %>
+<%# ========================================================= %>
+
+<%# 1. MODAL: NUEVA ETAPA %>
+<div class="modal fade" id="newStageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-sm border-0" style="border-radius: 12px;">
+      <div class="modal-header bg-light p-3 border-bottom border-2 border-primary border-opacity-25">
+        <h5 class="modal-title text-dark fw-bold"><i class="ri-add-box-line me-1 text-primary"></i> Crear Nueva Etapa</h5>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+      </div>
+      <%= form_with(model: [@project_template, StageTemplate.new], local: true, class: "p-3") do |f| %>
+        <div class="modal-body p-0 text-start">
+          <div class="mb-3">
+            <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Nombre de la Etapa</label>
+            <%= f.text_field :name, class: "form-control font-13 fw-bold shadow-none", placeholder: "Ej: Etapa 7 - Integración Final", required: true %>
+          </div>
+        </div>
+        <div class="modal-footer px-0 pb-0 pt-3 border-0">
+          <button type="button" class="btn btn-light px-4 rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+          <%= f.submit "Crear Etapa", class: "btn btn-primary px-4 shadow-sm rounded-pill" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%# 2. MODALES: EDITAR ETAPAS Y CREAR TAREAS (Iteración) %>
+<% @stages.each do |stage| %>
+    
+    <%# MODAL: EDITAR ETAPA %>
+    <div class="modal fade" id="editStageModal_<%= stage.id %>" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-sm border-0" style="border-radius: 12px;">
+                <div class="modal-header bg-light p-3 border-bottom border-2 border-warning border-opacity-50">
+                    <h5 class="modal-title text-dark fw-bold"><i class="ri-pencil-line me-1 text-warning"></i> Editar Etapa</h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                </div>
+                <%= form_with(model: stage, local: true, class: "p-3") do |f| %>
+                    <div class="modal-body p-0 text-start">
+                        <div class="mb-3">
+                            <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Nombre de la Etapa</label>
+                            <%= f.text_field :name, class: "form-control font-13 fw-bold shadow-none", required: true %>
+                        </div>
+                    </div>
+                    <div class="modal-footer px-0 pb-0 pt-3 border-0">
+                        <button type="button" class="btn btn-light px-4 rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                        <%= f.submit "Guardar Cambios", class: "btn btn-warning px-4 shadow-sm rounded-pill text-dark fw-bold" %>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+    </div>
+
+    <%# MODAL: CREAR NUEVA TAREA (Asociada a esta etapa específica) %>
+    <div class="modal fade" id="newActivityModal_<%= stage.id %>" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow-sm border-0" style="border-radius: 12px;">
+                <div class="modal-header bg-light p-3 border-bottom border-2 border-primary border-opacity-25">
+                    <h5 class="modal-title text-dark fw-bold"><i class="ri-add-circle-line me-1 text-primary"></i> Nueva Tarea para: <%= stage.name %></h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                </div>
+                <%= form_with(model: [stage, ActivityTemplate.new], local: true, class: "p-3") do |f| %>
+                    <div class="modal-body p-0 text-start">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Nombre de la Tarea</label>
+                                <%= f.text_field :name, class: "form-control font-13 fw-bold shadow-none", required: true %>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Área Principal</label>
+                                <%= f.text_field :area, class: "form-control font-13 shadow-none" %>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Documento Referencia</label>
+                                <%= f.text_field :document_ref, class: "form-control font-13 shadow-none" %>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Mes</label>
+                                <%= f.number_field :month, class: "form-control font-13 shadow-none" %>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Semana</label>
+                                <%= f.number_field :week, class: "form-control font-13 shadow-none" %>
+                            </div>
+                        </div>
+
+                        <div class="bg-light p-3 rounded-3 mt-4 border border-light shadow-none">
+                            <div class="row g-3">
+                                <%# ROL LÍDER %>
+                                <div class="col-4 border-end pe-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-primary rounded-pill p-1 me-2"><i class="ri-user-star-line font-12 text-white"></i></span>
+                                        <h6 class="text-primary mb-0 fw-bold">Consultor Líder</h6>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label font-11 text-muted mb-1">Horas</label>
+                                        <%= f.number_field :leader_hours, step: :any, class: "form-control form-control-sm font-monospace shadow-none", value: 0 %>
+                                    </div>
+                                    <div>
+                                        <label class="form-label font-11 text-muted mb-1">Tarifa ($)</label>
+                                        <%= f.number_field :leader_rate, class: "form-control form-control-sm font-monospace shadow-none", value: 1250 %>
+                                    </div>
+                                </div>
+                                <%# ROL SENIOR %>
+                                <div class="col-4 border-end px-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-info rounded-pill p-1 me-2"><i class="ri-user-settings-line font-12 text-white"></i></span>
+                                        <h6 class="text-info mb-0 fw-bold">Consultor Senior</h6>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label font-11 text-muted mb-1">Horas</label>
+                                        <%= f.number_field :senior_hours, step: :any, class: "form-control form-control-sm font-monospace shadow-none", value: 0 %>
+                                    </div>
+                                    <div>
+                                        <label class="form-label font-11 text-muted mb-1">Tarifa ($)</label>
+                                        <%= f.number_field :senior_rate, class: "form-control form-control-sm font-monospace shadow-none", value: 850 %>
+                                    </div>
+                                </div>
+                                <%# ROL ANALISTA %>
+                                <div class="col-4 ps-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-warning rounded-pill p-1 me-2"><i class="ri-user-search-line font-12 text-dark"></i></span>
+                                        <h6 class="text-warning mb-0 fw-bold text-dark">Analista</h6>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label font-11 text-muted mb-1">Horas</label>
+                                        <%= f.number_field :analyst_hours, step: :any, class: "form-control form-control-sm font-monospace shadow-none", value: 0 %>
+                                    </div>
+                                    <div>
+                                        <label class="form-label font-11 text-muted mb-1">Tarifa ($)</label>
+                                        <%= f.number_field :analyst_rate, class: "form-control form-control-sm font-monospace shadow-none", value: 450 %>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer px-0 pb-0 pt-4 border-0">
+                        <button type="button" class="btn btn-light px-4 rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                        <%= f.submit "Guardar Tarea", class: "btn btn-primary px-4 shadow-sm rounded-pill" %>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+    </div>
+<% end %>
+
+<%# 3. MODAL UNIVERSAL: EDITAR TAREAS EXISTENTES %>
+<div class="modal fade" id="editActivityModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow-sm border-0 text-start" style="border-radius: 12px;">
+      <div class="modal-header bg-light p-3 border-bottom border-2 border-primary border-opacity-25">
+        <h5 class="modal-title text-dark fw-bold"><i class="ri-edit-box-line me-1 text-primary"></i> Modificar Tarea del Template</h5>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <%= form_with(url: "", method: :patch, id: "editActivityForm", class: "p-3") do |f| %>
+        <div class="modal-body p-0 text-start">
+          
+          <div class="row g-3 mb-3">
+            <div class="col-md-8">
+              <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Nombre de la Tarea</label>
+              <%= f.text_field "activity_template[name]", id: "modal_name", class: "form-control font-13 fw-bold shadow-none", required: true %>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Área Principal</label>
+              <%= f.text_field "activity_template[area]", id: "modal_area", class: "form-control font-13 shadow-none" %>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+             <div class="col-md-8">
+              <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Documento Referencia</label>
+              <%= f.text_field "activity_template[document_ref]", id: "modal_doc", class: "form-control font-13 shadow-none" %>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Mes</label>
+              <%= f.number_field "activity_template[month]", id: "modal_month", class: "form-control font-13 shadow-none" %>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Semana</label>
+              <%= f.number_field "activity_template[week]", id: "modal_week", class: "form-control font-13 shadow-none" %>
+            </div>
+          </div>
+
+          <div class="bg-light p-3 rounded-3 mt-4 border border-light shadow-none">
+              <div class="row g-3">
+                <%# ROL LÍDER %>
+                <div class="col-4 border-end pe-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-primary rounded-pill p-1 me-2"><i class="ri-user-star-line font-12 text-white"></i></span>
+                        <h6 class="text-primary mb-0 fw-bold">Consultor Líder</h6>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label font-11 text-muted mb-1">Horas Asignadas</label>
+                        <%= f.number_field "activity_template[leader_hours]", id: "modal_l_hrs", step: :any, class: "form-control form-control-sm font-monospace shadow-none" %>
+                    </div>
+                    <div>
+                        <label class="form-label font-11 text-muted mb-1">Tarifa/Hora ($)</label>
+                        <%= f.number_field "activity_template[leader_rate]", id: "modal_l_rate", class: "form-control form-control-sm font-monospace shadow-none" %>
+                    </div>
+                </div>
+
+                <%# ROL SENIOR %>
+                <div class="col-4 border-end px-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info rounded-pill p-1 me-2"><i class="ri-user-settings-line font-12 text-white"></i></span>
+                        <h6 class="text-info mb-0 fw-bold">Consultor Senior</h6>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label font-11 text-muted mb-1">Horas Asignadas</label>
+                        <%= f.number_field "activity_template[senior_hours]", id: "modal_s_hrs", step: :any, class: "form-control form-control-sm font-monospace shadow-none" %>
+                    </div>
+                    <div>
+                        <label class="form-label font-11 text-muted mb-1">Tarifa/Hora ($)</label>
+                        <%= f.number_field "activity_template[senior_rate]", id: "modal_s_rate", class: "form-control form-control-sm font-monospace shadow-none" %>
+                    </div>
+                </div>
+
+                <%# ROL ANALISTA %>
+                <div class="col-4 ps-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning rounded-pill p-1 me-2"><i class="ri-user-search-line font-12 text-dark"></i></span>
+                        <h6 class="text-warning mb-0 fw-bold text-dark">Analista</h6>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label font-11 text-muted mb-1">Horas Asignadas</label>
+                        <%= f.number_field "activity_template[analyst_hours]", id: "modal_a_hrs", step: :any, class: "form-control form-control-sm font-monospace shadow-none" %>
+                    </div>
+                    <div>
+                        <label class="form-label font-11 text-muted mb-1">Tarifa/Hora ($)</label>
+                        <%= f.number_field "activity_template[analyst_rate]", id: "modal_a_rate", class: "form-control form-control-sm font-monospace shadow-none" %>
+                    </div>
+                </div>
+              </div>
+          </div>
+
+        </div>
+        <div class="modal-footer px-0 pb-0 pt-4 border-0">
+          <button type="button" class="btn btn-light px-4 rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+          <%= f.submit "Guardar Cambios", class: "btn btn-primary px-4 shadow-sm rounded-pill" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%# 4. MODAL: EDITAR PLANTILLA PRINCIPAL %>
+<%= render 'modal_form', project_template: @project_template %>
+
+<%# ========================================================= %>
+<%# SCRIPTS Y ESTILOS %>
+<%# ========================================================= %>
+
+<script>
+  // Cargar datos en el Modal Universal de Edición de Tareas
+  function openEditModal(activity) {
+    const form = document.getElementById('editActivityForm');
+    form.action = '/activity_templates/' + activity.id;
+
+    document.getElementById('modal_name').value = activity.name || "";
+    document.getElementById('modal_area').value = activity.area || "";
+    document.getElementById('modal_doc').value = activity.document_ref || "";
+    document.getElementById('modal_month').value = activity.month || "";
+    document.getElementById('modal_week').value = activity.week || "";
+
+    document.getElementById('modal_l_hrs').value = activity.leader_hours;
+    document.getElementById('modal_l_rate').value = activity.leader_rate;
+    document.getElementById('modal_s_hrs').value = activity.senior_hours;
+    document.getElementById('modal_s_rate').value = activity.senior_rate;
+    document.getElementById('modal_a_hrs').value = activity.analyst_hours;
+    document.getElementById('modal_a_rate').value = activity.analyst_rate;
+
+    var editModal = new bootstrap.Modal(document.getElementById('editActivityModal'));
+    editModal.show();
+  }
+
+  // Confirmación Eliminar Plantilla Principal
+  function confirmDeleteTemplate() {
+    Swal.fire({
+      title: '¿Eliminar Plantilla?',
+      text: "Esta acción borrará permanentemente la plantilla '<%= @project_template.name %>' y todas sus etapas y tareas asociadas. Los proyectos que ya la usan NO se verán afectados.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#fa5c7c',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '<%= project_template_path(@project_template) %>';
+        form.innerHTML = `<input type="hidden" name="_method" value="delete"><input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">`;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  }
+
+  // Confirmación Eliminar Etapa
+  function confirmDeleteStage(stageId, stageName) {
+    Swal.fire({
+      title: '¿Eliminar Etapa?',
+      text: `Estás a punto de borrar "${stageName}" y todas sus tareas. Esta acción no se puede deshacer.`,
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonColor: '#fa5c7c',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, borrar etapa',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/stage_templates/' + stageId;
+        form.innerHTML = `<input type="hidden" name="_method" value="delete"><input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">`;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  }
+
+  // Confirmación Eliminar Tarea
+  function confirmDeleteActivity(activityId, activityName) {
+    Swal.fire({
+      title: '¿Eliminar Tarea?',
+      text: `¿Seguro que deseas eliminar "${activityName}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f1556c',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/activity_templates/' + activityId;
+        form.innerHTML = `<input type="hidden" name="_method" value="delete"><input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">`;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  }
+</script>
+
+<style>
+/* Ajustes para el acordeón estilo Consilium */
+.custom-accordion .card { transition: all 0.2s ease-in-out; }
+.custom-accordion .card:hover { box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05) !important; }
+.custom-accordion-title.collapsed .accordion-arrow { transform: rotate(0deg); transition: transform 0.2s ease; }
+.custom-accordion-title:not(.collapsed) .accordion-arrow { transform: rotate(-180deg); transition: transform 0.2s ease; }
+.hover-primary:hover { color: var(--bs-primary) !important; background-color: rgba(var(--bs-primary-rgb), 0.1); }
+.hover-danger:hover { color: var(--bs-danger) !important; background-color: rgba(var(--bs-danger-rgb), 0.1); }
+.hover-warning:hover { color: var(--bs-warning) !important; background-color: rgba(var(--bs-warning-rgb), 0.1); }
+</style>

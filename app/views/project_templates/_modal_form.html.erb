@@ -1,0 +1,51 @@
+<%# app/views/project_templates/_modal_form.html.erb %>
+<div class="modal fade" id="<%= project_template.new_record? ? 'newTemplateModal' : "editTemplateModal_#{project_template.id}" %>" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-sm border-0" style="border-radius: 12px;">
+      
+      <div class="modal-header bg-light p-3 border-bottom border-2 border-primary border-opacity-25">
+        <h5 class="modal-title text-dark fw-bold">
+          <i class="ri-git-repository-line me-1 text-primary"></i> 
+          <%= project_template.new_record? ? "Nueva Metodología Base" : "Editar Metodología" %>
+        </h5>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+      </div>
+
+      <%= form_with(model: project_template, local: true, class: "p-3") do |f| %>
+        <div class="modal-body p-0 text-start">
+          
+          <div class="mb-3">
+            <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Nombre de la Generación / Plantilla</label>
+            <%= f.text_field :name, class: "form-control font-13 fw-bold shadow-none", placeholder: "Ej: Metodología 2027 - Especial", required: true %>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Descripción Interna (Opcional)</label>
+            <%= f.text_area :description, class: "form-control font-13 shadow-none", rows: 2, placeholder: "Describe el propósito de esta versión..." %>
+          </div>
+
+          <%# --- SELECTOR DE CLONACIÓN (Solo para nuevas plantillas) --- %>
+          <% if project_template.new_record? && ProjectTemplate.any? %>
+            <div class="bg-light p-3 rounded-3 mt-4 border border-light">
+              <label class="form-label font-12 fw-bold text-primary text-uppercase tracking-wider mb-2">
+                <i class="ri-file-copy-line me-1"></i> Origen de Datos (Opcional)
+              </label>
+              <p class="text-muted font-11 mb-2">Puedes empezar desde cero o clonar las etapas y tareas de una metodología existente.</p>
+              
+              <%= select_tag :base_template_id, 
+                    options_from_collection_for_select(ProjectTemplate.order(created_at: :desc), :id, :name), 
+                    include_blank: "Lienzo en blanco (Empezar desde cero)", 
+                    class: "form-select font-13 shadow-none border-primary border-opacity-25" %>
+            </div>
+          <% end %>
+
+        </div>
+
+        <div class="modal-footer px-0 pb-0 pt-4 border-0">
+          <button type="button" class="btn btn-light px-4 rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+          <%= f.submit project_template.new_record? ? "Crear Plantilla" : "Guardar Cambios", class: "btn btn-primary px-4 shadow-sm rounded-pill" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -82,6 +82,14 @@
             <span> Usuarios del Sistema </span>
           <% end %>
         </li>
+        <li class="side-nav-item <%= 'menuitem-active' if controller_name == 'project_templates' || controller_name == 'stage_templates' || controller_name == 'activity_templates' %>">
+            <%= link_to project_templates_path, class: "side-nav-link" do %>
+                <i class="ri-git-repository-line"></i>
+                <%# Podrías agregar un badge si quieres resaltar que es nuevo %>
+                <span class="badge bg-soft-primary text-primary float-end">Base</span>
+                <span> Metodologías </span>
+            <% end %>
+        </li>
         <li class="side-nav-item">
           <%= link_to admin_system_path, class: 'side-nav-link' do %>
             <i class="ri-server-line"></i>

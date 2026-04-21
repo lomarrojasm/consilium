@@ -1,0 +1,29 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  stage_template: one
+  name: MyString
+  document_ref: MyString
+  area: MyString
+  month: 1
+  week: 1
+  leader_rate: 9.99
+  senior_rate: 9.99
+  analyst_rate: 9.99
+  leader_hours: 9.99
+  senior_hours: 9.99
+  analyst_hours: 9.99
+
+two:
+  stage_template: two
+  name: MyString
+  document_ref: MyString
+  area: MyString
+  month: 1
+  week: 1
+  leader_rate: 9.99
+  senior_rate: 9.99
+  analyst_rate: 9.99
+  leader_hours: 9.99
+  senior_hours: 9.99
+  analyst_hours: 9.99

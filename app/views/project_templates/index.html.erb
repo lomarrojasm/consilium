@@ -1,0 +1,153 @@
+<%# app/views/project_templates/index.html.erb %>
+
+<%# --- INCLUIR SCRIPT DE DATATABLES --- %>
+<%= javascript_include_tag 'pages/project_templates/templates-table.js', defer: true %>
+
+<%# --- ENCABEZADO Y BREADCRUMBS --- %>
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><%= link_to "Inicio", root_path %></li>
+                    <li class="breadcrumb-item active">Metodologías</li>
+                </ol>
+            </div>
+            <h4 class="page-title">Gestor de Metodologías</h4>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm border-0" style="border-radius: 12px;">
+            <%# HEADER DE LA TARJETA CON BOTÓN %>
+            <div class="card-header bg-white border-bottom border-light d-flex justify-content-between align-items-center py-3 px-4">
+                <div>
+                    <h5 class="m-0 fw-bold text-dark"><i class="ri-git-repository-line text-primary me-2"></i>Plantillas Base Disponibles</h5>
+                    <p class="text-muted font-12 mb-0 mt-1">Administra las estructuras estándar para la clonación de nuevos proyectos.</p>
+                </div>
+                <button type="button" class="btn btn-primary shadow-sm px-3 rounded-pill" data-bs-toggle="modal" data-bs-target="#newTemplateModal">
+                    <i class="ri-add-line me-1"></i> Nueva Plantilla
+                </button>
+            </div>
+
+            <%# TABLA DE DATOS (CON ID PARA DATATABLES) %>
+            <div class="card-body">
+                <% if @project_templates.any? %>
+                    <table id="project-templates-datatable" class="table table-hover table-centered table-nowrap w-100 font-13">
+                        <thead class="table-light bg-opacity-50">
+                            <tr>
+                                <th class="fw-bold text-muted text-uppercase font-11 tracking-wider" style="width: 50%;">Nombre de la Metodología</th>
+                                <th class="text-center fw-bold text-muted text-uppercase font-11 tracking-wider">Etapas</th>
+                                <th class="text-center fw-bold text-muted text-uppercase font-11 tracking-wider">Total Tareas</th>
+                                <th class="text-end fw-bold text-muted text-uppercase font-11 tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% @project_templates.each do |template| %>
+                                <tr>
+                                    <td class="py-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-soft-primary rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                <i class="ri-stack-line font-20 text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="m-0 fw-bold font-14">
+                                                    <%= link_to template.name, project_template_path(template), class: "text-dark" %>
+                                                </h5>
+                                                <span class="text-muted font-12"><%= template.description.presence || "Plantilla estándar de operación" %></span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-soft-info text-info px-2 py-1 font-12 border border-info border-opacity-25 rounded-pill">
+                                            <%= template.stage_templates.count %> etapas
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-soft-primary text-primary px-2 py-1 font-12 border border-primary border-opacity-25 rounded-pill">
+                                            <%= template.stage_templates.sum { |stage| stage.activity_templates.size } %> tareas
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <%= link_to project_template_path(template), class: "btn btn-xs btn-light shadow-none text-muted hover-primary me-1", data: { bs_toggle: "tooltip" }, title: "Ver y Editar Tareas" do %>
+                                            <i class="ri-eye-line font-16"></i>
+                                        <% end %>
+                                        
+                                        <button type="button" class="btn btn-xs btn-light shadow-none text-muted hover-warning me-1" data-bs-toggle="modal" data-bs-target="#editTemplateModal_<%= template.id %>" title="Editar Detalles">
+                                            <i class="ri-edit-2-line font-16"></i>
+                                        </button>
+                                        
+                                        <button type="button" class="btn btn-xs btn-light shadow-none text-danger hover-danger" onclick="confirmDeleteTemplate(<%= template.id %>, '<%= j template.name %>')" data-bs-toggle="tooltip" title="Eliminar Plantilla">
+                                            <i class="ri-delete-bin-line font-16"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% end %>
+                        </tbody>
+                    </table>
+                <% else %>
+                    <%# ESTADO VACÍO %>
+                    <div class="text-center py-5">
+                        <div class="avatar-lg bg-soft-secondary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
+                            <i class="ri-folder-open-line font-32 text-muted"></i>
+                        </div>
+                        <h5 class="text-dark fw-bold">Sin metodologías configuradas</h5>
+                        <p class="text-muted font-13 mb-4">No se han importado ni creado plantillas base en el sistema.</p>
+                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#newTemplateModal">
+                            <i class="ri-add-line me-1"></i> Crear primera plantilla
+                        </button>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%# ========================================================= %>
+<%# ZONA DE MODALES Y SCRIPTS %>
+<%# ========================================================= %>
+
+<%# Modal para crear uno nuevo %>
+<%= render 'modal_form', project_template: ProjectTemplate.new %>
+
+<%# Modales para editar los existentes %>
+<% @project_templates.each do |template| %>
+  <%= render 'modal_form', project_template: template %>
+<% end %>
+
+<%# --- SCRIPT PARA ELIMINAR CON SWEETALERT --- %>
+<script>
+  function confirmDeleteTemplate(templateId, templateName) {
+    Swal.fire({
+      title: '¿Eliminar Plantilla?',
+      text: `Esta acción borrará permanentemente la plantilla '${templateName}' y todas sus etapas y tareas. Los proyectos que ya están usando esta metodología NO se verán afectados.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#fa5c7c',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/project_templates/' + templateId;
+        form.innerHTML = `
+            <input type="hidden" name="_method" value="delete">
+            <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  }
+</script>
+
+<style>
+.hover-primary:hover { color: var(--bs-primary) !important; background-color: rgba(var(--bs-primary-rgb), 0.1); }
+.hover-danger:hover { color: var(--bs-danger) !important; background-color: rgba(var(--bs-danger-rgb), 0.1); }
+.hover-warning:hover { color: var(--bs-warning) !important; background-color: rgba(var(--bs-warning-rgb), 0.1); }
+</style>
