@@ -1,0 +1,285 @@
+<%# app/views/quotations/show.html.erb %>
+
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-flex align-items-center justify-content-between">
+      <div>
+        <ol class="breadcrumb m-0 font-12">
+            <li class="breadcrumb-item"><%= link_to "Finanzas", client_project_financials_path(@client, @project) %></li>
+            <li class="breadcrumb-item active">Cotización #COT-<%= @quotation.id %></li>
+        </ol>
+        <h4 class="page-title mb-0">
+          <i class="ri-file-list-3-line text-primary me-1"></i> Detalle de Cotización
+        </h4>
+      </div>
+      
+      <%# --- BOTONES DE NAVEGACIÓN INTELIGENTES --- %>
+      <div class="d-flex align-items-center gap-2">
+        <% if request.referer&.include?(all_quotations_path) %>
+          <%= link_to all_quotations_path, class: "btn btn-light shadow-sm rounded-pill fw-bold font-13" do %>
+            <i class="ri-arrow-left-line me-1"></i> Regresar al Panel
+          <% end %>
+          <%= link_to client_project_financials_path(@client, @project), class: "btn btn-outline-primary bg-white shadow-sm rounded-pill fw-bold font-13" do %>
+            <i class="ri-wallet-3-line me-1"></i> Módulo Financiero
+          <% end %>
+        <% else %>
+          <%= link_to client_project_financials_path(@client, @project), class: "btn btn-light shadow-sm rounded-pill fw-bold font-13" do %>
+            <i class="ri-arrow-left-line me-1"></i> Volver a Finanzas
+          <% end %>
+        <% end %>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="row mt-3">
+  <%# --- COLUMNA IZQUIERDA: DETALLES Y EVIDENCIA LEGAL --- %>
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+      <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+        <h5 class="m-0 fw-bold text-dark">Conceptos a Facturar</h5>
+        
+        <%# BADGE DE ESTATUS PROFESIONAL %>
+        <% if @quotation.borrador? %>
+            <span class="badge bg-secondary text-white border px-3 py-1 font-12 shadow-sm"><i class="ri-draft-line me-1"></i>Borrador Interno</span>
+        <% elsif @quotation.enviado? %>
+            <span class="badge bg-info text-white px-3 py-1 font-12 shadow-sm"><i class="ri-send-plane-fill me-1"></i>Enviada / Esperando Firma</span>
+        <% elsif @quotation.aceptado? %>
+            <span class="badge bg-warning text-dark border border-warning px-3 py-1 font-12 shadow-sm"><i class="ri-shield-check-fill me-1"></i>Autorizada / Por Facturar</span>
+        <% elsif @quotation.facturado? %>
+            <span class="badge bg-success text-white px-3 py-1 font-12 shadow-sm"><i class="ri-file-paper-2-line me-1"></i>Facturada / Pendiente de Pago</span>
+        <% elsif @quotation.pagado? %>
+            <span class="badge bg-primary text-white px-3 py-1 font-12 shadow-sm"><i class="ri-checkbox-circle-fill me-1"></i>Liquidada / Pagada</span>
+        <% end %>
+      </div>
+      
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 font-13">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4" style="width: 70%;">Actividad Devengada</th>
+              <th class="text-end pe-4">Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @quotation.financial_accruals.each do |item| %>
+              <tr>
+                <td class="ps-4">
+                  <span class="fw-bold text-dark"><%= item.concept_name %></span> <br>
+                  <small class="text-muted"><i class="ri-arrow-right-s-line"></i> <%= item.stage_name %></small>
+                </td>
+                <td class="text-end pe-4 font-monospace fw-bold text-dark align-middle"><%= number_to_currency(item.amount) %></td>
+              </tr>
+            <% end %>
+            <tr class="bg-light bg-opacity-50">
+              <td class="text-end fw-bold text-uppercase tracking-wider">Monto Total:</td>
+              <td class="text-end pe-4 fw-bold text-success font-monospace" style="font-size: 1.3rem;"><%= number_to_currency(@quotation.total_amount) %></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <%# --- CAJA DE EVIDENCIA LEGAL (Visible si aceptó, facturó o pagó) --- %>
+    <% if @quotation.aceptado? || @quotation.facturado? || @quotation.pagado? %>
+      <div class="card shadow-sm border-0 border-start border-4 border-success mb-4" style="border-radius: 12px;">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h5 class="text-success fw-bold m-0"><i class="ri-shield-keyhole-fill me-1"></i> Certificado de Autorización Legal</h5>
+              <p class="text-muted font-12 mb-0">El cliente otorgó su consentimiento expreso para la facturación.</p>
+            </div>
+            <%= link_to public_quotation_path(code: @quotation.auth_code), target: "_blank", class: "btn btn-sm btn-outline-success rounded-pill font-11 shadow-none" do %>
+              <i class="ri-external-link-line me-1"></i> Ver Certificado Original
+            <% end %>
+          </div>
+          
+          <div class="bg-light p-3 rounded text-start font-12 text-dark font-monospace border">
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <span class="text-muted d-block font-10 text-uppercase tracking-wider">Firma Electrónica (IP)</span>
+                  <strong><%= @quotation.ip_address %></strong>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <span class="text-muted d-block font-10 text-uppercase tracking-wider">Sello de Tiempo México</span>
+                  <strong><%= @quotation.accepted_at.strftime("%d/%m/%Y %H:%M:%S") %></strong>
+                </div>
+                <div class="col-12 mt-1 border-top pt-2">
+                  <span class="text-muted d-block font-10 text-uppercase tracking-wider">Token de Transacción / Identificador Único</span>
+                  <span class="text-primary"><%= @quotation.auth_code %></span>
+                </div>
+              </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+  </div>
+
+  <%# --- COLUMNA DERECHA: PANEL DE ACCIONES Y BÓVEDA --- %>
+  <%# Color de fondo dinámico según el estado %>
+  <% panel_class = "bg-primary-subtle border-primary-subtle" %>
+  <% panel_class = "bg-warning-subtle border-warning-subtle" if @quotation.aceptado? %>
+  <% panel_class = "bg-success-subtle border-success-subtle" if @quotation.facturado? %>
+  <% panel_class = "bg-light border-light" if @quotation.pagado? %>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 <%= panel_class %>" style="border-radius: 12px;">
+      <div class="card-body p-4 text-center">
+        
+        <%# ESTADOS 1 Y 2: GESTIÓN COMERCIAL %>
+        <% if @quotation.borrador? || @quotation.enviado? %>
+            <div class="avatar-lg bg-primary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center shadow">
+              <i class="ri-mail-send-line font-24"></i>
+            </div>
+            <h5 class="fw-bold text-primary">Gestión Comercial</h5>
+            <p class="text-muted font-12 mb-4">Requiere la autorización digital del cliente para proceder a la facturación.</p>
+            
+            <%= link_to preview_client_project_quotation_path(@client, @project, @quotation), target: "_blank", class: "btn btn-outline-primary w-100 shadow-sm rounded-pill fw-bold mb-2 bg-white" do %>
+              <i class="ri-eye-line me-1"></i> Vista Previa Formal
+            <% end %>
+
+            <%= button_to send_to_client_client_project_quotation_path(@client, @project, @quotation), 
+                method: :post, 
+                class: "btn btn-primary w-100 shadow-sm rounded-pill fw-bold mb-3",
+                data: { turbo_confirm: "¿Estás seguro de enviar esta cotización formal por correo a #{@client.sponsor_email}?" } do %>
+              <i class="ri-send-plane-fill me-1"></i> Enviar al Cliente
+            <% end %>
+
+            <hr class="border-primary opacity-25">
+            <p class="font-11 text-muted text-uppercase fw-bold tracking-wider mb-2">Compartir por WhatsApp:</p>
+            <div class="input-group input-group-sm mb-4">
+                <input type="text" class="form-control font-11 shadow-none bg-white border-primary border-opacity-50" value="<%= public_quotation_url(code: @quotation.auth_code) %>" readonly id="publicLink">
+                <button class="btn btn-primary shadow-none" onclick="navigator.clipboard.writeText(document.getElementById('publicLink').value); alert('Enlace copiado');"><i class="ri-file-copy-line"></i></button>
+            </div>
+
+            <div class="border-top border-primary border-opacity-25 pt-3">
+              <button class="btn btn-outline-danger btn-sm w-100 rounded-pill shadow-none fw-bold" onclick="confirmDeleteQuotation()">
+                <i class="ri-delete-bin-line me-1"></i> Eliminar Cotización
+              </button>
+            </div>
+
+        <%# ESTADO 3: AUTORIZADA / ESPERANDO FACTURA %>
+        <% elsif @quotation.aceptado? %>
+            <div class="avatar-lg bg-warning text-dark rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center shadow">
+              <i class="ri-file-paper-2-line font-24"></i>
+            </div>
+            <h5 class="fw-bold text-dark">Facturación Pendiente</h5>
+            <p class="text-muted font-12 mb-3">Sube los comprobantes fiscales para cerrar esta transacción y notificar al cliente.</p>
+            
+            <div class="bg-white p-3 rounded text-start border shadow-sm">
+              <%= form_with(model: @quotation, url: upload_invoice_client_project_quotation_path(@client, @project, @quotation), local: true) do |f| %>
+                <div class="mb-2">
+                  <label class="form-label font-11 fw-bold text-dark text-uppercase tracking-wider">Factura (PDF)</label>
+                  <%= f.file_field :invoice_pdf, class: "form-control form-control-sm", accept: 'application/pdf', required: true %>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label font-11 fw-bold text-dark text-uppercase tracking-wider">Factura (XML)</label>
+                  <%= f.file_field :invoice_xml, class: "form-control form-control-sm", accept: 'text/xml,application/xml', required: true %>
+                </div>
+                <button type="submit" class="btn btn-success btn-sm w-100 fw-bold shadow">
+                  <i class="ri-upload-cloud-2-line me-1"></i> Emitir y Enviar al Cliente
+                </button>
+              <% end %>
+            </div>
+            
+            <div class="border-top border-warning border-opacity-50 pt-3 mt-3">
+              <button class="btn btn-outline-danger btn-sm w-100 rounded-pill shadow-none" onclick="confirmDeleteQuotation(true)">
+                <i class="ri-delete-bin-line me-1"></i> Anular Autorización
+              </button>
+            </div>
+
+        <%# ESTADOS 4 Y 5: FACTURADA O PAGADA (BÓVEDA DE DOCUMENTOS) %>
+        <% elsif @quotation.facturado? || @quotation.pagado? %>
+            
+            <div class="avatar-lg <%= @quotation.pagado? ? 'bg-primary' : 'bg-success' %> text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center shadow">
+              <i class="<%= @quotation.pagado? ? 'ri-checkbox-circle-fill' : 'ri-check-double-line' %> font-24"></i>
+            </div>
+            
+            <h5 class="fw-bold <%= @quotation.pagado? ? 'text-primary' : 'text-success' %>">
+              <%= @quotation.pagado? ? 'Liquidación Completada' : 'Proceso Facturado' %>
+            </h5>
+            <p class="text-muted font-12 mb-4">
+              <%= @quotation.pagado? ? 'Esta transacción ha sido pagada y cerrada exitosamente en el Módulo Financiero.' : 'Las actividades fueron facturadas y enviadas. En espera de pago.' %>
+            </p>
+
+            <%# --- ARCHIVOS DE FACTURACIÓN (Siempre visibles aquí) --- %>
+            <div class="bg-white p-3 rounded border shadow-sm mb-3 text-start">
+              <p class="font-11 text-muted text-uppercase fw-bold tracking-wider mb-3"><i class="ri-folder-2-line me-1"></i> Comprobantes Fiscales Emitidos:</p>
+              
+              <div class="d-flex flex-column gap-2">
+                <% if @quotation.invoice_pdf.attached? %>
+                  <%= link_to rails_blob_path(@quotation.invoice_pdf, disposition: "attachment"), class: "btn btn-outline-danger btn-sm w-100 rounded-pill fw-bold" do %>
+                    <i class="ri-file-pdf-line me-1"></i> Descargar PDF
+                  <% end %>
+                <% end %>
+                <% if @quotation.invoice_xml.attached? %>
+                  <%= link_to rails_blob_path(@quotation.invoice_xml, disposition: "attachment"), class: "btn btn-outline-secondary btn-sm w-100 rounded-pill fw-bold" do %>
+                    <i class="ri-code-s-slash-line me-1"></i> Descargar XML
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+
+            <%# --- COMPROBANTES DE PAGO (Visible solo si está pagado) --- %>
+            <% if @quotation.pagado? %>
+              <div class="bg-white p-3 rounded border shadow-sm mb-3 border-start border-primary border-4 text-start">
+                <p class="font-11 text-primary text-uppercase fw-bold tracking-wider mb-2"><i class="ri-bank-card-line me-1"></i> Ingresos Registrados:</p>
+                
+                <% @quotation.associated_payments.each do |payment| %>
+                  <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                    <div>
+                      <strong class="d-block text-dark font-14"><%= number_to_currency(payment.amount) %></strong>
+                      <span class="text-muted font-11"><%= payment.payment_date&.strftime("%d/%b/%Y") %></span>
+                    </div>
+                    <% if payment.receipt.attached? %>
+                      <%= link_to rails_blob_path(payment.receipt, disposition: "attachment"), class: "btn btn-xs btn-primary rounded-pill px-3 shadow-sm", title: "Descargar Comprobante Bancario" do %>
+                        <i class="ri-download-2-line me-1"></i> Recibo
+                      <% end %>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+        <% end %>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# --- SCRIPT PARA ELIMINAR --- %>
+<script>
+  function confirmDeleteQuotation(isAccepted = false) {
+    let warningText = "Esta acción borrará la cotización permanentemente y liberará las tareas en el módulo financiero.";
+    if (isAccepted) {
+      warningText = "⚠️ ATENCIÓN: Esta cotización ya está autorizada legalmente. Al eliminarla, destruirás la evidencia criptográfica y las tareas regresarán al estatus de devengado. Usa esto solo en casos de error de captura extremo.";
+    }
+
+    Swal.fire({
+      title: '¿Anular Cotización?',
+      text: warningText,
+      icon: isAccepted ? 'error' : 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#fa5c7c',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, proceder',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '<%= client_project_quotation_path(@client, @project, @quotation) %>';
+        form.innerHTML = `
+            <input type="hidden" name="_method" value="delete">
+            <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  }
+</script>

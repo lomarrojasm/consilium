@@ -1,0 +1,53 @@
+<div class="row justify-content-center mt-4">
+  <div class="col-md-8">
+    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+      <div class="card-header bg-primary text-white p-4">
+        <h4 class="mb-0 text-white"><i class="ri-file-shield-2-line me-2"></i>Autorización de Facturación</h4>
+      </div>
+      
+      <div class="card-body p-4">
+        <% if @authorization.pending? %>
+          <div class="alert alert-warning border-0 shadow-sm font-13 mb-4">
+            <strong>Atención:</strong> El módulo financiero de <strong><%= @project.name %></strong> está bloqueado por normativas de cumplimiento. Debes leer y aceptar el siguiente acuerdo para continuar.
+          </div>
+
+          <div class="bg-light p-4 rounded-3 border border-light mb-4 font-13 text-dark text-justify" style="line-height: 1.8;">
+            <%= simple_format(BillingAuthorization::CURRENT_LEGAL_TEXT) %>
+          </div>
+
+          <%= button_to accept_client_project_billing_authorization_path(@client, @project), 
+              method: :post, 
+              class: "btn btn-success btn-lg w-100 shadow fw-bold",
+              data: { turbo_confirm: "Al hacer clic en aceptar, tu dirección IP (#{request.remote_ip}) y fecha quedarán registradas como evidencia legal de tu consentimiento. ¿Estás de acuerdo?" } do %>
+            <i class="ri-check-double-line me-1"></i> Acepto los términos y autorizo la facturación
+          <% end %>
+
+        <% else %>
+          <%# VISTA CUANDO YA ESTÁ ACEPTADO (AUDITORÍA) %>
+          <div class="text-center mb-4">
+            <i class="ri-shield-check-fill text-success" style="font-size: 64px;"></i>
+            <h3 class="text-success fw-bold">Autorización Legal Completada</h3>
+          </div>
+          
+          <table class="table table-sm table-bordered font-12">
+            <tbody>
+              <tr><td class="fw-bold bg-light" style="width: 30%">Estatus:</td><td><span class="badge bg-success">Aceptado</span></td></tr>
+              <tr><td class="fw-bold bg-light">Fecha de Aceptación:</td><td><%= @authorization.accepted_at.strftime("%d/%m/%Y %H:%M:%S") %></td></tr>
+              <tr><td class="fw-bold bg-light">Firmado por:</td><td><%= @authorization.authorized_by&.full_name || 'Admin/Retroactivo' %></td></tr>
+              <tr><td class="fw-bold bg-light">Dirección IP:</td><td class="font-monospace"><%= @authorization.ip_address || 'N/A' %></td></tr>
+              <tr><td class="fw-bold bg-light">Navegador/OS:</td><td class="font-monospace text-muted small"><%= @authorization.user_agent || 'N/A' %></td></tr>
+              <tr><td class="fw-bold bg-light">Texto Aceptado:</td><td class="small text-muted"><%= @authorization.legal_text_version %></td></tr>
+            </tbody>
+          </table>
+
+          <div class="d-flex justify-content-between mt-4">
+            <%= link_to "Ir al Módulo Financiero", client_project_financials_path(@client, @project), class: "btn btn-primary" %>
+            <% if current_user.role == 'admin' %>
+              <%= link_to "Editar Fechas / Subir Archivos (Admin)", edit_client_project_billing_authorization_path(@client, @project), class: "btn btn-outline-secondary btn-sm" %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

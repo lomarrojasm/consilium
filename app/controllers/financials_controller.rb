@@ -3,7 +3,9 @@ class FinancialsController < ApplicationController
   # Validamos el acceso general (Ver)
   before_action :authorize_financials_access
   # Validamos acciones que solo el admin puede hacer (Escribir/Borrar)
-  before_action :authorize_admin_only, except: [:show]
+  before_action :authorize_admin_only, except: [ :show ]
+
+  before_action :ensure_billing_authorized!
 
   def show
     # El orden se mantiene por ID para que no salten de posición al actualizar
@@ -12,8 +14,8 @@ class FinancialsController < ApplicationController
   end
 
   def generate_template
-    stages = @project.stages.order(:id) 
-    
+    stages = @project.stages.order(:id)
+
     if stages.empty?
       redirect_to client_project_financials_path(@client, @project), alert: "Atención: Primero debes generar el plan de trabajo operativo en el proyecto."
       return
@@ -27,19 +29,19 @@ class FinancialsController < ApplicationController
           stage_name: stage_name,
           concept_name: activity.name.to_s.strip
         )
-        
+
         accrual.amount = activity.activity_cost.to_f
-        
-        estatus_ok = ['approved', 'aprobado', 'completado', 'terminado', 'done', 'listo p/v.b.', 'listo']
+
+        estatus_ok = [ "approved", "aprobado", "completado", "terminado", "done", "listo p/v.b.", "listo" ]
         esta_terminada = (activity.completed == true) || estatus_ok.include?(activity.status.to_s.downcase)
-        
+
         if esta_terminada
-          accrual.status = 'accrued'
+          accrual.status = "accrued"
           accrual.accrued_date = activity.updated_at || Date.current
         else
-          accrual.status = 'pending'
+          accrual.status = "pending"
         end
-        
+
         accrual.save!
       end
     end
@@ -48,15 +50,31 @@ class FinancialsController < ApplicationController
   end
 
   def reset_template
-    @project.financial_accruals.destroy_all
-    @project.payments.destroy_all
-    redirect_to client_project_financials_path(@client, @project), notice: "Módulo financiero reiniciado al 100%. Todo está en ceros."
+    # 1. REGLA DE INTEGRIDAD: ¿Hay dinero de por medio?
+    if @project.payments.any?
+      redirect_to client_project_financials_path(@client, @project), alert: "⛔ Operación denegada: No puedes reiniciar la matriz porque ya existen pagos registrados. Debes eliminar los pagos primero."
+      return
+    end
+
+    # 2. REGLA DE INTEGRIDAD: ¿Hay compromisos comerciales?
+    if @project.quotations.any?
+      redirect_to client_project_financials_path(@client, @project), alert: "⛔ Operación denegada: Existen cotizaciones vinculadas a este presupuesto. Elimina o anula las cotizaciones primero para liberar las tareas."
+      return
+    end
+
+    # 3. SI ESTÁ LIMPIO: Borrado seguro en transacción
+    ActiveRecord::Base.transaction do
+      @project.financial_accruals.destroy_all
+      # Si tienes algún otro registro que limpiar asociado a la matriz, ponlo aquí.
+    end
+
+    redirect_to client_project_financials_path(@client, @project), notice: "✅ La matriz financiera ha sido reiniciada correctamente."
   end
 
   def update_accrual
     @accrual = @project.financial_accruals.find(params[:accrual_id])
-    new_status = params[:status] || 'accrued'
-    accrued_date = new_status == 'accrued' ? (params[:accrued_date] || Date.current) : nil
+    new_status = params[:status] || "accrued"
+    accrued_date = new_status == "accrued" ? (params[:accrued_date] || Date.current) : nil
 
     if @accrual.update(status: new_status, accrued_date: accrued_date)
       redirect_to client_project_financials_path(@client, @project), notice: "Estatus del concepto actualizado."
@@ -89,6 +107,31 @@ class FinancialsController < ApplicationController
     redirect_to client_project_financials_path(@client, @project), notice: "Pago eliminado del historial."
   end
 
+  def create_payment
+    # 1. Inicializamos el pago con los datos del formulario
+    @payment = @project.payments.build(payment_params)
+
+    # 2. Intentamos guardar en la base de datos
+    if @payment.save
+
+      # 3. LA MAGIA: Sincronizamos las cotizaciones
+      # Buscamos solo las que están facturadas esperando pago
+      @project.quotations.facturado.each do |quote|
+        # Sumamos el monto de los pagos que están vinculados a esta cotización
+        total_pagado_de_cotizacion = quote.associated_payments.sum(&:amount)
+
+        # Si el monto pagado cubre o supera el total de la cotización, la liquidamos
+        if total_pagado_de_cotizacion >= quote.total_amount
+          quote.update(status: :pagado)
+        end
+      end
+
+      redirect_to client_project_financials_path(@client, @project), notice: "Ingreso registrado correctamente. El estado de cuenta ha sido actualizado."
+    else
+      redirect_to client_project_financials_path(@client, @project), alert: "Hubo un error al registrar el ingreso. Inténtalo de nuevo."
+    end
+  end
+
   private
 
   def set_client_and_project
@@ -98,19 +141,29 @@ class FinancialsController < ApplicationController
 
   # Permite ver las finanzas al Admin o al Cliente dueño (funciona en Impersonate)
   def authorize_financials_access
-    unless current_user.role == 'admin' || current_user.client_id == @client.id
+    unless current_user.role == "admin" || current_user.client_id == @client.id
       redirect_to client_project_path(@client, @project), alert: "No tienes permiso para acceder a esta sección."
     end
   end
 
   # Solo el Admin puede realizar cambios (Sincronizar, Resetear, Crear pagos, etc.)
   def authorize_admin_only
-    unless current_user.role == 'admin'
+    unless current_user.role == "admin"
       redirect_to client_project_financials_path(@client, @project), alert: "Acceso denegado: Solo administradores pueden realizar esta acción."
     end
   end
 
   def payment_params
     params.require(:payment).permit(:amount, :payment_date, :invoice_number, :notes, :receipt)
+  end
+
+  def ensure_billing_authorized!
+    authorization = @project.billing_authorization
+
+    # Si no está aceptado, los redirigimos a la pantalla de firma
+    unless authorization&.accepted?
+      redirect_to client_project_billing_authorization_path(@client, @project),
+                  alert: "⚠️ Requisito Legal: Para acceder al módulo financiero, debes revisar y autorizar los términos de facturación."
+    end
   end
 end

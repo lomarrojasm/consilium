@@ -1,0 +1,12 @@
+<h2>Hola <%= @client.sponsor_name %>,</h2>
+<p>El equipo de Consilium ha generado una nueva cotización correspondiente a los avances del proyecto <strong><%= @project.name %></strong>.</p>
+<p>El monto total a facturar es de: <strong><%= number_to_currency(@quotation.total_amount) %> MXN</strong>.</p>
+
+<p>Para revisar el detalle de los conceptos y otorgar tu autorización legal para la emisión de la factura, por favor haz clic en el siguiente enlace seguro:</p>
+
+<div style="margin: 30px 0;">
+  <%= link_to "Revisar y Autorizar Cotización", public_quotation_url(code: @quotation.auth_code), style: "background-color: #0d6efd; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;" %>
+</div>
+
+<p>Este es un enlace único y privado. Por favor no lo compartas.</p>
+<p>Saludos,<br>Equipo Consilium</p>

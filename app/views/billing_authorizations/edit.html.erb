@@ -1,0 +1,49 @@
+<div class="row justify-content-center mt-4">
+  <div class="col-md-8">
+    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+      <div class="card-header bg-dark text-white p-3">
+        <h5 class="mb-0 text-white"><i class="ri-settings-4-line me-2"></i>Gestión de Auditoría Financiera (Solo Admin)</h5>
+      </div>
+      
+      <div class="card-body p-4">
+        <%= form_with(model: @authorization, url: client_project_billing_authorization_path(@client, @project), local: true) do |f| %>
+          
+          <h6 class="text-primary text-uppercase font-11 fw-bold tracking-wider mb-3">Fechas de Cumplimiento</h6>
+          <div class="mb-4 bg-warning bg-opacity-10 p-3 rounded border border-warning border-opacity-25">
+             <label class="form-label font-12 fw-bold text-dark">Fecha de Aceptación (Para proyectos retroactivos)</label>
+             <%= f.datetime_field :accepted_at, class: "form-control" %>
+             <small class="text-muted d-block mt-1">Al modificar esto, estás alterando la pista de auditoría. Úsalo solo para regularizar proyectos de años anteriores.</small>
+          </div>
+
+          <h6 class="text-primary text-uppercase font-11 fw-bold tracking-wider mb-3 mt-4">Expediente Documental</h6>
+          
+          <div class="mb-3">
+            <label class="form-label font-12 fw-bold text-dark">Factura (PDF)</label>
+            <%= f.file_field :invoice_pdf, class: "form-control form-control-sm", accept: 'application/pdf' %>
+            <% if @authorization.invoice_pdf.attached? %>
+              <small class="text-success d-block mt-1"><i class="ri-check-line"></i> PDF cargado.</small>
+            <% end %>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label font-12 fw-bold text-dark">Factura (XML)</label>
+            <%= f.file_field :invoice_xml, class: "form-control form-control-sm", accept: 'text/xml,application/xml' %>
+            <% if @authorization.invoice_xml.attached? %>
+              <small class="text-success d-block mt-1"><i class="ri-check-line"></i> XML cargado.</small>
+            <% end %>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label font-12 fw-bold text-dark">Documento Legal / Contrato Firmado (Opcional)</label>
+            <%= f.file_field :legal_document, class: "form-control form-control-sm" %>
+          </div>
+
+          <div class="text-end border-top pt-3">
+            <%= link_to "Cancelar", client_project_billing_authorization_path(@client, @project), class: "btn btn-light" %>
+            <%= f.submit "Actualizar Expediente", class: "btn btn-dark px-4" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

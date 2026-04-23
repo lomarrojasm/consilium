@@ -16,7 +16,6 @@
              is_specific = payment.try(:payment_type) == 'specific'
              is_general = payment.new_record? || payment.try(:payment_type) == 'general' || !is_specific
 
-             # Extraemos la contribución de ESTE recibo a cada actividad si estamos editando
              this_payment_contributions = Hash.new(0.0)
              if !payment.new_record?
                ref_m = payment.notes.to_s.match(/\[REF:\s*([\d,\s]+)\]/)
@@ -85,7 +84,7 @@
             </div>
 
             <div class="d-flex justify-content-between align-items-end mb-2">
-              <label class="form-label fw-bold font-13 text-dark mb-0">Asignar Cobertura a Actividades</label>
+              <label class="form-label fw-bold font-13 text-dark mb-0">Asignar Cobertura a Actividades Cobrables</label>
               <div class="input-group input-group-sm" style="width: 220px;">
                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="ri-search-line"></i></span>
                 <input type="text" class="form-control border-start-0 activity-search-input shadow-none" placeholder="Filtrar por nombre...">
@@ -97,7 +96,8 @@
                 <div class="accordion custom-accordion" id="modalAccordion-<%= modal_id %>">
                   <% @accruals_by_stage.sort_by { |s, a| a.map(&:id).min }.each_with_index do |(stage, accruals), index| %>
                     
-                    <% valid_accruals = accruals.reject { |a| a.amount.to_f <= 0 } %>
+                    <%# REGLA DE ORO ACTUALIZADA: Solo mostramos tareas que cuesten > 0 y que ya estén FACTURADAS %>
+                    <% valid_accruals = accruals.select { |a| a.amount.to_f > 0 && a.status == 'invoiced' } %>
                     <% next if valid_accruals.empty? %>
 
                     <div class="accordion-item border-0 mb-1 rounded shadow-none modal-stage-accordion-item stage-group" data-stage-index="<%= index %>">
@@ -126,6 +126,9 @@
                                 
                                 is_fully_paid_by_others = pending_amount <= 0.01
                                 is_checked_here = this_payment_contribution > 0.01
+                                
+                                # Badge de estatus (ya que todas aquí están facturadas, lo dejamos fijo para dar claridad)
+                                status_badge = '<span class="badge bg-success-subtle text-success font-9 px-1">FACTURADA</span>'
                               %>
                               
                               <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center activity-item cursor-pointer border-bottom-0 py-3 <%= 'bg-light text-muted opacity-50' if is_fully_paid_by_others %>">
@@ -141,6 +144,7 @@
                                            data-original-amount="<%= accrual.amount %>"
                                            data-applied="<%= this_payment_contribution > 0 ? this_payment_contribution : pending_amount %>"
                                            <%= 'checked' if is_checked_here %>>
+                                    <%= status_badge.html_safe %>
                                   <% end %>
                                   
                                   <span class="font-13 text-truncate" title="<%= accrual.concept_name %>">
@@ -168,14 +172,14 @@
               <% else %>
                 <div class="p-4 text-center text-muted font-13 bg-white">
                   <i class="ri-folder-open-line font-24 d-block mb-1"></i>
-                  No hay actividades con presupuesto registrado para liquidar.
+                  No hay actividades facturadas pendientes de pago.
                 </div>
               <% end %>
             </div>
             
             <div class="form-text font-11 text-muted mt-1">
               <i class="ri-information-line me-1 text-primary"></i> 
-              <span class="mode-hint-text">Marca las casillas o usa "Auto-aplicar". El sistema usará tu saldo restante o generará abonos si no alcanza.</span>
+              <span class="mode-hint-text">El sistema oculta automáticamente las tareas que no han sido facturadas. Solo puedes aplicar pagos a comprobantes emitidos.</span>
             </div>
           </div>
 

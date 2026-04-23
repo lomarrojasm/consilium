@@ -1,0 +1,130 @@
+<%# app/views/legal_compliances/index.html.erb %>
+
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box">
+            <h4 class="page-title">
+                <i class="ri-shield-check-fill text-success me-1"></i> 
+                <%= current_user.role == 'admin' ? "Auditoría Legal Global" : "Mi Expediente Legal y Transparencia" %>
+            </h4>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm border-0" style="border-radius: 12px;">
+            <div class="card-header bg-white border-bottom pt-4 pb-0 px-4">
+                <ul class="nav nav-tabs nav-bordered mb-0" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <a href="#transacciones" data-bs-toggle="tab" aria-expanded="true" class="nav-link active fw-bold text-dark">
+                            <i class="ri-file-list-3-line me-1"></i> Cotizaciones Autorizadas (SOWs)
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a href="#proyectos" data-bs-toggle="tab" aria-expanded="false" class="nav-link fw-bold text-dark">
+                            <i class="ri-folder-shield-2-line me-1"></i> Acuerdos Marco (MSA)
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="tab-content">
+                    
+                    <%# PESTAÑA 1: COTIZACIONES AUTORIZADAS %>
+                    <div class="tab-pane show active" id="transacciones" role="tabpanel">
+                        <table id="legal-quotes-table" class="table table-hover table-centered w-100 font-13">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Folio / Transacción</th>
+                                    <th>Cliente</th>
+                                    <th class="text-end">Monto Autorizado</th>
+                                    <th>Sello de Tiempo Legal</th>
+                                    <th>Firma Electrónica (IP)</th>
+                                    <th class="text-end">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% @accepted_quotations.each do |quote| %>
+                                    <tr>
+                                        <td class="fw-bold text-primary">#COT-<%= quote.id %><br><small class="text-muted fw-normal"><%= quote.project.name %></small></td>
+                                        <td class="fw-bold"><%= quote.client.company_name %></td>
+                                        <td class="text-end fw-bold font-monospace text-success"><%= number_to_currency(quote.total_amount) %></td>
+                                        <td>
+                                            <%= quote.accepted_at&.strftime("%d/%m/%Y %H:%M:%S") %><br>
+                                            <span class="badge bg-light text-muted border font-10 font-monospace"><%= quote.auth_code %></span>
+                                        </td>
+                                        <td class="font-monospace text-muted font-11">
+                                            <i class="ri-global-line text-primary me-1"></i><%= quote.ip_address %><br>
+                                            <small class="text-truncate d-inline-block" style="max-width: 150px;" title="<%= quote.user_agent %>"><%= quote.user_agent %></small>
+                                        </td>
+                                        <td class="text-end">
+                                            <%= link_to "Ver Cotización", client_project_quotation_path(quote.client, quote.project, quote), class: "btn btn-xs btn-outline-primary rounded-pill shadow-none" %>
+                                        </td>
+                                    </tr>
+                                <% end %>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <%# PESTAÑA 2: ACUERDOS MARCO %>
+                    <div class="tab-pane" id="proyectos" role="tabpanel">
+                        <table id="legal-projects-table" class="table table-hover table-centered w-100 font-13">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Proyecto Desbloqueado</th>
+                                    <th>Cliente</th>
+                                    <th>Sello de Tiempo Legal</th>
+                                    <th>Firma Electrónica (IP)</th>
+                                    <th class="text-center">Expediente Físico</th>
+                                    <th class="text-end">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% @project_authorizations.each do |auth| %>
+                                    <tr>
+                                        <td class="fw-bold text-dark"><i class="ri-folder-2-line text-warning me-1"></i> <%= auth.project.name %></td>
+                                        <td class="fw-bold"><%= auth.project.client.company_name %></td>
+                                        <td><%= auth.accepted_at&.strftime("%d/%m/%Y %H:%M:%S") %></td>
+                                        <td class="font-monospace text-muted font-11">
+                                            <i class="ri-global-line text-primary me-1"></i><%= auth.ip_address %><br>
+                                        </td>
+                                        <td class="text-center">
+                                            <% if auth.invoice_pdf.attached? || auth.legal_document.attached? %>
+                                                <i class="ri-attachment-line text-success font-16" title="Documentos adjuntos disponibles" data-bs-toggle="tooltip"></i>
+                                            <% else %>
+                                                <span class="text-muted">-</span>
+                                            <% end %>
+                                        </td>
+                                        <td class="text-end">
+                                            <%= link_to "Ver Expediente", client_project_billing_authorization_path(auth.project.client, auth.project), class: "btn btn-xs btn-outline-dark rounded-pill shadow-none" %>
+                                        </td>
+                                    </tr>
+                                <% end %>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+  document.addEventListener("turbo:load", function() {
+    const dtOptions = {
+        language: { search: "Buscar:", lengthMenu: "Mostrar _MENU_", info: "Mostrando _START_ a _END_ de _TOTAL_", emptyTable: "No hay registros legales" },
+        order: [[3, "desc"]], // Ordenar por fecha por defecto
+        pageLength: 10,
+        columnDefs: [{ targets: -1, orderable: false }]
+    };
+
+    if ($.fn.DataTable.isDataTable("#legal-quotes-table")) { $("#legal-quotes-table").DataTable().destroy(); }
+    if ($.fn.DataTable.isDataTable("#legal-projects-table")) { $("#legal-projects-table").DataTable().destroy(); }
+    
+    $("#legal-quotes-table").DataTable(dtOptions);
+    $("#legal-projects-table").DataTable(dtOptions);
+  });
+</script>

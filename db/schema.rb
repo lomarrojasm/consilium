@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_20_214326) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_22_171132) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -105,6 +105,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_20_214326) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["stage_template_id"], name: "index_activity_templates_on_stage_template_id"
+  end
+
+  create_table "billing_authorizations", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.bigint "authorized_by_id"
+    t.integer "status", default: 0
+    t.datetime "accepted_at"
+    t.string "ip_address"
+    t.string "user_agent"
+    t.text "legal_text_version"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["authorized_by_id"], name: "index_billing_authorizations_on_authorized_by_id"
+    t.index ["project_id"], name: "index_billing_authorizations_on_project_id"
   end
 
   create_table "clients", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -311,6 +325,32 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_20_214326) do
     t.datetime "updated_at", null: false
     t.text "notes"
     t.string "email"
+  end
+
+  create_table "quotation_items", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "quotation_id", null: false
+    t.bigint "financial_accrual_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["financial_accrual_id"], name: "index_quotation_items_on_financial_accrual_id"
+    t.index ["quotation_id"], name: "index_quotation_items_on_quotation_id"
+  end
+
+  create_table "quotations", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.bigint "client_id", null: false
+    t.decimal "total_amount", precision: 10
+    t.integer "status"
+    t.datetime "sent_at"
+    t.datetime "accepted_at"
+    t.string "ip_address"
+    t.string "user_agent"
+    t.text "legal_text"
+    t.string "auth_code"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_quotations_on_client_id"
+    t.index ["project_id"], name: "index_quotations_on_project_id"
   end
 
   create_table "solid_cable_messages", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -532,6 +572,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_20_214326) do
   add_foreign_key "activity_logs", "activities"
   add_foreign_key "activity_logs", "users"
   add_foreign_key "activity_templates", "stage_templates"
+  add_foreign_key "billing_authorizations", "projects"
+  add_foreign_key "billing_authorizations", "users", column: "authorized_by_id"
   add_foreign_key "conversation_participants", "conversations"
   add_foreign_key "conversation_participants", "users"
   add_foreign_key "conversations", "clients"
@@ -550,6 +592,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_20_214326) do
   add_foreign_key "projects", "clients"
   add_foreign_key "projects", "users"
   add_foreign_key "projects", "users", column: "responsible_id"
+  add_foreign_key "quotation_items", "financial_accruals"
+  add_foreign_key "quotation_items", "quotations"
+  add_foreign_key "quotations", "clients"
+  add_foreign_key "quotations", "projects"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

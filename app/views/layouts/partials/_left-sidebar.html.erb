@@ -1,6 +1,6 @@
 <div class="leftside-menu" style="position: fixed; height: 100%; padding-bottom: 0;">
 
-  <%# Los logos ahora usan el root_path dinámico que definimos en routes.rb %>
+  <%# --- LOGOS --- %>
   <a href="<%= root_path %>" class="logo logo-light">
     <span class="logo-lg"><img src="<%= image_path("consilium_rec.png") %>" alt="logo"></span>
     <span class="logo-sm"><img src="<%= image_path("icono_consilium.jpg") %>" alt="small logo"></span>
@@ -20,12 +20,12 @@
 
   <div class="h-100" id="leftside-menu-container" data-simplebar style="padding-bottom: 220px;">
     
+    <%# --- PERFIL DE USUARIO --- %>
     <div class="leftbar-user">
       <a href="<%= edit_user_registration_path %>">
         <% if current_user.avatar.attached? %>
           <%= image_tag current_user.avatar, class: "rounded-circle shadow-sm", height: "42", width: "42", style: "object-fit: cover;" %>
         <% else %>
-          <%# Avatar por defecto si no tiene uno cargado %>
           <div class="avatar-sm d-inline-block">
             <span class="avatar-title bg-soft-primary text-primary rounded-circle fw-bold">
               <%= current_user.first_name[0] %><%= current_user.last_name[0] %>
@@ -38,32 +38,36 @@
       </a>
     </div>
 
+    <%# --- NAVEGACIÓN PRINCIPAL --- %>
     <ul class="side-nav">
       <li class="side-nav-title">Módulos</li>
 
-      <%# Nota: Usamos current_user para que, al impersonar, el admin vea EXACTAMENTE el menú que ve el cliente %>
+      <%# ========================================================= %>
+      <%# VISTA PARA ADMINISTRADORES                                %>
+      <%# ========================================================= %>
       <% if current_user.role == "admin" %>
+        
         <li class="side-nav-item">
           <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false" aria-controls="sidebarDashboards" class="side-nav-link">
-              <i class="uil-dashboard"></i>
-              <span> Dashboards </span>
-              <span class="menu-arrow"></span>
+            <i class="uil-dashboard"></i>
+            <span> Dashboards </span>
+            <span class="menu-arrow"></span>
           </a>
           <div class="collapse" id="sidebarDashboards">
-              <ul class="side-nav-second-level">
-                  <li>
-                      <%= link_to "Proyectos", projects_dashboards_path, data: { turbo: false } %>
-                  </li>
-                  <li>
-                      <%= link_to admin_prospect_questionnaires_path, data: { turbo: false } do %>
-                          <span> Leads & Diagnósticos </span>
-                          <% count = ProspectQuestionnaire.where(status: 'Nuevo').count %>
-                          <% if count > 0 %>
-                              <span class="badge rounded-pill bg-danger float-end mt-1"><%= count %></span>
-                          <% end %>
-                      <% end %>
-                  </li>
-              </ul>
+            <ul class="side-nav-second-level">
+              <li>
+                <%= link_to "Proyectos", projects_dashboards_path, data: { turbo: false } %>
+              </li>
+              <li>
+                <%= link_to admin_prospect_questionnaires_path, data: { turbo: false } do %>
+                  <span> Leads & Diagnósticos </span>
+                  <% count = ProspectQuestionnaire.where(status: 'Nuevo').count %>
+                  <% if count > 0 %>
+                    <span class="badge rounded-pill bg-danger float-end mt-1"><%= count %></span>
+                  <% end %>
+                <% end %>
+              </li>
+            </ul>
           </div>
         </li>
 
@@ -73,8 +77,26 @@
             <span> Clientes </span>
           <% end %>
         </li>
+
+        <%# --- OPERACIÓN FINANCIERA Y LEGAL --- %>
+        <li class="side-nav-title side-nav-item mt-2">Operación Financiera</li>
+
+        <li class="side-nav-item <%= 'menuitem-active' if controller_name == 'quotations' %>">
+          <%= link_to all_quotations_path, class: "side-nav-link" do %>
+            <i class="ri-file-list-3-line"></i>
+            <span> Cotizaciones </span>
+          <% end %>
+        </li>
+
+        <li class="side-nav-item <%= 'menuitem-active' if controller_name == 'legal_compliances' %>">
+          <%= link_to all_legal_compliances_path, class: "side-nav-link" do %>
+            <i class="ri-shield-check-fill text-success"></i>
+            <span> Cumplimiento Legal </span>
+          <% end %>
+        </li>
         
-        <li class="side-nav-title side-nav-item">Configuración</li>
+        <%# --- CONFIGURACIÓN DEL SISTEMA --- %>
+        <li class="side-nav-title side-nav-item mt-2">Configuración</li>
 
         <li class="side-nav-item">
           <%= link_to users_path, class: "side-nav-link" do %>
@@ -82,14 +104,15 @@
             <span> Usuarios del Sistema </span>
           <% end %>
         </li>
-        <li class="side-nav-item <%= 'menuitem-active' if controller_name == 'project_templates' || controller_name == 'stage_templates' || controller_name == 'activity_templates' %>">
-            <%= link_to project_templates_path, class: "side-nav-link" do %>
-                <i class="ri-git-repository-line"></i>
-                <%# Podrías agregar un badge si quieres resaltar que es nuevo %>
-                <span class="badge bg-soft-primary text-primary float-end">Base</span>
-                <span> Metodologías </span>
-            <% end %>
+        
+        <li class="side-nav-item <%= 'menuitem-active' if ['project_templates', 'stage_templates', 'activity_templates'].include?(controller_name) %>">
+          <%= link_to project_templates_path, class: "side-nav-link" do %>
+            <i class="ri-git-repository-line"></i>
+            <span class="badge bg-soft-primary text-primary float-end">Base</span>
+            <span> Metodologías </span>
+          <% end %>
         </li>
+        
         <li class="side-nav-item">
           <%= link_to admin_system_path, class: 'side-nav-link' do %>
             <i class="ri-server-line"></i>
@@ -97,8 +120,11 @@
           <% end %>
         </li>
 
+      <%# ========================================================= %>
+      <%# VISTA PARA CLIENTES / MANAGERS                            %>
+      <%# ========================================================= %>
       <% else %>
-        <%# VISTA PARA CLIENTES / MANAGERS %>
+        
         <li class="side-nav-item">
           <a href="<%= client_dashboard_path %>" class="side-nav-link">
             <i class="uil-dashboard"></i>
@@ -109,23 +135,38 @@
         <% if current_user.client %>
           <li class="side-nav-item">
             <a href="<%= client_path(current_user.client) %>" class="side-nav-link">
-              <i class="uil-building"></i> <span> Mi Empresa </span>
+              <i class="uil-building"></i> 
+              <span> Mi Empresa </span>
             </a>
+          </li>
+
+          <li class="side-nav-title side-nav-item mt-2">Área de Cliente</li>
+
+          <li class="side-nav-item <%= 'menuitem-active' if current_page?(client_root_path) %>">
+            <%= link_to client_root_path, class: "side-nav-link" do %>
+              <i class="ri-dashboard-line"></i>
+              <span> Mis Proyectos </span>
+            <% end %>
+          </li>
+
+          <li class="side-nav-item <%= 'menuitem-active' if current_page?(client_legal_history_path) %>">
+            <%= link_to client_legal_history_path, class: "side-nav-link" do %>
+              <i class="ri-shield-check-fill text-success"></i>
+              <span> Mi Expediente Legal </span>
+            <% end %>
           </li>
           
           <li class="side-nav-item">
-            <%# Acceso directo al chat desde el sidebar para el cliente %>
             <a href="<%= client_conversations_path(current_user.client) %>" class="side-nav-link">
-              <i class="ri-message-3-line"></i> <span> Mensajería </span>
+              <i class="ri-message-3-line"></i> 
+              <span> Mensajería </span>
             </a>
           </li>
         <% end %>
+        
       <% end %>
     </ul>
 
     <div class="clearfix"></div>
   </div> 
-
-  
-
 </div>

@@ -1,0 +1,54 @@
+<%# app/views/quotations/new.html.erb %>
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box">
+      <h4 class="page-title"><i class="ri-file-list-3-line me-1 text-primary"></i> Generar Nueva Cotización</h4>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-2">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+      <div class="card-header bg-light p-3 border-bottom">
+        <h5 class="m-0 text-dark fw-bold">Selecciona las actividades a facturar</h5>
+      </div>
+      <div class="card-body">
+        <%= form_with(url: client_project_quotations_path(@client, @project), method: :post, local: true) do |f| %>
+          
+          <div class="table-responsive mb-4">
+            <table class="table table-hover table-centered mb-0 font-13">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 5%;"></th>
+                  <th>Etapa</th>
+                  <th>Concepto Devengado</th>
+                  <th class="text-end">Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @pending_accruals.each do |accrual| %>
+                  <tr>
+                    <td>
+                      <div class="form-check">
+                        <%= check_box_tag "accrual_ids[]", accrual.id, true, class: "form-check-input shadow-none", id: "check_#{accrual.id}" %>
+                      </div>
+                    </td>
+                    <td class="text-muted"><%= accrual.stage_name %></td>
+                    <td class="fw-bold"><label for="check_<%= accrual.id %>" class="mb-0 cursor-pointer"><%= accrual.concept_name %></label></td>
+                    <td class="text-end font-monospace text-success fw-bold"><%= number_to_currency(accrual.amount) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center border-top pt-3">
+            <%= link_to "Cancelar", client_project_financials_path(@client, @project), class: "btn btn-light rounded-pill px-4" %>
+            <%= f.submit "Generar Borrador de Cotización", class: "btn btn-primary shadow-sm rounded-pill px-4" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

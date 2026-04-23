@@ -1,24 +1,12 @@
 Rails.application.routes.draw do
-  # Panel Administrativo de Metodologías
-  resources :project_templates do
-    # Ruta especial para clonar
-    post :clone, on: :member
-
-    # Anidamos la creación de etapas dentro del template
-    resources :stage_templates, shallow: true, only: [ :create, :update, :destroy ] do
-      # Anidamos la creación de actividades dentro de la etapa
-      resources :activity_templates, shallow: true, only: [ :create, :update, :destroy ]
-    end
-  end
-  # Health Check
+  # =========================================================================
+  # 0. HEALTH CHECK
+  # =========================================================================
   get "up" => "rails/health#show", as: :rails_health_check
 
   # =========================================================================
-  # 0. NAVEGACIÓN DINÁMICA (ROOT)
+  # 1. NAVEGACIÓN DINÁMICA (ROOT)
   # =========================================================================
-  # Usamos bloques authenticated para que el 'root_path' sea inteligente.
-  # Esto evita que un Cliente intente entrar al Dashboard de Admin al loguearse.
-
   authenticated :user, ->(u) { u.role == "admin" } do
     root to: "dashboards#projects", as: :admin_root
   end
@@ -27,19 +15,18 @@ Rails.application.routes.draw do
     root to: "client_portal#index", as: :client_root
   end
 
-  # Si no está logueado, el root es el login (o tu página de landing si prefieres)
   unauthenticated do
     root to: "auth#login"
   end
 
   # =========================================================================
-  # 1. AUTENTICACIÓN Y GESTIÓN DE USUARIOS
+  # 2. AUTENTICACIÓN Y GESTIÓN DE USUARIOS
   # =========================================================================
   devise_for :users, skip: [ :registrations ], controllers: { invitations: "users/invitations" }
 
   as :user do
-    get "users/edit" => "devise/registrations#edit", :as => "edit_user_registration"
-    put "users" => "devise/registrations#update", :as => "user_registration"
+    get "users/edit" => "devise/registrations#edit", as: "edit_user_registration"
+    put "users" => "devise/registrations#update", as: "user_registration"
   end
 
   resources :users do
@@ -53,7 +40,7 @@ Rails.application.routes.draw do
   end
 
   # =========================================================================
-  # 2. DASHBOARDS Y PORTAL
+  # 3. DASHBOARDS Y PORTAL
   # =========================================================================
   resources :dashboards, only: [ :index ] do
     collection do
@@ -62,15 +49,26 @@ Rails.application.routes.draw do
   end
 
   get "portal", to: "client_portal#index", as: :client_dashboard
-  # get "client_portal/index" # Esta ya no es necesaria por el alias anterior, pero la mantenemos si la usas en JS
 
   # =========================================================================
-  # 3. NÚCLEO: CLIENTES -> PROYECTOS -> ACTIVIDADES
+  # 4. RUTAS PÚBLICAS Y GLOBALES (ADMIN SIDEBAR)
+  # =========================================================================
+
+  # Cotizaciones Públicas (Fuera de la autenticación)
+  get "/cotizacion/:code", to: "public_quotations#show", as: :public_quotation
+  post "/cotizacion/:code/authorize", to: "public_quotations#authorize", as: :authorize_public_quotation
+
+  # Vistas Integrales Admin
+  get "cotizaciones", to: "quotations#index", as: :all_quotations
+  get "cumplimiento-legal", to: "legal_compliances#index", as: :all_legal_compliances
+
+  # =========================================================================
+  # 5. NÚCLEO: CLIENTES -> PROYECTOS -> ACTIVIDADES / FINANZAS
   # =========================================================================
   resources :clients do
     member { get "timeline" }
 
-    # --- CHAT ---
+    # --- CHAT / CONVERSACIONES ---
     resources :conversations do
       collection do
         get :start_chat
@@ -79,15 +77,29 @@ Rails.application.routes.draw do
       resources :messages, only: [ :index, :create, :update, :destroy ]
     end
 
-    # --- PROYECTOS ---
+    # --- PROYECTOS (Unificado) ---
     resources :projects do
+      # 5.1 Acciones del Proyecto
       member do
         post :add_comment
         get :comments, :schedule_view
         delete :delete_file
       end
 
-      # NUEVO MÓDULO FINANCIERO INDEPENDIENTE
+      # 5.2 Módulos Legales y Cotizaciones
+      resource :billing_authorization, only: [ :show, :edit, :update ] do
+        post :accept, on: :member
+      end
+
+      resources :quotations, only: [ :index, :new, :create, :show, :destroy ] do
+        member do
+          post :send_to_client
+          patch :upload_invoice
+          get :preview
+        end
+      end
+
+      # 5.3 Módulo Financiero
       resource :financials, only: [ :show ] do
         post :generate_template
         delete :reset_template
@@ -97,10 +109,12 @@ Rails.application.routes.draw do
         patch :update_accrual
       end
 
+      # 5.4 Operación del Proyecto
       resources :comments, controller: "project_comments", only: [ :create, :index ]
       resources :stages, except: [ :index, :show ]
+      resources :project_members, only: [ :create, :destroy ]
 
-      # --- ACTIVIDADES ---
+      # 5.5 Actividades
       resources :activities, only: [ :new, :create, :edit, :update, :destroy ] do
         member do
           get :tracking
@@ -108,17 +122,25 @@ Rails.application.routes.draw do
           patch :upload_evidence
           patch :update_evidence_date
           patch :update_status
-          patch :toggle_user_approval  # <--- Nueva
-          patch :toggle_admin_approval # <--- Nueva
+          patch :toggle_user_approval
+          patch :toggle_admin_approval
         end
       end
-
-      resources :project_members, only: [ :create, :destroy ]
     end
   end
 
   # =========================================================================
-  # 4. NOTIFICACIONES Y OTROS
+  # 6. PLANTILLAS DE METODOLOGÍAS (ADMIN)
+  # =========================================================================
+  resources :project_templates do
+    post :clone, on: :member
+    resources :stage_templates, shallow: true, only: [ :create, :update, :destroy ] do
+      resources :activity_templates, shallow: true, only: [ :create, :update, :destroy ]
+    end
+  end
+
+  # =========================================================================
+  # 7. NOTIFICACIONES Y TIMELINE
   # =========================================================================
   resources :notifications, only: [ :index, :show ] do
     member { get :mark_as_read }
@@ -127,23 +149,26 @@ Rails.application.routes.draw do
   patch "timeline/update_event", to: "timeline_events#update", as: :update_timeline_event
 
   # =========================================================================
-  # 5. CUESTIONARIOS Y ADMIN SYSTEM
+  # 8. CUESTIONARIOS Y EVALUACIONES
   # =========================================================================
   get "diagnostico", to: "public_questionnaires#new", as: :new_diagnostico
   post "diagnostico", to: "public_questionnaires#create", as: :public_questionnaires
+  get "diagnostico_exito", to: "public_questionnaires#exito", as: :success_page
 
   get "autodiagnostico", to: "public_questionnaires#new_autodiagnostico", as: :new_autodiagnostico
   post "autodiagnostico", to: "public_questionnaires#create_autodiagnostico", as: :create_autodiagnostico
   get "autodiagnostico_exito/:id", to: "public_questionnaires#autodiagnostico_exito", as: :autodiagnostico_exito
   get "autodiagnostico_pdf/:id", to: "public_questionnaires#download_pdf", as: :autodiagnostico_pdf
+
   get "/evaluacion_membresia", to: "public_questionnaires#new_membership", as: :new_membership
   get "/membresia/resultado/:id", to: "public_questionnaires#membership_result", as: :membership_result
-  # NUEVA RUTA DEDICADA PARA EL PDF
   get "/membresia_pdf/:id", to: "public_questionnaires#download_membership_pdf", as: :membership_pdf
 
-  get "diagnostico_exito", to: "public_questionnaires#exito", as: :success_page
   get "logout-success", to: "pages#logout_success", as: :logout_success
 
+  # =========================================================================
+  # 9. ADMIN SYSTEM WORKERS
+  # =========================================================================
   namespace :admin do
     resources :prospect_questionnaires, only: [ :index, :show, :update, :destroy ]
     get "system", to: "system_metrics#index"
@@ -154,8 +179,11 @@ Rails.application.routes.draw do
     post "discard_failed_jobs", to: "system_metrics#discard_all_failed_jobs"
   end
 
+  # Ruta compartida para el historial legal
+  get "mi-expediente-legal", to: "legal_compliances#index", as: :client_legal_history
+
   # =========================================================================
-  # 6. RUTAS DE PLANTILLA HYPER (Mantenidas al 100%)
+  # 10. RUTAS DE PLANTILLA HYPER (UI / TESTS)
   # =========================================================================
   get "apps/calendar"; get "apps/chat"; get "apps/social-feed", to: "apps#social_feed"
   get "apps/file-manager", to: "apps#file_manager"

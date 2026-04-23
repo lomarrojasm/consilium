@@ -34,7 +34,7 @@
       end
     end
 
-    # 3. Legado (Nombres viejos por si tenías pagos antes de esta actualización)
+    # 3. Legado (Nombres viejos)
     if !ref_m && !part_m
        name_m = p.notes.to_s.match(/\[Pago:\s*(.+?)\]/)
        if name_m
@@ -50,11 +50,25 @@
 
     @payment_consumed[p.id] = consumed.round(2)
   end
+
+  # =========================================================================
+  # CEREBRO DE COTIZACIONES: Identificar estatus de cobro
+  # =========================================================================
+  @quoted_items_status = {}
+  QuotationItem.joins(:quotation)
+               .where(quotations: { project_id: @project.id })
+               .includes(:quotation)
+               .each do |item|
+    @quoted_items_status[item.financial_accrual_id] = { 
+      status: item.quotation.status.to_s, 
+      quotation_id: item.quotation.id 
+    }
+  end
 %>
 
 <div class="container-fluid py-4">
   
-  <%# ENCABEZADO Y BREADCRUMBS %>
+  <%# --- ENCABEZADO Y BREADCRUMBS --- %>
   <div class="row mb-4">
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -76,12 +90,26 @@
             <i class="ri-arrow-left-line me-1 align-middle"></i> Volver al Proyecto
           <% end %>
 
+          <%= link_to client_project_billing_authorization_path(@client, @project), class: "btn btn-outline-primary shadow-sm rounded-pill font-13 fw-bold bg-white" do %>
+            <i class="ri-shield-check-fill me-1 text-success"></i> Expediente Legal
+          <% end %>
+
           <% if current_user.role == 'admin' && @accruals_by_stage.any? %>
-            <%= button_to reset_template_client_project_financials_path(@client, @project), 
-                method: :delete, 
-                form: { style: "margin: 0;", data: { turbo_confirm: "⚠️ ¿Estás seguro? Esto borrará el presupuesto de devengos y pagos." } }, 
-                class: "btn btn-outline-danger btn-sm rounded-pill shadow-sm px-3" do %>
-              <i class="ri-refresh-line me-1 align-middle"></i> Reiniciar Matriz
+            <% can_reset = @project.payments.empty? && @project.quotations.empty? %>
+            
+            <% if can_reset %>
+              <%= button_to reset_template_client_project_financials_path(@client, @project), 
+                  method: :delete, 
+                  form: { style: "margin: 0;", data: { turbo_confirm: "⚠️ ¿Estás seguro? Esto borrará el presupuesto de devengos y pagos." } }, 
+                  class: "btn btn-outline-danger btn-sm rounded-pill shadow-sm px-3" do %>
+                <i class="ri-refresh-line me-1 align-middle"></i> Reiniciar Matriz
+              <% end %>
+            <% else %>
+              <span tabindex="0" data-bs-toggle="tooltip" title="No se puede reiniciar: Existen cotizaciones o pagos vinculados a este presupuesto.">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm px-3" disabled style="pointer-events: none;">
+                  <i class="ri-lock-line me-1 align-middle"></i> Matriz Bloqueada
+                </button>
+              </span>
             <% end %>
           <% end %>
         </div>
@@ -89,7 +117,7 @@
     </div>
   </div>
 
-  <%# KPIs FINANCIEROS %>
+  <%# --- KPIs FINANCIEROS --- %>
   <% total_planned_amount = @accruals_by_stage.values.flatten.sum(&:amount) rescue 0 %>
   
   <div class="row mb-4">
@@ -199,85 +227,134 @@
   <% else %>
 
     <div class="row">
-      <%# COLUMNA IZQUIERDA: PLAN DE DEVENGO %>
+      <%# --- COLUMNA IZQUIERDA: PLAN DE DEVENGO Y COTIZACIONES --- %>
       <div class="col-lg-7">
-        <div class="card shadow-sm border-0 mb-4">
-          <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="card-title mb-0 fw-bold"><i class="ri-task-line text-primary me-2"></i>Estado de Cuenta</h5>
-            <div class="input-group input-group-sm shadow-sm" style="max-width: 250px;">
-              <span class="input-group-text bg-light border-end-0"><i class="ri-search-line text-muted"></i></span>
-              <input type="text" id="global-activity-search" class="form-control border-start-0 bg-light" placeholder="Buscar actividad o monto...">
-            </div>
-          </div>
-
-          <div class="card-body p-3">
-            <div class="accordion" id="accrualsAccordion">
-              <% @accruals_by_stage.sort_by { |stage_name, accruals_array| accruals_array.map(&:id).min }.each_with_index do |(stage, accruals), index| %>
+        
+        <%= form_with url: client_project_quotations_path(@client, @project), method: :post, local: true, id: "form-generate-quote" do |f| %>
+          
+          <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div class="d-flex align-items-center">
+                <h5 class="card-title mb-0 fw-bold"><i class="ri-task-line text-primary me-2"></i>Estado de Cuenta</h5>
                 
-                <% 
-                  stage_total = accruals.sum(&:amount)
-                  stage_paid = accruals.sum do |accrual|
-                    [@activity_payments[accrual.id], accrual.amount.to_f].min 
-                  end
-                  stage_balance = stage_total - stage_paid
-                %>
+                <% if current_user.role == 'admin' %>
+                  <button type="submit" class="btn btn-sm btn-primary rounded-pill shadow-sm ms-3 scale-in" id="btn-generate-quote" disabled style="transition: all 0.2s;">
+                    <i class="ri-file-list-3-line me-1"></i> Generar Cotización
+                    <span id="quote-count-badge" class="badge bg-white text-primary ms-1" style="display:none;">0</span>
+                  </button>
+                <% end %>
+              </div>
 
-                <div class="accordion-item border mb-2 rounded shadow-none stage-accordion-item">
-                  <h2 class="accordion-header" id="heading<%= index %>">
-                    <button class="accordion-button <%= 'collapsed' if index > 0 %> fw-bold bg-light py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%= index %>">
-                      <span class="text-truncate me-2" style="max-width: 35%;"><%= stage %></span>
-                      <div class="ms-auto d-flex text-end gap-3 gap-md-4 font-12 align-items-center me-2 me-md-4">
-                        <div class="d-none d-sm-block">
-                          <span class="d-block text-muted font-9 text-uppercase tracking-wider lh-1 mb-1">Total</span>
-                          <span class="fw-bold text-dark lh-1"><%= number_to_currency(stage_total) %></span>
+              <div class="input-group input-group-sm shadow-sm" style="max-width: 250px;">
+                <span class="input-group-text bg-light border-end-0"><i class="ri-search-line text-muted"></i></span>
+                <input type="text" id="global-activity-search" class="form-control border-start-0 bg-light" placeholder="Buscar actividad o monto...">
+              </div>
+            </div>
+
+            <div class="card-body p-3">
+              <div class="accordion" id="accrualsAccordion">
+                <% @accruals_by_stage.sort_by { |stage_name, accruals_array| accruals_array.map(&:id).min }.each_with_index do |(stage, accruals), index| %>
+                  
+                  <% 
+                    stage_total = accruals.sum(&:amount)
+                    stage_paid = accruals.sum do |accrual|
+                      [@activity_payments[accrual.id], accrual.amount.to_f].min 
+                    end
+                    stage_balance = stage_total - stage_paid
+                  %>
+
+                  <div class="accordion-item border mb-2 rounded shadow-none stage-accordion-item">
+                    <h2 class="accordion-header" id="heading<%= index %>">
+                      <button class="accordion-button <%= 'collapsed' if index > 0 %> fw-bold bg-light py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%= index %>">
+                        <span class="text-truncate me-2" style="max-width: 35%;"><%= stage %></span>
+                        <div class="ms-auto d-flex text-end gap-3 gap-md-4 font-12 align-items-center me-2 me-md-4">
+                          <div class="d-none d-sm-block">
+                            <span class="d-block text-muted font-9 text-uppercase tracking-wider lh-1 mb-1">Total</span>
+                            <span class="fw-bold text-dark lh-1"><%= number_to_currency(stage_total) %></span>
+                          </div>
+                          <div class="d-none d-sm-block border-start ps-3 ps-md-4">
+                            <span class="d-block text-muted font-9 text-uppercase tracking-wider lh-1 mb-1">Pagado</span>
+                            <span class="fw-bold text-success lh-1"><%= number_to_currency(stage_paid) %></span>
+                          </div>
+                          <div class="border-start-sm ps-sm-3 ps-md-4">
+                            <span class="d-block text-muted font-9 text-uppercase tracking-wider lh-1 mb-1">Restante</span>
+                            <span class="fw-bold <%= stage_balance > 0.01 ? 'text-primary' : 'text-muted' %> lh-1"><%= number_to_currency(stage_balance) %></span>
+                          </div>
                         </div>
-                        <div class="d-none d-sm-block border-start ps-3 ps-md-4">
-                          <span class="d-block text-muted font-9 text-uppercase tracking-wider lh-1 mb-1">Pagado</span>
-                          <span class="fw-bold text-success lh-1"><%= number_to_currency(stage_paid) %></span>
-                        </div>
-                        <div class="border-start-sm ps-sm-3 ps-md-4">
-                          <span class="d-block text-muted font-9 text-uppercase tracking-wider lh-1 mb-1">Restante</span>
-                          <span class="fw-bold <%= stage_balance > 0.01 ? 'text-primary' : 'text-muted' %> lh-1"><%= number_to_currency(stage_balance) %></span>
-                        </div>
-                      </div>
-                    </button>
-                  </h2>
-                  <div id="collapse<%= index %>" class="accordion-collapse collapse <%= 'show' if index == 0 %>" data-bs-parent="#accrualsAccordion">
-                    <div class="accordion-body p-0">
-                      <table class="table table-hover table-centered mb-0 font-13">
-                        <thead class="table-light">
-                          <tr>
-                            <th>Concepto</th>
-                            <th class="text-end">Importe</th>
-                            <th class="text-center">Estatus</th>
-                          </tr>
-                        </thead>
-                        <tbody class="accrual-tbody">
-                          <% accruals.sort_by(&:id).each do |accrual| %>
-                            <% 
-                               paid = @activity_payments[accrual.id]
-                               cost = accrual.amount.to_f
-                               is_fully_paid = paid >= (cost - 0.01)
-                               is_partially_paid = paid > 0.01 && !is_fully_paid
-                            %>
-                            
-                            <tr class="accrual-row <%= 'bg-light bg-opacity-50' if accrual.status == 'accrued' && is_fully_paid %>">
-                              <td class="fw-medium text-dark accrual-concept" style="max-width: 250px; white-space: normal;">
-                                <%= accrual.concept_name %>
-                              </td>
-                              <td class="text-end fw-bold text-dark accrual-amount">
-                                <%= number_to_currency(cost) %>
-                              </td>
-                              <td class="text-center">
-                                <% if accrual.status == 'accrued' %>
+                      </button>
+                    </h2>
+                    <div id="collapse<%= index %>" class="accordion-collapse collapse <%= 'show' if index == 0 %>" data-bs-parent="#accrualsAccordion">
+                      <div class="accordion-body p-0">
+                        <table class="table table-hover table-centered mb-0 font-13">
+                          <thead class="table-light">
+                            <tr>
+                              <th style="width: 5%;" class="text-center">
+                                <i class="ri-checkbox-multiple-line text-muted" title="Seleccionar para cotizar" data-bs-toggle="tooltip"></i>
+                              </th>
+                              <th>Concepto</th>
+                              <th class="text-end">Importe</th>
+                              <th class="text-center">Estatus</th>
+                            </tr>
+                          </thead>
+                          <tbody class="accrual-tbody">
+                            <% accruals.sort_by(&:id).each do |accrual| %>
+                              <% 
+                                 paid = @activity_payments[accrual.id]
+                                 cost = accrual.amount.to_f
+                                 is_fully_paid = paid >= (cost - 0.01)
+                                 is_partially_paid = paid > 0.01 && !is_fully_paid
+                                 
+                                 quote_info = @quoted_items_status[accrual.id]
+                                 is_quoted = quote_info.present?
+                                 quote_status = is_quoted ? quote_info[:status] : nil
+                                 
+                                 can_be_quoted = current_user.role == 'admin' && accrual.status == 'accrued' && !is_fully_paid && !is_quoted
+                              %>
+                              
+                              <tr class="accrual-row <%= 'bg-light bg-opacity-50' if accrual.status == 'accrued' && is_fully_paid %>">
+                                
+                                <td class="text-center align-middle">
+                                  <% if can_be_quoted %>
+                                    <div class="form-check d-flex justify-content-center m-0 p-0">
+                                      <input type="checkbox" name="accrual_ids[]" value="<%= accrual.id %>" class="form-check-input quote-checkbox border-secondary cursor-pointer" style="width: 18px; height: 18px;" title="Seleccionar para cotizar">
+                                    </div>
+                                  <% end %>
+                                </td>
+
+                                <td class="fw-medium text-dark accrual-concept" style="max-width: 250px; white-space: normal;">
+                                  <%= accrual.concept_name %>
+                                </td>
+                                <td class="text-end fw-bold text-dark accrual-amount">
+                                  <%= number_to_currency(cost) %>
+                                </td>
+                                <td class="text-center">
+                                <% if ['accrued', 'invoiced'].include?(accrual.status) %>
                                   <% if is_fully_paid %>
                                     <span class="badge bg-primary text-white rounded-pill px-2 py-1 shadow-sm">
                                       <i class="ri-check-double-line me-1"></i>Pagado
                                     </span>
                                   <% elsif is_partially_paid %>
                                     <span class="badge bg-warning text-dark border border-warning rounded-pill px-2 py-1 shadow-sm" title="Abono de <%= number_to_currency(paid) %>">
-                                      <i class="ri-pie-chart-2-line me-1"></i>Abono: <%= number_to_currency(paid) %>
+                                      <i class="ri-pie-chart-2-line me-1"></i>Abono
                                     </span>
+                                  <% elsif is_quoted %>
+                                    <% if quote_status == 'pagado' %>
+                                      <%= link_to client_project_quotation_path(@client, @project, quote_info[:quotation_id]), class: "badge bg-primary text-white rounded-pill px-2 py-1 shadow-sm text-decoration-none hover-primary" do %>
+                                        <i class="ri-checkbox-circle-fill me-1"></i>Liquidado
+                                      <% end %>
+                                    <% elsif quote_status == 'facturado' %>
+                                      <%= link_to client_project_quotation_path(@client, @project, quote_info[:quotation_id]), class: "badge bg-success text-white rounded-pill px-2 py-1 shadow-sm text-decoration-none hover-primary" do %>
+                                        <i class="ri-file-paper-2-line me-1"></i>Facturado
+                                      <% end %>
+                                    <% elsif quote_status == 'aceptado' %>
+                                      <%= link_to client_project_quotation_path(@client, @project, quote_info[:quotation_id]), class: "badge bg-warning text-dark border border-warning rounded-pill px-2 py-1 shadow-sm text-decoration-none hover-primary" do %>
+                                        <i class="ri-bill-line me-1"></i>Listo p/Facturar
+                                      <% end %>
+                                    <% else %>
+                                      <%= link_to client_project_quotation_path(@client, @project, quote_info[:quotation_id]), class: "badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-1 text-decoration-none hover-primary" do %>
+                                        <i class="ri-file-list-3-line me-1"></i>Cotizado
+                                      <% end %>
+                                    <% end %>
                                   <% else %>
                                     <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1">
                                       <i class="ri-check-line me-1"></i>Devengado
@@ -287,20 +364,21 @@
                                   <span class="badge bg-light text-secondary rounded-pill px-2 py-1 border">Pendiente</span>
                                 <% end %>
                               </td>
-                            </tr>
-                          <% end %>
-                        </tbody>
-                      </table>
+                              </tr>
+                            <% end %>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
-                </div>
-              <% end %>
+                <% end %>
+              </div>
             </div>
           </div>
-        </div>
+        <% end %>
       </div>
 
-      <%# COLUMNA DERECHA: HISTORIAL DE PAGOS %>
+      <%# --- COLUMNA DERECHA: HISTORIAL DE PAGOS --- %>
       <div class="col-lg-5">
         <div class="card shadow-sm border-0">
           <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
@@ -343,7 +421,6 @@
                       <% end %>
                     </div>
                     
-                    <%# MOSTRAR SALDO DISPONIBLE %>
                     <% if available_amount > 0.01 %>
                       <div class="mt-2 mb-1">
                         <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 font-11 shadow-sm">
@@ -394,8 +471,7 @@
 <% content_for :javascript do %>
   <script>
     document.addEventListener("turbo:load", function() {
-      
-      // 1. BUSCADOR GLOBAL
+      // BUSCADOR GLOBAL
       const globalSearch = document.getElementById('global-activity-search');
       if (globalSearch) {
         globalSearch.addEventListener('input', function() {
@@ -426,7 +502,26 @@
         });
       }
 
-      // 2. MODAL DE PAGOS INTELIGENTE CON SWEETALERT
+      // BOTÓN GENERAR COTIZACIÓN
+      const quoteCheckboxes = document.querySelectorAll('.quote-checkbox');
+      const btnGenerateQuote = document.getElementById('btn-generate-quote');
+      const quoteCountBadge = document.getElementById('quote-count-badge');
+
+      if (quoteCheckboxes.length > 0 && btnGenerateQuote) {
+        quoteCheckboxes.forEach(cb => {
+          cb.addEventListener('change', function() {
+            const checkedCount = document.querySelectorAll('.quote-checkbox:checked').length;
+            btnGenerateQuote.disabled = checkedCount === 0;
+            
+            if (quoteCountBadge) {
+              quoteCountBadge.innerText = checkedCount;
+              quoteCountBadge.style.display = checkedCount > 0 ? 'inline-block' : 'none';
+            }
+          });
+        });
+      }
+
+      // MODAL PAGOS
       function initPaymentModals() {
         document.querySelectorAll('.payment-form-container').forEach(container => {
           const typeRadios = container.querySelectorAll('.payment-type-radio');
@@ -436,7 +531,6 @@
           const notesInput = container.querySelector('.payment-notes-input');
           const searchInput = container.querySelector('.activity-search-input');
           const autoApplyBtns = container.querySelectorAll('.auto-apply-btn');
-          
           const balanceBox = container.querySelector('.general-payment-balance-box');
           const balanceText = container.querySelector('.payment-remaining-balance');
           const balanceContainerNode = balanceBox ? balanceBox.querySelector('.balance-container') : null;
@@ -556,8 +650,6 @@
                 this.dataset.applied = this.dataset.amount; 
                 calculateSum();
               } else {
-                
-                // Si la DESMARCAN, no validamos límite, solo recalculamos
                 if (!this.checked) {
                   this.dataset.applied = this.dataset.amount; 
                   calculateSum(false);
@@ -580,7 +672,7 @@
                   let excess = total - limit;
                   let availableForThis = Math.round((cost - excess) * 100) / 100;
 
-                  this.checked = false; // Desmarcar preventivamente para que no se arruine el visual
+                  this.checked = false; 
                   calculateSum(false);
 
                   if (availableForThis > 0.01) {
@@ -660,7 +752,7 @@
                     remaining = Math.round((remaining - cost) * 100) / 100;
                     appliedFull = true;
                   } else if (!nextPartialCb) {
-                    nextPartialCb = cb; // Guardamos la que no alcanzó para preguntarle al usuario
+                    nextPartialCb = cb;
                   }
                 }
               });

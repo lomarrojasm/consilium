@@ -1,0 +1,87 @@
+<%# app/views/public_quotations/show.html.erb %>
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      
+      <div class="text-center mb-4">
+        <%# Aquí va tu logo de Consilium %>
+        <h2>Consilium S.C.</h2>
+        <p class="text-muted">Revisión y Autorización Comercial</p>
+      </div>
+
+      <div class="card shadow-lg border-0" style="border-radius: 16px;">
+        <div class="card-header bg-white p-4 border-bottom text-center">
+          <h4 class="mb-0 text-primary fw-bold">Cotización #COT-<%= @quotation.id %></h4>
+          <span class="badge <%= @quotation.aceptado? ? 'bg-success' : 'bg-warning' %> mt-2 font-13 px-3 py-2 rounded-pill">
+            <%= @quotation.status.upcase %>
+          </span>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+          <div class="row mb-4 font-13">
+            <div class="col-sm-6">
+              <h6 class="text-muted text-uppercase fw-bold">Cliente:</h6>
+              <p class="fw-bold mb-0 text-dark"><%= @quotation.client.company_name %></p>
+              <p class="mb-0">RFC: <%= @quotation.client.rfc %></p>
+            </div>
+            <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+              <h6 class="text-muted text-uppercase fw-bold">Proyecto:</h6>
+              <p class="fw-bold text-dark mb-0"><%= @quotation.project.name %></p>
+            </div>
+          </div>
+
+          <h6 class="text-primary border-bottom pb-2 mb-3 fw-bold">Conceptos a Facturar</h6>
+          <table class="table table-sm mb-4 font-13">
+            <tbody>
+              <% @quotation.financial_accruals.each do |item| %>
+                <tr>
+                  <td>
+                    <strong><%= item.concept_name %></strong><br>
+                    <span class="text-muted font-11"><%= item.stage_name %></span>
+                  </td>
+                  <td class="text-end align-middle font-monospace"><%= number_to_currency(item.amount) %></td>
+                </tr>
+              <% end %>
+              <tr class="table-light">
+                <td class="text-end fw-bold">TOTAL:</td>
+                <td class="text-end fw-bold text-success font-monospace" style="font-size: 1.1rem;"><%= number_to_currency(@quotation.total_amount) %></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <% if @quotation.aceptado? %>
+            <%# VISTA DE EVIDENCIA LEGAL (Ya firmado) %>
+            <div class="bg-success bg-opacity-10 p-4 rounded-3 border border-success border-opacity-25 text-center mt-5">
+              <i class="ri-shield-check-fill text-success" style="font-size: 48px;"></i>
+              <h4 class="text-success fw-bold">Acuerdo Autorizado</h4>
+              <p class="text-muted font-13 mb-3">La emisión de facturación ha sido aprobada legalmente.</p>
+              
+              <div class="text-start bg-white p-3 rounded border font-11 font-monospace text-muted mt-3">
+                <strong>ID de Transacción:</strong> <%= @quotation.auth_code %><br>
+                <strong>Sello de Tiempo:</strong> <%= @quotation.accepted_at.strftime("%d/%m/%Y %H:%M:%S") %><br>
+                <strong>Dirección IP:</strong> <%= @quotation.ip_address %><br>
+                <strong>Dispositivo:</strong> <%= @quotation.user_agent.truncate(50) %>
+              </div>
+            </div>
+          <% else %>
+            <%# VISTA PARA FIRMAR %>
+            <div class="bg-light p-4 rounded-3 border border-light mt-5 font-12 text-muted text-justify">
+              <h6 class="text-dark fw-bold mb-2"><i class="ri-article-line me-1"></i> Declaración Legal</h6>
+              <%= simple_format(@quotation.legal_text) %>
+            </div>
+
+            <div class="mt-4 pt-3 border-top">
+              <%= button_to authorize_public_quotation_path(code: @quotation.auth_code), 
+                    method: :post, 
+                    class: "btn btn-primary btn-lg w-100 shadow-sm rounded-pill fw-bold",
+                    data: { turbo_confirm: "Al hacer clic, tu dirección IP (#{request.remote_ip}) quedará registrada como firma electrónica y evidencia legal de aceptación. ¿Autorizas la facturación?" } do %>
+                <i class="ri-check-double-line me-1"></i> Autorizar Facturación por <%= number_to_currency(@quotation.total_amount) %>
+              <% end %>
+            </div>
+          <% end %>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

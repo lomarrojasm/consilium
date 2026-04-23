@@ -53,6 +53,31 @@
 
 
 
+  <script>
+    // Inicializador global de Tooltips de Bootstrap compatible con Turbo
+    document.addEventListener("turbo:load", function() {
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+      var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        // Configuramos para que el tooltip se muestre rápido y se cierre al hacer clic
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+          trigger: 'hover focus'
+        })
+      });
+    });
+
+    // Opcional pero recomendado: Destruir tooltips antes de que Turbo renderice 
+    // para evitar que se queden "pegados" en la pantalla al cambiar de página
+    document.addEventListener("turbo:before-render", function() {
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+      tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        var tooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+        if (tooltip) {
+          tooltip.hide();
+        }
+      });
+    });
+  </script>
+
 </body>
 
 </html>

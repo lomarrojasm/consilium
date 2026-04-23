@@ -1,0 +1,105 @@
+<%# app/views/quotations/preview.html.erb %>
+
+<div style="background-color: #f4f7fa; padding: 40px 0; min-height: 100vh; font-family: 'Helvetica Neue', Arial, sans-serif;">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-9 col-lg-8">
+        
+        <div class="card border-0 shadow-lg" style="border-radius: 0; min-height: 800px;">
+          <div class="card-body p-5">
+            
+            <div class="row mb-5 border-bottom pb-4">
+              <div class="col-sm-6">
+                <%# Reemplaza con la ruta real de tu logo %>
+                <img src="<%= image_path("consilium_rec.png") %>" alt="Consilium S.C." height="45">
+              </div>
+              <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                <h4 class="text-uppercase fw-bold text-primary m-0 tracking-wider">Cotización Formal</h4>
+                <p class="text-muted m-0 font-14">Folio: <strong>#COT-<%= @quotation.id %></strong></p>
+                <p class="text-muted m-0 font-13">Fecha: <%= Date.current.strftime("%d/%m/%Y") %></p>
+              </div>
+            </div>
+
+            <div class="row mb-5 font-14">
+              <div class="col-sm-6">
+                <h6 class="text-muted text-uppercase fw-bold mb-2" style="font-size: 11px; letter-spacing: 1px;">Facturar A:</h6>
+                <p class="fw-bold text-dark m-0 fs-5"><%= @client.company_name %></p>
+                <p class="m-0 text-muted">Atención: <%= @client.sponsor_name %></p>
+                <p class="m-0 text-muted">RFC: <%= @client.rfc || 'No registrado' %></p>
+              </div>
+              <div class="col-sm-6 text-sm-end mt-4 mt-sm-0">
+                <h6 class="text-muted text-uppercase fw-bold mb-2" style="font-size: 11px; letter-spacing: 1px;">Detalle del Proyecto:</h6>
+                <p class="fw-bold text-dark m-0"><%= @project.name %></p>
+                <p class="m-0 text-muted">Ejecución y Seguimiento de Hitos</p>
+              </div>
+            </div>
+
+            <div class="table-responsive mb-5">
+              <table class="table table-bordered border-light font-14">
+                <thead class="bg-light">
+                  <tr>
+                    <th class="py-3 text-dark text-uppercase tracking-wider" style="font-size: 12px;">Descripción del Concepto Devengado</th>
+                    <th class="py-3 text-end text-dark text-uppercase tracking-wider" style="font-size: 12px; width: 25%;">Importe (MXN)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @quotation.financial_accruals.each do |item| %>
+                    <tr>
+                      <td class="py-3">
+                        <strong class="text-dark"><%= item.concept_name %></strong><br>
+                        <span class="text-muted font-12"><%= item.stage_name %></span>
+                      </td>
+                      <td class="py-3 text-end align-middle font-monospace text-dark"><%= number_to_currency(item.amount) %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="row justify-content-end mb-5">
+              <div class="col-sm-5">
+                <table class="table table-sm table-borderless font-14">
+                  <tbody>
+                    <tr class="border-top border-dark border-2">
+                      <td class="fw-bold text-dark text-end py-2">TOTAL A FACTURAR:</td>
+                      <td class="text-end fw-bold text-success font-monospace fs-5 py-2"><%= number_to_currency(@quotation.total_amount) %></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-top">
+              <h6 class="text-dark fw-bold mb-2"><i class="ri-article-line me-1"></i> Declaración y Condiciones Comerciales</h6>
+              <div class="text-muted font-11 text-justify" style="line-height: 1.6;">
+                <%= simple_format(@quotation.legal_text) %>
+              </div>
+            </div>
+            
+            <div class="text-center mt-5">
+                <span class="badge bg-light text-secondary border px-3 py-2 font-11 tracking-wider">
+                  VISTA PREVIA DEL SISTEMA - DOCUMENTO NO VÁLIDO SIN FIRMA ELECTRÓNICA
+                </span>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="text-center mt-4 mb-5 d-print-none">
+            <button onclick="window.print()" class="btn btn-dark rounded-pill px-4 shadow"><i class="ri-printer-line me-1"></i> Imprimir / Guardar PDF</button>
+            <button onclick="window.close()" class="btn btn-outline-secondary rounded-pill px-4 ms-2"><i class="ri-close-line me-1"></i> Cerrar Vista Previa</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* CSS para impresión (oculta los márgenes grises y botones) */
+  @media print {
+    body, .container, .row, .col-md-9 { background-color: white !important; margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }
+    .card { box-shadow: none !important; border: none !important; }
+    .d-print-none { display: none !important; }
+  }
+</style>

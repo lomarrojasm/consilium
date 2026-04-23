@@ -1,0 +1,112 @@
+<%# app/views/quotations/index.html.erb %>
+
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box">
+            <h4 class="page-title">Panel Integral de Cotizaciones</h4>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm border-0" style="border-radius: 12px;">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="m-0 fw-bold text-dark"><i class="ri-file-copy-2-line text-primary me-2"></i>Historial de Autorizaciones y Cobros</h5>
+            </div>
+
+            <div class="card-body">
+                <table id="global-quotations-table" class="table table-hover table-centered table-nowrap w-100 font-13">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Folio</th>
+                            <th>Cliente / Proyecto</th>
+                            <th class="text-end">Monto Total</th>
+                            <th class="text-center">Estatus</th>
+                            <th>Última Actualización</th>
+                            <th class="text-end">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% @quotations.each do |quote| %>
+                            <tr>
+                                <td class="fw-bold text-primary">#COT-<%= quote.id %></td>
+                                <td>
+                                    <h6 class="m-0 fw-bold"><%= quote.client.company_name %></h6>
+                                    <small class="text-muted"><%= quote.project.name %></small>
+                                </td>
+                                <td class="text-end fw-bold text-dark font-monospace"><%= number_to_currency(quote.total_amount) %></td>
+                                <td class="text-center">
+                                    <% case quote.status %>
+                                    <% when 'borrador' %>
+                                        <span class="badge bg-light text-secondary border px-2 py-1">Borrador</span>
+                                    <% when 'enviado' %>
+                                        <span class="badge bg-info-subtle text-info px-2 py-1">Enviado</span>
+                                    <% when 'aceptado' %>
+                                        <span class="badge bg-warning-subtle text-warning px-2 py-1"><i class="ri-time-line me-1"></i>Por Facturar</span>
+                                    <% when 'facturado' %>
+                                        <span class="badge bg-success-subtle text-success px-2 py-1"><i class="ri-check-double-line me-1"></i>Facturado</span>
+                                    <% when 'pagado' %>
+                                        <span class="badge bg-primary text-white px-2 py-1 shadow-sm">
+                                            <i class="ri-checkbox-circle-fill me-1"></i>Liquidada / Pagada
+                                        </span>
+                                    <% end %>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        <% if quote.aceptado? %>
+                                            Aceptada: <%= quote.accepted_at&.strftime("%d/%m/%y %H:%M") %>
+                                        <% elsif quote.enviado? %>
+                                            Enviada: <%= quote.sent_at&.strftime("%d/%m/%y %H:%M") %>
+                                        <% else %>
+                                            Creada: <%= quote.created_at.strftime("%d/%m/%y") %>
+                                        <% end %>
+                                    </small>
+                                </td>
+                                <td class="text-end">
+                                    <% if quote.facturado? %>
+                                    <div class="btn-group">
+                                        <%= link_to rails_blob_path(quote.invoice_pdf, disposition: "attachment"), class: "btn btn-xs btn-outline-danger", title: "Descargar PDF" do %><i class="ri-file-pdf-line"></i><% end if quote.invoice_pdf.attached? %>
+                                        <%= link_to rails_blob_path(quote.invoice_xml, disposition: "attachment"), class: "btn btn-xs btn-outline-secondary", title: "Descargar XML" do %><i class="ri-code-s-slash-line"></i><% end if quote.invoice_xml.attached? %>
+                                        <%= link_to client_project_quotation_path(quote.client, quote.project, quote), class: "btn btn-xs btn-outline-primary shadow-none" do %><i class="ri-eye-line"></i><% end %>
+                                    </div>
+                                    <% else %>
+                                    <%= link_to "Ver Detalle", client_project_quotation_path(quote.client, quote.project, quote), class: "btn btn-xs btn-outline-primary rounded-pill shadow-none" %>
+                                    <% end %>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                    <% if quote.pagado? %>
+                                        <% quote.associated_payments.each do |p| %>
+                                        <% if p.receipt.attached? %>
+                                            <%= link_to rails_blob_path(p.receipt, disposition: "attachment"), class: "btn btn-xs btn-success", title: "Ver Comprobante de Pago" do %>
+                                            <i class="ri-money-dollar-box-line"></i>
+                                            <% end %>
+                                        <% end %>
+                                        <% end %>
+                                    <% end %>
+                                    <%# ... tus otros botones de PDF/XML ... %>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% end %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+  document.addEventListener("turbo:load", function() {
+    if ($.fn.DataTable.isDataTable("#global-quotations-table")) {
+        $("#global-quotations-table").DataTable().destroy();
+    }
+    $("#global-quotations-table").DataTable({
+        language: { search: "Buscar:", lengthMenu: "Mostrar _MENU_", info: "Mostrando _START_ a _END_ de _TOTAL_" },
+        order: [[0, "desc"]],
+        pageLength: 15,
+        columnDefs: [{ targets: -1, orderable: false }]
+    });
+  });
+</script>

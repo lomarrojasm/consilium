@@ -1,50 +1,70 @@
+# app/models/project.rb
 class Project < ApplicationRecord
   include TimelineRecordable # <--- Para Timeline
+
+  # =========================================================================
+  # 1. RELACIONES: belongs_to
+  # =========================================================================
   belongs_to :client
-
   belongs_to :user, optional: true
-
   belongs_to :responsible, class_name: "User", optional: true
+  belongs_to :project_template, foreign_key: "template_id", optional: true
 
-  has_many :stages, -> { order(position: :asc) }, dependent: :destroy
-  has_many :activities, through: :stages
-  has_many :project_members, dependent: :destroy
-  has_many :users, through: :project_members
-  has_many :project_comments, dependent: :destroy
+  # =========================================================================
+  # 2. RELACIONES: has_many y has_one (ORDEN ESTRICTO PARA DESTROY)
+  # =========================================================================
 
+  # A. Primero se deben destruir los documentos legales y cotizaciones
+  # para liberar las llaves foráneas (quotation_items) de las finanzas.
+  has_one :billing_authorization, dependent: :destroy
+  has_many :quotations, dependent: :destroy
+
+  # B. Una vez liberadas las dependencias, borramos el núcleo financiero.
   has_many :financial_accruals, dependent: :destroy
   has_many :payments, dependent: :destroy
 
-  has_many_attached :files
+  # C. Finalmente, borramos la estructura operativa (etapas, actividades, usuarios, etc.)
+  has_many :stages, -> { order(position: :asc) }, dependent: :destroy
+  has_many :activities, through: :stages
+
+  has_many :project_members, dependent: :destroy
+  has_many :users, through: :project_members
 
   has_many :comments, class_name: "ProjectComment", dependent: :destroy
+  has_many :project_comments, dependent: :destroy # Alias mantenido por retrocompatibilidad
 
-  belongs_to :project_template, foreign_key: "template_id", optional: true
-  # Estados del proyecto
+  has_many_attached :files
+
+  # =========================================================================
+  # 3. ENUMERADORES (ESTADOS Y TIPOS)
+  # =========================================================================
   enum :status, { borrador: 0, activo: 1, pausado: 2, finalizado: 3 }
 
-
-    # Tipo de proyectos
-
-    # Tipo de proyectos
-    enum :project_type, {
+  enum :project_type, {
     metodologia: "metodologia",
     especial_consultoria: "especial_consultoria",
     especial_tecnico: "especial_tecnico",
     especial_administrativo: "especial_administrativo"
   }
 
-
-  # Validaciones
-  validates :name, :start_date, presence: true
-
-  # Agrega esta línea para permitir el checkbox en el formulario
+  # =========================================================================
+  # 4. ATRIBUTOS VIRTUALES Y VALIDACIONES
+  # =========================================================================
   attr_accessor :include_template
 
-
-  before_validation :set_default_status
+  validates :name, :start_date, presence: true
 
   accepts_nested_attributes_for :stages, allow_destroy: true, reject_if: :all_blank
+
+  # =========================================================================
+  # 5. CALLBACKS
+  # =========================================================================
+  before_validation :set_default_status
+  after_create :create_default_authorization
+
+  # =========================================================================
+  # 6. MÉTODOS DE INSTANCIA (LÓGICA DE NEGOCIO)
+  # =========================================================================
 
   # Helper para saber si es cualquier tipo de especial
   def special?
@@ -74,7 +94,7 @@ class Project < ApplicationRecord
 
     completed = activities.where(completed: true).count
     ((completed.to_f / total) * 100).round
-end
+  end
 
   def status_color
     case status
@@ -99,14 +119,14 @@ end
   end
 
   def blocked_stages
-  return [] unless sequential_stages?
+    return [] unless sequential_stages?
 
-  stages.select do |stage|
-    # Una etapa está bloqueada si no es la primera, no está desbloqueada manualmente
-    # y su antecesora no ha llegado al 90%
-    !stage_unlocked?(stage) && stage != stages.first
+    stages.select do |stage|
+      # Una etapa está bloqueada si no es la primera, no está desbloqueada manualmente
+      # y su antecesora no ha llegado al 90%
+      !stage_unlocked?(stage) && stage != stages.first
+    end
   end
-end
 
   # Métodos de ayuda financiera rápidos para mostrar en las vistas
   def total_accrued
@@ -121,10 +141,16 @@ end
     total_paid - total_accrued
   end
 
-
-private
+  # =========================================================================
+  # 7. MÉTODOS PRIVADOS
+  # =========================================================================
+  private
 
   def set_default_status
     self.status ||= "borrador"
+  end
+
+  def create_default_authorization
+    create_billing_authorization(status: :pending)
   end
 end

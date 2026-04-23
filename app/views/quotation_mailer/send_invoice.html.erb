@@ -1,0 +1,100 @@
+<%# app/views/quotation_mailer/send_invoice.html.erb %>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    /* Estilos base para clientes de correo que soportan media queries */
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        width: 100% !important;
+        padding: 10px !important;
+      }
+      .content-box {
+        padding: 20px !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f7fa; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333333;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f7fa; width: 100%; margin: 0 auto;">
+    <tr>
+      <td align="center" style="padding: 40px 10px;">
+        
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+          
+          <tr>
+            <td style="background-color: #0d6efd; padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 1px;">Consilium S.C.</h1>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="content-box" style="padding: 40px 40px 20px 40px;">
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6;">
+                Estimado/a <strong><%= @client.sponsor_name %></strong>,
+              </p>
+              
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #555555;">
+                Agradecemos su confianza y preferencia. Le informamos que hemos procesado exitosamente la facturación correspondiente a los servicios autorizados recientemente.
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8f9fa; border-left: 4px solid #0d6efd; border-radius: 4px; margin-bottom: 25px;">
+                <tr>
+                  <td style="padding: 15px 20px;">
+                    <p style="margin: 0 0 5px 0; font-size: 14px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Detalles de la Operación</p>
+                    <p style="margin: 0 0 5px 0; font-size: 15px;"><strong>Proyecto:</strong> <%= @project.name %></p>
+                    <p style="margin: 0 0 5px 0; font-size: 15px;"><strong>Cotización Autorizada:</strong> #COT-<%= @quotation.id %></p>
+                    <p style="margin: 0; font-size: 15px;"><strong>Monto Total:</strong> <span style="color: #198754; font-weight: bold;"><%= number_to_currency(@quotation.total_amount) %> MXN</span></p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #555555;">
+                Adjunto a este correo encontrará los archivos correspondientes a su comprobante fiscal digital (PDF y XML) para sus registros contables.
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 30px; margin-bottom: 30px;">
+                <tr>
+                  <td align="center">
+                    <a href="<%= client_dashboard_url %>" style="background-color: #0d6efd; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 50px; font-size: 15px; font-weight: bold; display: inline-block;">Acceder a su Portal de Cliente</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 10px 0; font-size: 15px; line-height: 1.6; color: #555555;">
+                Si tiene alguna duda respecto a esta emisión o requiere asistencia adicional, nuestro equipo de finanzas está a su entera disposición.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 0 40px 40px 40px;">
+              <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #333333;">
+                Atentamente,<br>
+                <strong>El equipo de Finanzas</strong><br>
+                <span style="color: #6c757d; font-size: 14px;">Consilium S.C.</span>
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background-color: #f8f9fa; border-top: 1px solid #eeeeee; padding: 20px; text-align: center;">
+              <p style="margin: 0 0 10px 0; font-size: 12px; color: #999999; line-height: 1.5;">
+                Este es un mensaje generado automáticamente por el sistema financiero de Consilium. Por favor no responda directamente a este correo.
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #999999;">
+                &copy; <%= Time.current.year %> Consilium S.C. Todos los derechos reservados.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

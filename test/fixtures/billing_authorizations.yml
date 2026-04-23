@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  project: one
+  authorized_by: one
+  status: 1
+  accepted_at: 2026-04-22 10:39:00
+  ip_address: MyString
+  user_agent: MyString
+  legal_text_version: MyText
+
+two:
+  project: two
+  authorized_by: two
+  status: 1
+  accepted_at: 2026-04-22 10:39:00
+  ip_address: MyString
+  user_agent: MyString
+  legal_text_version: MyText
