@@ -43,7 +43,7 @@ COPY . .
 
 # 4. Precompilar assets
 RUN bundle exec bootsnap precompile app/ lib/
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+RUN SECRET_KEY_BASE_DUMMY=1 OPENAI_ACCESS_TOKEN=dummy_token ./bin/rails assets:precompile
 
 FROM base
 
