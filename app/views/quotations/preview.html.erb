@@ -14,9 +14,9 @@
                 <img src="<%= image_path("consilium_rec.png") %>" alt="Consilium S.C." height="45">
               </div>
               <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
-                <h4 class="text-uppercase fw-bold text-primary m-0 tracking-wider">Cotización Formal</h4>
+                <h4 class="text-uppercase fw-bold text-primary m-0 tracking-wider">Cotización Comercial</h4>
                 <p class="text-muted m-0 font-14">Folio: <strong>#COT-<%= @quotation.id %></strong></p>
-                <p class="text-muted m-0 font-13">Fecha: <%= Date.current.strftime("%d/%m/%Y") %></p>
+                <p class="text-muted m-0 font-13">Fecha de Emisión: <%= @quotation.created_at.strftime("%d/%m/%Y") %></p>
               </div>
             </div>
 
@@ -38,18 +38,32 @@
               <table class="table table-bordered border-light font-14">
                 <thead class="bg-light">
                   <tr>
-                    <th class="py-3 text-dark text-uppercase tracking-wider" style="font-size: 12px;">Descripción del Concepto Devengado</th>
-                    <th class="py-3 text-end text-dark text-uppercase tracking-wider" style="font-size: 12px; width: 25%;">Importe (MXN)</th>
+                    <th class="py-3 text-dark text-uppercase tracking-wider" style="font-size: 12px; width: 50%;">Descripción del Concepto</th>
+                    <th class="py-3 text-end text-dark text-uppercase tracking-wider" style="font-size: 12px; width: 25%;">Costo Total Original</th>
+                    <th class="py-3 text-end text-dark text-uppercase tracking-wider" style="font-size: 12px; width: 25%;">Importe a Facturar</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <% @quotation.financial_accruals.each do |item| %>
+                  <% @quotation.quotation_items.includes(:financial_accrual).each do |q_item| %>
+                    <% 
+                       accrual = q_item.financial_accrual 
+                       is_partial = q_item.amount < accrual.amount
+                    %>
                     <tr>
                       <td class="py-3">
-                        <strong class="text-dark"><%= item.concept_name %></strong><br>
-                        <span class="text-muted font-12"><%= item.stage_name %></span>
+                        <strong class="text-dark"><%= accrual.concept_name %></strong>
+                        <% if is_partial %>
+                          <span class="badge bg-warning text-dark ms-2 font-10" style="padding: 3px 6px;">COBERTURA PARCIAL</span>
+                        <% end %>
+                        <br>
+                        <span class="text-muted font-12"><%= accrual.stage_name %></span>
                       </td>
-                      <td class="py-3 text-end align-middle font-monospace text-dark"><%= number_to_currency(item.amount) %></td>
+                      <td class="py-3 text-end align-middle font-monospace text-muted">
+                        <%= is_partial ? number_to_currency(accrual.amount) : '' %>
+                      </td>
+                      <td class="py-3 text-end align-middle font-monospace fw-bold text-dark">
+                        <%= number_to_currency(q_item.amount) %>
+                      </td>
                     </tr>
                   <% end %>
                 </tbody>
@@ -57,11 +71,11 @@
             </div>
 
             <div class="row justify-content-end mb-5">
-              <div class="col-sm-5">
+              <div class="col-sm-6">
                 <table class="table table-sm table-borderless font-14">
                   <tbody>
                     <tr class="border-top border-dark border-2">
-                      <td class="fw-bold text-dark text-end py-2">TOTAL A FACTURAR:</td>
+                      <td class="fw-bold text-dark text-end py-2 text-uppercase">Total de esta Emisión:</td>
                       <td class="text-end fw-bold text-success font-monospace fs-5 py-2"><%= number_to_currency(@quotation.total_amount) %></td>
                     </tr>
                   </tbody>
@@ -76,11 +90,13 @@
               </div>
             </div>
             
-            <div class="text-center mt-5">
-                <span class="badge bg-light text-secondary border px-3 py-2 font-11 tracking-wider">
-                  VISTA PREVIA DEL SISTEMA - DOCUMENTO NO VÁLIDO SIN FIRMA ELECTRÓNICA
-                </span>
-            </div>
+            <% if @quotation.borrador? %>
+                <div class="text-center mt-5">
+                    <span class="badge bg-light text-secondary border px-3 py-2 font-11 tracking-wider">
+                      VISTA PREVIA DEL SISTEMA - DOCUMENTO NO VÁLIDO SIN FIRMA ELECTRÓNICA
+                    </span>
+                </div>
+            <% end %>
 
           </div>
         </div>

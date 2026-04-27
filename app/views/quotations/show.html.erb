@@ -58,30 +58,45 @@
         <table class="table table-hover mb-0 font-13">
           <thead class="table-light">
             <tr>
-              <th class="ps-4" style="width: 70%;">Actividad Devengada</th>
-              <th class="text-end pe-4">Importe</th>
+              <th class="ps-4" style="width: 50%;">Actividad Devengada</th>
+              <th class="text-end">Costo Original</th>
+              <th class="text-end pe-4">Monto a Facturar</th>
             </tr>
           </thead>
           <tbody>
-            <% @quotation.financial_accruals.each do |item| %>
+            <%# ITERAMOS SOBRE LOS ITEMS FRACCIONADOS, NO SOBRE EL DEVENGO TOTAL %>
+            <% @quotation.quotation_items.includes(:financial_accrual).each do |q_item| %>
+              <% 
+                 accrual = q_item.financial_accrual 
+                 is_partial = q_item.amount < accrual.amount
+              %>
               <tr>
-                <td class="ps-4">
-                  <span class="fw-bold text-dark"><%= item.concept_name %></span> <br>
-                  <small class="text-muted"><i class="ri-arrow-right-s-line"></i> <%= item.stage_name %></small>
+                <td class="ps-4 py-3">
+                  <span class="fw-bold text-dark"><%= accrual.concept_name %></span> 
+                  <% if is_partial %>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2 font-10 tracking-wider">PAGO PARCIAL</span>
+                  <% end %>
+                  <br>
+                  <small class="text-muted"><i class="ri-arrow-right-s-line"></i> <%= accrual.stage_name %></small>
                 </td>
-                <td class="text-end pe-4 font-monospace fw-bold text-dark align-middle"><%= number_to_currency(item.amount) %></td>
+                <td class="text-end font-monospace text-muted align-middle">
+                  <%= is_partial ? number_to_currency(accrual.amount) : '<span class="text-light-subtle">-</span>'.html_safe %>
+                </td>
+                <td class="text-end pe-4 font-monospace fw-bold text-dark align-middle">
+                  <%= number_to_currency(q_item.amount) %>
+                </td>
               </tr>
             <% end %>
             <tr class="bg-light bg-opacity-50">
-              <td class="text-end fw-bold text-uppercase tracking-wider">Monto Total:</td>
-              <td class="text-end pe-4 fw-bold text-success font-monospace" style="font-size: 1.3rem;"><%= number_to_currency(@quotation.total_amount) %></td>
+              <td colspan="2" class="text-end fw-bold text-uppercase tracking-wider py-3">Total a Facturar en esta Cotización:</td>
+              <td class="text-end pe-4 fw-bold text-success font-monospace py-3" style="font-size: 1.3rem;"><%= number_to_currency(@quotation.total_amount) %></td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <%# --- CAJA DE EVIDENCIA LEGAL (Visible si aceptó, facturó o pagó) --- %>
+    <%# --- CAJA DE EVIDENCIA LEGAL --- %>
     <% if @quotation.aceptado? || @quotation.facturado? || @quotation.pagado? %>
       <div class="card shadow-sm border-0 border-start border-4 border-success mb-4" style="border-radius: 12px;">
         <div class="card-body p-4">
@@ -118,7 +133,6 @@
   </div>
 
   <%# --- COLUMNA DERECHA: PANEL DE ACCIONES Y BÓVEDA --- %>
-  <%# Color de fondo dinámico según el estado %>
   <% panel_class = "bg-primary-subtle border-primary-subtle" %>
   <% panel_class = "bg-warning-subtle border-warning-subtle" if @quotation.aceptado? %>
   <% panel_class = "bg-success-subtle border-success-subtle" if @quotation.facturado? %>
@@ -204,7 +218,6 @@
               <%= @quotation.pagado? ? 'Esta transacción ha sido pagada y cerrada exitosamente en el Módulo Financiero.' : 'Las actividades fueron facturadas y enviadas. En espera de pago.' %>
             </p>
 
-            <%# --- ARCHIVOS DE FACTURACIÓN (Siempre visibles aquí) --- %>
             <div class="bg-white p-3 rounded border shadow-sm mb-3 text-start">
               <p class="font-11 text-muted text-uppercase fw-bold tracking-wider mb-3"><i class="ri-folder-2-line me-1"></i> Comprobantes Fiscales Emitidos:</p>
               
@@ -222,7 +235,6 @@
               </div>
             </div>
 
-            <%# --- COMPROBANTES DE PAGO (Visible solo si está pagado) --- %>
             <% if @quotation.pagado? %>
               <div class="bg-white p-3 rounded border shadow-sm mb-3 border-start border-primary border-4 text-start">
                 <p class="font-11 text-primary text-uppercase fw-bold tracking-wider mb-2"><i class="ri-bank-card-line me-1"></i> Ingresos Registrados:</p>
@@ -250,7 +262,6 @@
   </div>
 </div>
 
-<%# --- SCRIPT PARA ELIMINAR --- %>
 <script>
   function confirmDeleteQuotation(isAccepted = false) {
     let warningText = "Esta acción borrará la cotización permanentemente y liberará las tareas en el módulo financiero.";

@@ -5,206 +5,233 @@
     <div class="modal-content shadow-lg border-0">
       
       <div class="modal-header bg-success text-white p-3">
-        <h5 class="modal-title mb-0 fw-bold"><i class="ri-money-dollar-circle-line me-1"></i> <%= title %></h5>
+        <h5 class="modal-title mb-0 fw-bold"><i class="ri-checkbox-circle-line me-1"></i> Conciliación y Liquidación de Facturas</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       
       <%= form_with model: payment, url: url, method: method, local: true, multipart: true, class: "payment-form-container needs-validation" do |f| %>
-        <div class="modal-body p-4">
-          
-          <% 
-             is_specific = payment.try(:payment_type) == 'specific'
-             is_general = payment.new_record? || payment.try(:payment_type) == 'general' || !is_specific
+        
+        <%# CAMPO OCULTO: El monto se calcula vía JS al seleccionar facturas %>
+        <%= f.hidden_field :amount, class: "payment-amount-input" %>
 
-             this_payment_contributions = Hash.new(0.0)
-             if !payment.new_record?
-               ref_m = payment.notes.to_s.match(/\[REF:\s*([\d,\s]+)\]/)
-               if ref_m
-                 ref_m[1].split(',').map(&:to_i).each do |id|
-                   act = @accruals_by_stage.values.flatten.find{|a| a.id == id}
-                   this_payment_contributions[id] = act.amount.to_f if act
-                 end
-               end
-               
-               part_m = payment.notes.to_s.match(/\[PARTIAL:\s*(.+?)\]/)
-               if part_m
-                 part_m[1].split(',').each do |pair|
-                   id_str, amt_str = pair.strip.split('_')
-                   this_payment_contributions[id_str.to_i] = amt_str.to_f if id_str && amt_str
+        <%# ===================================================================== %>
+        <%# MOTOR CONTABLE: Cálculo de Saldos Insolutos por Factura              %>
+        <%# ===================================================================== %>
+        <% 
+           activity_payments_hash = defined?(@activity_payments) && @activity_payments ? @activity_payments.dup : Hash.new(0.0)
+           item_balances = {} 
+           
+           if @accruals_by_stage.present?
+             @accruals_by_stage.values.flatten.each do |accrual|
+               paid_so_far = activity_payments_hash[accrual.id] || 0.0
+               q_items = QuotationItem.joins(:quotation)
+                                      .where(financial_accrual_id: accrual.id)
+                                      .order('quotations.created_at ASC', 'quotations.id ASC')
+               q_items.each do |qi|
+                 q_amt = (qi.amount.present? ? qi.amount.to_f : accrual.amount.to_f)
+                 if paid_so_far >= (q_amt - 0.01)
+                   paid_so_far -= q_amt
+                   item_balances[qi.id] = 0.0
+                 else
+                   item_balances[qi.id] = (q_amt - paid_so_far).round(2)
+                   paid_so_far = 0.0
                  end
                end
              end
-          %>
+           end
+
+           pending_quotes = []
+           Quotation.where(project_id: @project.id, status: ['facturado', 'pagado', 'aceptado'])
+                    .order(created_at: :asc, id: :asc).each do |q_record|
+             q_pending_total = 0.0
+             q_activities = []
+             q_record.quotation_items.order(id: :asc).each do |qi|
+                accrual = qi.financial_accrual
+                next unless accrual
+                pending = item_balances[qi.id] || 0.0
+                next unless pending > 0.01
+                q_pending_total += pending
+                q_activities << { id: accrual.id, name: accrual.concept_name, pending: pending, quoted: (qi.amount.present? ? qi.amount.to_f : accrual.amount.to_f) }
+             end
+             if q_pending_total > 0.01
+                pending_quotes << { id: q_record.id, date: q_record.created_at.strftime("%d/%m/%Y"), total_pending: q_pending_total.round(2), activities: q_activities }
+             end
+           end
+        %>
+
+        <div class="modal-body p-4">
           
-          <div class="mb-4 bg-light p-3 rounded border border-success border-opacity-25">
-            <label class="form-label fw-bold font-13 text-dark mb-2">Selecciona el tipo de ingreso:</label>
-            <div class="d-flex gap-4">
-              <div class="form-check">
-                <input class="form-check-input payment-type-radio cursor-pointer border-success" type="radio" name="payment[payment_type]" id="type_general_<%= modal_id %>" value="general" <%= 'checked' if is_general %>>
-                <label class="form-check-label cursor-pointer fw-medium" for="type_general_<%= modal_id %>">
-                  Pago General
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input payment-type-radio cursor-pointer border-success" type="radio" name="payment[payment_type]" id="type_specific_<%= modal_id %>" value="specific" <%= 'checked' if is_specific %>>
-                <label class="form-check-label cursor-pointer fw-medium" for="type_specific_<%= modal_id %>">
-                  Pago por Actividades Específicas
-                </label>
-              </div>
+          <div class="alert alert-primary bg-primary-subtle text-primary border-0 font-13 mb-4 d-flex align-items-center shadow-sm">
+            <i class="ri-checkbox-multiple-line font-24 me-2"></i>
+            <div>
+              <strong>Instrucciones:</strong> Marca las facturas que el cliente ha liquidado. El sistema sumará los montos de forma automática para garantizar que el ingreso bancario cuadre con lo facturado.
             </div>
           </div>
 
           <div class="row g-3 mb-4">
-            <div class="col-md-4">
-              <label class="form-label fw-bold font-13 text-dark">Monto Recibido ($)</label>
+            <div class="col-md-6">
+              <label class="form-label fw-bold font-13 text-dark text-uppercase tracking-wider">Fecha del Depósito / Transferencia</label>
               <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">$</span>
-                <%= f.number_field :amount, step: 0.01, class: "form-control payment-amount-input border-start-0 fw-bold text-success font-16", required: true, placeholder: "0.00" %>
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="ri-calendar-check-line"></i></span>
+                <%= f.date_field :payment_date, class: "form-control border-start-0 shadow-none", required: true, value: payment.payment_date || Date.current %>
               </div>
             </div>
 
-            <div class="col-md-4">
-              <label class="form-label fw-bold font-13 text-dark">Fecha de Pago</label>
-              <%= f.date_field :payment_date, class: "form-control", required: true, value: payment.payment_date || Date.current %>
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label fw-bold font-13 text-dark">Folio / Factura</label>
-              <%= f.text_field :invoice_number, class: "form-control", placeholder: "Ej. FAC-1002 (Opcional)" %>
+            <div class="col-md-6">
+              <label class="form-label fw-bold font-13 text-dark text-uppercase tracking-wider">Referencia Bancaria / Folio SPEI</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="ri-bank-card-line"></i></span>
+                <%= f.text_field :invoice_number, class: "form-control border-start-0 shadow-none", placeholder: "Ej. TRANS-8821" %>
+              </div>
             </div>
           </div>
 
           <div class="specific-activities-box mb-4">
+            <h6 class="fw-bold font-14 text-dark mb-3"><i class="ri-file-list-3-line text-success me-1"></i> Selecciona Facturas a Liquidar</h6>
             
-            <div class="general-payment-balance-box mb-3" style="display: none;">
-              <div class="balance-container d-flex justify-content-between align-items-center bg-info-subtle text-info px-3 py-2 rounded border border-info-subtle transition-all">
-                <span class="font-13 fw-bold"><i class="ri-wallet-3-line me-1"></i> Saldo por asignar:</span>
-                <span class="font-16 fw-bold payment-remaining-balance">$0.00</span>
-              </div>
-            </div>
-
-            <div class="d-flex justify-content-between align-items-end mb-2">
-              <label class="form-label fw-bold font-13 text-dark mb-0">Asignar Cobertura a Actividades Cobrables</label>
-              <div class="input-group input-group-sm" style="width: 220px;">
-                <span class="input-group-text bg-white border-end-0 text-muted"><i class="ri-search-line"></i></span>
-                <input type="text" class="form-control border-start-0 activity-search-input shadow-none" placeholder="Filtrar por nombre...">
-              </div>
-            </div>
-            
-            <div class="overflow-auto border rounded shadow-sm p-1 bg-light" style="max-height: 280px;">
-              <% if @accruals_by_stage.present? %>
-                <div class="accordion custom-accordion" id="modalAccordion-<%= modal_id %>">
-                  <% @accruals_by_stage.sort_by { |s, a| a.map(&:id).min }.each_with_index do |(stage, accruals), index| %>
-                    
-                    <%# REGLA DE ORO ACTUALIZADA: Solo mostramos tareas que cuesten > 0 y que ya estén FACTURADAS %>
-                    <% valid_accruals = accruals.select { |a| a.amount.to_f > 0 && a.status == 'invoiced' } %>
-                    <% next if valid_accruals.empty? %>
-
-                    <div class="accordion-item border-0 mb-1 rounded shadow-none modal-stage-accordion-item stage-group" data-stage-index="<%= index %>">
-                      
-                      <h2 class="accordion-header position-relative" id="modalHeading-<%= modal_id %>-<%= index %>">
-                        <button class="accordion-button <%= 'collapsed' if index > 0 %> py-3 bg-white font-12 text-uppercase fw-bold text-primary tracking-wider rounded" type="button" data-bs-toggle="collapse" data-bs-target="#modalCollapse-<%= modal_id %>-<%= index %>" style="border-left: 3px solid #727cf5; padding-right: 120px;">
-                          <%= stage %>
-                        </button>
-                        
-                        <div class="position-absolute" style="right: 45px; top: 50%; transform: translateY(-50%); z-index: 4;">
-                           <button type="button" class="btn btn-sm btn-soft-primary rounded-pill auto-apply-btn shadow-none" style="display: none; padding: 0.25rem 0.75rem;">
-                             <i class="ri-magic-line"></i> Auto-aplicar
-                           </button>
-                        </div>
-                      </h2>
-                      
-                      <div id="modalCollapse-<%= modal_id %>-<%= index %>" class="accordion-collapse collapse <%= 'show' if index == 0 %>" data-bs-parent="#modalAccordion-<%= modal_id %>">
-                        <div class="accordion-body p-0 border-top">
-                          <div class="list-group list-group-flush">
-                            <% valid_accruals.sort_by(&:id).each do |accrual| %>
-                              
-                              <% 
-                                this_payment_contribution = this_payment_contributions[accrual.id]
-                                total_paid_by_others = @activity_payments[accrual.id] - this_payment_contribution
-                                pending_amount = (accrual.amount.to_f - total_paid_by_others).round(2)
-                                
-                                is_fully_paid_by_others = pending_amount <= 0.01
-                                is_checked_here = this_payment_contribution > 0.01
-                                
-                                # Badge de estatus (ya que todas aquí están facturadas, lo dejamos fijo para dar claridad)
-                                status_badge = '<span class="badge bg-success-subtle text-success font-9 px-1">FACTURADA</span>'
-                              %>
-                              
-                              <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center activity-item cursor-pointer border-bottom-0 py-3 <%= 'bg-light text-muted opacity-50' if is_fully_paid_by_others %>">
-                                <div class="d-flex align-items-center gap-2 text-truncate pe-2" style="max-width: 75%;">
-                                  <% if is_fully_paid_by_others %>
-                                    <input type="checkbox" class="form-check-input mt-0" disabled title="Liquidada en otro pago">
-                                    <span class="badge bg-secondary font-9 px-1">PAGADA</span>
-                                  <% else %>
-                                    <input type="checkbox" class="form-check-input mt-0 activity-checkbox border-secondary cursor-pointer" 
-                                           value="<%= accrual.concept_name %>" 
-                                           data-id="<%= accrual.id %>"
-                                           data-amount="<%= pending_amount %>"
-                                           data-original-amount="<%= accrual.amount %>"
-                                           data-applied="<%= this_payment_contribution > 0 ? this_payment_contribution : pending_amount %>"
-                                           <%= 'checked' if is_checked_here %>>
-                                    <%= status_badge.html_safe %>
-                                  <% end %>
-                                  
-                                  <span class="font-13 text-truncate" title="<%= accrual.concept_name %>">
-                                    <%= accrual.concept_name %>
-                                  </span>
-                                </div>
-                                
-                                <div>
-                                  <% if is_checked_here && this_payment_contribution < (accrual.amount.to_f - 0.01) %>
-                                    <span class="badge bg-warning text-dark border border-warning me-1">Abono: <%= number_to_currency(this_payment_contribution) %></span>
-                                  <% end %>
-                                  <span class="badge bg-white text-dark border font-13 fw-bold">
-                                    <%= number_to_currency(pending_amount) %>
-                                  </span>
-                                </div>
-                              </label>
-                            <% end %>
+            <div class="border border-dark border-opacity-10 rounded shadow-sm bg-white overflow-hidden">
+              <% if pending_quotes.any? %>
+                <div class="list-group list-group-flush" id="invoices-list" style="max-height: 400px; overflow-y: auto;">
+                  <% pending_quotes.each do |data| %>
+                    <div class="list-group-item bg-light border-bottom invoice-group-container p-0">
+                       <div class="p-3 d-flex justify-content-between align-items-center cursor-pointer hover-bg-light" data-bs-toggle="collapse" data-bs-target="#collapse_quote_<%= modal_id %>_<%= data[:id] %>">
+                          <div class="form-check form-switch mb-0 d-flex align-items-center" onclick="event.stopPropagation();">
+                             <input type="checkbox" class="form-check-input invoice-selector-cb cursor-pointer mt-0 me-3" style="width: 42px; height: 22px;" data-pending="<%= data[:total_pending] %>" data-quote-id="<%= data[:id] %>" id="quote_cb_<%= modal_id %>_<%= data[:id] %>">
+                             <label class="form-check-label fw-bold text-dark cursor-pointer font-15" for="quote_cb_<%= modal_id %>_<%= data[:id] %>">
+                               Folio: <span class="text-primary">#COT-<%= data[:id] %></span>
+                               <span class="text-muted font-11 fw-normal ms-2">(<%= data[:date] %>)</span>
+                             </label>
                           </div>
-                        </div>
-                      </div>
-
+                          <div class="text-end">
+                             <span class="badge bg-white text-dark border shadow-sm font-14 fw-bold px-3 py-1">
+                                <%= number_to_currency(data[:total_pending]) %>
+                             </span>
+                             <i class="ri-arrow-down-s-line ms-2 text-muted"></i>
+                          </div>
+                       </div>
+                       
+                       <div id="collapse_quote_<%= modal_id %>_<%= data[:id] %>" class="collapse bg-white">
+                          <div class="p-3 border-top bg-white">
+                              <p class="text-muted font-10 text-uppercase tracking-wider fw-bold mb-2">Desglose de la factura:</p>
+                              <% data[:activities].each do |act| %>
+                                 <div class="activity-data-item d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom border-light" data-id="<%= act[:id] %>" data-name="<%= act[:name] %>" data-pending="<%= act[:pending] %>">
+                                    <span class="font-12 text-dark pe-2 text-truncate" style="max-width: 75%;">
+                                       <i class="ri-subtract-line me-1 text-muted"></i><%= act[:name] %>
+                                    </span>
+                                    <span class="font-12 fw-bold font-monospace text-muted">
+                                       <%= number_to_currency(act[:pending]) %>
+                                    </span>
+                                 </div>
+                              <% end %>
+                          </div>
+                       </div>
                     </div>
                   <% end %>
                 </div>
               <% else %>
-                <div class="p-4 text-center text-muted font-13 bg-white">
-                  <i class="ri-folder-open-line font-24 d-block mb-1"></i>
-                  No hay actividades facturadas pendientes de pago.
+                <div class="p-5 text-center text-muted font-14 bg-light">
+                  <i class="ri-checkbox-circle-fill font-40 text-success d-block mb-2"></i>
+                  <h5 class="fw-bold text-dark">Sin Deudas Pendientes</h5>
+                  <p class="mb-0">Todas las facturas emitidas han sido conciliadas.</p>
                 </div>
               <% end %>
-            </div>
-            
-            <div class="form-text font-11 text-muted mt-1">
-              <i class="ri-information-line me-1 text-primary"></i> 
-              <span class="mode-hint-text">El sistema oculta automáticamente las tareas que no han sido facturadas. Solo puedes aplicar pagos a comprobantes emitidos.</span>
             </div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label fw-bold font-13 text-dark">Notas (No alterar las etiquetas de código interno)</label>
-            <%= f.text_area :notes, class: "form-control payment-notes-input bg-light border-light-subtle", rows: 4, placeholder: "Se autocompletará con las actividades elegidas..." %>
+            <label class="form-label fw-bold font-13 text-dark">Registro Contable (Auto-generado)</label>
+            <%= f.text_area :notes, class: "form-control payment-notes-input bg-light border-light-subtle font-monospace font-11 text-primary shadow-none", rows: 4, placeholder: "Selecciona una factura para generar el desglose...", readonly: true %>
           </div>
 
           <div class="mb-0">
-            <label class="form-label fw-bold font-13 text-dark">Subir Comprobante</label>
-            <%= f.file_field :receipt, class: "form-control form-control-sm" %>
-            <% if payment.receipt.attached? %>
-              <div class="mt-2 text-success font-12 fw-medium">
-                <i class="ri-attachment-line align-middle"></i> Documento actual: <%= payment.receipt.filename %>
-              </div>
-            <% end %>
+            <label class="form-label fw-bold font-13 text-dark">Comprobante Bancario (Anexo)</label>
+            <%= f.file_field :receipt, class: "form-control shadow-none" %>
           </div>
 
         </div>
         
-        <div class="modal-footer bg-light p-3 border-top-0">
-          <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-          <%= f.submit "Confirmar Ingreso", class: "btn btn-success rounded-pill px-4 shadow-sm fw-bold" %>
+        <div class="modal-footer bg-light p-3 border-top-0 d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted font-11 d-block">Monto Total a Conciliar:</span>
+            <h4 class="text-success fw-bold mb-0" id="visual-total-<%= modal_id %>">$0.00</h4>
+          </div>
+          <div>
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4 me-1" data-bs-dismiss="modal">Cancelar</button>
+            <%= f.submit "Procesar Pago", class: "btn btn-success rounded-pill px-4 shadow fw-bold", id: "btn-submit-payment-#{modal_id}", disabled: true %>
+          </div>
         </div>
       <% end %>
     </div>
   </div>
 </div>
+
+<style>
+  .hover-bg-light:hover { background-color: #f1f3f7 !important; }
+  .form-switch .form-check-input:checked { background-color: #10c469; border-color: #10c469; }
+</style>
+
+<script>
+  document.addEventListener("turbo:load", function() {
+      const container = document.getElementById('<%= modal_id %>');
+      if (!container) return;
+
+      const invoiceCbs = container.querySelectorAll('.invoice-selector-cb');
+      const hiddenAmountInput = container.querySelector('.payment-amount-input');
+      const notesInput = container.querySelector('.payment-notes-input');
+      const visualTotal = document.getElementById('visual-total-<%= modal_id %>');
+      const submitBtn = document.getElementById('btn-submit-payment-<%= modal_id %>');
+
+      function formatMXN(val) {
+          return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
+      }
+
+      function updateReconciliation() {
+          let total = 0.0;
+          let selectedInvoices = [];
+          let partialPairs = [];
+          let humanTexts = [];
+
+          invoiceCbs.forEach(cb => {
+              if (cb.checked) {
+                  let qId = cb.dataset.quoteId;
+                  let qPending = parseFloat(cb.dataset.pending);
+                  total += qPending;
+                  selectedInvoices.push(`#COT-${qId}`);
+
+                  let invGroup = cb.closest('.invoice-group-container');
+                  let activities = invGroup.querySelectorAll('.activity-data-item');
+
+                  activities.forEach(act => {
+                      let actId = act.dataset.id;
+                      let actName = act.dataset.name;
+                      let actAmt = parseFloat(act.dataset.pending);
+                      partialPairs.push(`${actId}_${actAmt.toFixed(2)}`);
+                      humanTexts.push(`✔ ${actName} (Factura #COT-${qId}): ${formatMXN(actAmt)}`);
+                  });
+              }
+          });
+
+          // Actualizar datos para el servidor
+          hiddenAmountInput.value = total > 0 ? total.toFixed(2) : 0;
+          
+          // Actualizar interfaz
+          visualTotal.innerText = formatMXN(total);
+          submitBtn.disabled = total <= 0.01;
+
+          // Generar Nota de Auditoría
+          if (notesInput) {
+              if (total > 0) {
+                  let partStr = `[PARTIAL: ${partialPairs.join(',')}]\n`;
+                  let humanNote = `[Liquidación Comercial de Facturas: ${selectedInvoices.join(', ')}]\n\n--- DETALLE DE AMORTIZACIÓN ---\n${humanTexts.join("\n")}\n--- FIN ---`;
+                  notesInput.value = partStr + humanNote;
+              } else {
+                  notesInput.value = "";
+              }
+          }
+      }
+
+      invoiceCbs.forEach(cb => {
+          cb.addEventListener('change', updateReconciliation);
+      });
+  });
+</script>

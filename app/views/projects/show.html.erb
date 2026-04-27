@@ -7,7 +7,6 @@
     <div class="col-12">
         <div class="page-title-box d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 py-3">
             
-            <%# Título (Alineado a la izquierda) %>
             <div class="w-100 w-lg-auto mb-1 mb-lg-0">
                 <h4 class="page-title m-0">Detalle del Proyecto</h4>
                 <ol class="breadcrumb m-0 d-none d-md-flex mt-1">
@@ -18,17 +17,14 @@
                 </ol>
             </div>
 
-            <%# Botones de Acción (Se apilan en móvil, se alinean a la derecha en PC) %>
             <div class="w-100 w-lg-auto d-flex flex-wrap gap-2 justify-content-start justify-content-lg-end align-items-center">
                 
-                <%# --- ACCIÓN PARA TODOS: Cronograma --- %>
                 <%= link_to schedule_view_client_project_path(@client, @project), 
                     class: "btn btn-soft-info rounded-pill shadow-sm px-3 flex-grow-1 flex-md-grow-0 text-center", target: "_blank" do %> 
                     <i class="ri-calendar-todo-line me-1 align-middle"></i> 
                     <span class="d-inline d-xxl-inline">Cronograma</span>
                 <% end %>
 
-                <%# --- ACCIÓN COMPARTIDA: Finanzas (Visible para Admin y para el Cliente dueño) --- %>
                 <% if current_user.role == 'admin' || current_user.client_id == @client.id %>
                     <%= link_to client_project_financials_path(@client, @project), 
                         class: "btn btn-success rounded-pill shadow-sm px-3 fw-bold flex-grow-1 flex-md-grow-0 text-center", 
@@ -38,7 +34,6 @@
                     <% end %>
                 <% end %>
 
-                <%# --- ACCIONES EXCLUSIVAS: Solo Administrador --- %>
                 <% if current_user.role == 'admin' %>
                 
                     <button type="button" class="btn btn-soft-primary rounded-pill shadow-sm px-3 flex-grow-1 flex-md-grow-0 text-center" data-bs-toggle="modal" data-bs-target="#membersModal">
@@ -82,7 +77,6 @@
                         <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 flex-wrap">
                             <span class="badge bg-white text-primary px-2"><%= @client.company_name %></span>
                             
-                            <%# INDICADOR DE TIPO DE PROYECTO %>
                             <% is_methodology = (@project.project_type == 'metodologia' || @project.project_type.blank?) %>
                             <span class="badge <%= is_methodology ? 'bg-info' : 'bg-warning text-dark' %> border border-white border-opacity-25">
                                 <i class="ri-flag-line me-1"></i><%= is_methodology ? 'METODOLOGÍA' : @project.project_type.humanize.upcase %>
@@ -238,7 +232,6 @@
                     <div class="card mb-2 border shadow-none <%= 'border-primary' if is_unlocked && stage.progress_percentage < 100 %>">
                         <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom py-2">
                             
-                            <%# Control principal del acordeón %>
                             <a class="text-dark d-flex align-items-center flex-grow-1 <%= 'collapsed' unless index == 0 || (is_unlocked && stage.progress_percentage < 100) %>" 
                                data-bs-toggle="collapse" href="#stage-<%= stage.id %>" style="padding: 0.4rem 0; min-width: 0;">
 
@@ -264,7 +257,6 @@
                                     <% end %>
                                 </h6>
 
-                                <%# KPIs de la etapa (Se ocultan en móvil para no romper la vista) %>
                                 <div class="ms-auto d-none d-lg-flex align-items-center" style="min-width: 400px;">
                                     <div class="d-flex align-items-center flex-grow-1 me-4">
                                         <div class="progress w-100 me-2" style="height: 8px; background-color: #f1f3fa; border-radius: 12px;">
@@ -344,9 +336,10 @@
                                                 <% is_finalized = activity.admin_approved && activity.user_approved %>
                                                 
                                                 <tr id="activity-row-<%= activity.id %>" class="<%= 'bg-light-subtle' if activity.status == 'rejected' %> <%= 'bg-success bg-opacity-10' if is_finalized %>">
+                                                    
                                                     <td class="text-center px-1 px-md-2">
                                                         <% if is_finalized %>
-                                                            <a href="javascript:void(0);" onclick="verSeguimientoActividad('<%= activity.id %>')" class="text-success hover-primary" data-bs-toggle="tooltip" title="Finalizada - Clic para visualizar">
+                                                            <a href="javascript:void(0);" onclick="verSeguimientoActividad('<%= activity.id %>')" class="text-success hover-primary" data-bs-toggle="tooltip" title="Finalizada y Devengada - Clic para visualizar">
                                                                 <i class="ri-eye-fill font-22"></i>
                                                             </a>
                                                         <% elsif activity.user_approved %>
@@ -450,20 +443,28 @@
                                                         </div>
                                                     </td>
 
+                                                    <%# --- CHECKBOX: APROBACIÓN DEL CLIENTE --- %>
                                                     <td class="text-center px-1 px-md-2">
                                                         <div class="d-flex flex-column align-items-center">
                                                             <%= form_with url: toggle_user_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: true do %>
                                                                 <div class="form-check m-0">
+                                                                    <% 
+                                                                       missing_evidence = !activity.completed && !activity.evidence.attached?
+                                                                       client_restricted = current_user.role != 'admin' && missing_evidence
+                                                                       user_cb_disabled = stage_locked || activity.admin_approved || is_finalized || client_restricted
+                                                                    %>
                                                                     <input type="checkbox" 
                                                                         class="form-check-input shadow-none cursor-pointer <%= activity.user_approved ? 'bg-success border-success' : 'border-warning' %>" 
                                                                         <%= 'checked' if activity.user_approved %> 
                                                                         onchange="this.form.submit()"
-                                                                        <%= 'disabled' if (!activity.completed && !activity.evidence.attached?) || stage_locked || activity.admin_approved || is_finalized %>>
+                                                                        <%= 'disabled' if user_cb_disabled %>
+                                                                        <%= "data-bs-toggle='tooltip' title='Poder Admin: Aprobación forzada habilitada sin evidencia'".html_safe if current_user.role == 'admin' && missing_evidence && !user_cb_disabled %>>
                                                                 </div>
                                                             <% end %>
                                                         </div>
                                                     </td>
 
+                                                    <%# --- CHECKBOX: APROBACIÓN DE CONSILIUM (ADMIN) --- %>
                                                     <td class="text-center px-1 px-md-2">
                                                         <div class="d-flex flex-column align-items-center">
                                                             <%= form_with url: toggle_admin_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: true do %>
@@ -792,7 +793,7 @@
         if (!checkbox.checked) {
             Swal.fire({
                 title: '¿Quitar validación de Consilium?',
-                text: `Al desmarcar "${activityName}", la actividad dejará de estar finalizada y se permitirá que el equipo realice cambios nuevamente.`,
+                text: `Al desmarcar "${activityName}", la actividad dejará de estar finalizada y se permitirá que el equipo realice cambios nuevamente. ¡Esto removerá su estatus de Devengada en Finanzas!`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#fa5c7c',
