@@ -489,6 +489,16 @@
                                                                 </a>
                                                                 
                                                                 <% if current_user.role == 'admin' %>
+                                                                    <%# ========================================== %>
+                                                                    <%# BOTÓN DE IA INYECTADO AQUÍ                 %>
+                                                                    <%# ========================================== %>
+                                                                    <a href="javascript:void(0);" 
+                                                                    onclick="simularConIA('<%= simulate_ai_logs_client_project_activity_path(@client, @project, activity) %>', '<%= j activity.name %>')" 
+                                                                    class="dropdown-item font-13 fw-bold"
+                                                                    style="color: #6a0dad;">
+                                                                    <i class="ri-sparkling-fill text-warning me-1"></i> Simular IA (Seguimiento)
+                                                                    </a>
+
                                                                     <% unless stage_locked || is_finalized %>
                                                                         <div class="dropdown-divider"></div>
                                                                         <%= link_to edit_client_project_activity_path(@client, @project, activity), class: "dropdown-item font-13" do %>
@@ -873,6 +883,52 @@
             }
         }
     });
+
+
+    // Agrega esto junto a tus otras funciones como confirmDeleteProject
+    function simularConIA(url, activityName) {
+        Swal.fire({
+            title: '¿Simular seguimiento con IA?',
+            text: `Se generará una conversación de trabajo realista para "${activityName}".`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#6a0dad',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="ri-sparkling-fill"></i> Iniciar Simulación',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Mostramos el Loader que bloquea la pantalla
+                Swal.fire({
+                    title: 'Procesando Inteligencia Artificial',
+                    html: 'Analizando el equipo y generando la conversación...<br><br><div class="spinner-border text-primary mt-2" role="status" style="width: 3rem; height: 3rem;"></div>',
+                    showConfirmButton: false,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                });
+
+                // Construimos y enviamos la petición POST manualmente
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = url;
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'authenticity_token';
+                csrfInput.value = csrfToken;
+                form.appendChild(csrfInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+
+
+
+
 </script>
 
 <style>

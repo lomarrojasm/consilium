@@ -81,3 +81,7 @@ gem "grover", "~> 1.2"
 gem 'roo'
 gem "parser", "~> 3.3"
 gem "unparser", "~> 0.9.0"
+
+gem "ruby-openai", "~> 8.3"
+
+gem "dotenv-rails", "~> 3.2", :groups => [:development, :test]
