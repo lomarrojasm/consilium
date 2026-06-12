@@ -32,8 +32,8 @@ export default class extends Controller {
 
   async fetchData(chartId) {
     try {
-      // Conexión directa y pura a Netdata
-      const response = await fetch(`http://74.208.227.22:19999/api/v1/data?chart=${chartId}&after=-60&points=1&format=json`)
+      // Conexión segura a través del "puente" de Rails para evitar el error de Mixed Content
+      const response = await fetch(`/system_metrics?chart=${chartId}`)
       if (!response.ok) return null
       return await response.json()
     } catch (e) { 

@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   # 0. HEALTH CHECK
   # =========================================================================
   get "up" => "rails/health#show", as: :rails_health_check
+  get "/system_metrics", to: "system_metrics#show"
 
   # =========================================================================
   # 1. NAVEGACIÓN DINÁMICA (ROOT)
