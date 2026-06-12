@@ -7,13 +7,14 @@ class SystemMetricsController < ApplicationController
   def show
     chart = params[:chart]
 
-    # Rails le pide a localhost (127.0.0.1) internamente
-    url = URI("http://127.0.0.1:19999/api/v1/data?chart=#{chart}&after=-60&points=1&format=json")
+    # Usamos la IP real del servidor porque Rails está dentro de un contenedor Docker
+    url = URI("http://74.208.227.22:19999/api/v1/data?chart=#{chart}&after=-60&points=1&format=json")
 
     begin
       response = Net::HTTP.get(url)
       render json: response
     rescue => e
+      Rails.logger.error "Error conectando a Netdata: #{e.message}"
       render json: { error: "No se pudo conectar a Netdata" }, status: 500
     end
   end
