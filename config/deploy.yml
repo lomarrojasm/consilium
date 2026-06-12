@@ -7,14 +7,18 @@ image: luisomarrojasmercado/consilium
 builder:
   arch: amd64
 
-# Agregamos la sección proxy explícita para configurar el tiempo, 
-# pero forzamos SSL falso y usamos la IP como host.
+# Configuración del proxy para dominios y SSL personalizado
 proxy:
-  ssl: false
-  host: 74.208.227.22
+  ssl:
+    secret:
+      certificate_pem: SSL_CERTIFICATE
+      private_key_pem: SSL_PRIVATE_KEY
+  hosts:
+    - consiliumconsultoria.app
+    - www.consiliumconsultoria.app
   healthcheck:
     path: /up
-    interval: 20  # Revisa cada 20 segundos (da más tiempo para migraciones)
+    interval: 20
     timeout: 5
 
 # Servidores donde se desplegará
@@ -58,6 +62,8 @@ env:
     - SMTP_DOMAIN
     - MAILER_SENDER
     - OPENAI_ACCESS_TOKEN
+    - SSL_CERTIFICATE
+    - SSL_PRIVATE_KEY
   clear:
     DB_HOST: 74.208.227.22
     REDIS_URL: "redis://74.208.227.22:6379/1"
