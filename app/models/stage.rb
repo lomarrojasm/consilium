@@ -1,11 +1,11 @@
 class Stage < ApplicationRecord
   include TimelineRecordable # <--- Para Timeline
   belongs_to :project
-  has_many :activities, -> { order(week: :asc, id: :asc) }, dependent: :destroy
+  has_many :activities, -> { order(position: :asc) }, dependent: :destroy
 
   # Atributo virtual para recibir la instrucción desde el formulario
   attr_accessor :template_stage_number
-  
+
   # Helper para saber el progreso de la etapa individual
   def progress_percentage
     total = activities.count
@@ -21,7 +21,6 @@ class Stage < ApplicationRecord
 
   def locked_for?(user)
     # Está bloqueada si está terminada y el usuario NO es admin
-    finished? && user.role != 'admin'
+    finished? && user.role != "admin"
   end
-
 end

@@ -8,6 +8,17 @@ class ProjectTemplatesController < ApplicationController
     @project_templates = ProjectTemplate.order(created_at: :desc)
   end
 
+  def rebuild_all
+    begin
+      # Ejecutamos el servicio pasándole el usuario actual
+      TemplateRebuilderService.call(current_user)
+
+      redirect_to project_templates_path, notice: "✅ ¡Todas las plantillas han sido reconstruidas y actualizadas con éxito!"
+    rescue StandardError => e
+      redirect_to project_templates_path, alert: "❌ Hubo un error al reconstruir las plantillas: #{e.message}"
+    end
+  end
+
   def show
     # Hacemos 'includes' para evitar problemas de N+1 queries al cargar 215 actividades
     @stages = @project_template.stage_templates.includes(:activity_templates).order(:position)
@@ -96,6 +107,13 @@ class ProjectTemplatesController < ApplicationController
           new_activity = original_activity.dup
           new_activity.stage_template = new_stage
           new_activity.save!
+
+          # --- EL PARCHE PARA CONSERVAR LAS FECHAS ---
+          # Forzamos las fechas originales saltándonos los callbacks de Rails
+          new_activity.update_columns(
+            created_at: original_activity.created_at,
+            updated_at: original_activity.updated_at
+          )
         end
       end
     end

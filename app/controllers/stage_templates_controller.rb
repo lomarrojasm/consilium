@@ -17,6 +17,17 @@ class StageTemplatesController < ApplicationController
     end
   end
 
+  def update
+    @stage_template = StageTemplate.find(params[:id])
+
+    if @stage_template.update(stage_template_params)
+      # Te redirige a la vista del proyecto (plantilla) con mensaje de éxito
+      redirect_to @stage_template.project_template, notice: "¡Etapa actualizada correctamente!"
+    else
+      redirect_to @stage_template.project_template, alert: "Error al actualizar la etapa."
+    end
+  end
+
   def destroy
     # Quitamos el .stage_template intermedio porque la etapa ya pertenece al proyecto directo
     project_template = @stage.project_template
@@ -36,6 +47,6 @@ class StageTemplatesController < ApplicationController
   end
 
   def stage_template_params
-    params.require(:stage_template).permit(:name)
+    params.require(:stage_template).permit(:name, :position)
   end
 end

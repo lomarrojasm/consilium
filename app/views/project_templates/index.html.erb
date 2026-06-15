@@ -27,6 +27,14 @@
                     <h5 class="m-0 fw-bold text-dark"><i class="ri-git-repository-line text-primary me-2"></i>Plantillas Base Disponibles</h5>
                     <p class="text-muted font-12 mb-0 mt-1">Administra las estructuras estándar para la clonación de nuevos proyectos.</p>
                 </div>
+                <% if current_user.email == "admin@consilium.com" %>
+                    <%= button_to rebuild_all_project_templates_path, 
+                                method: :post, 
+                                class: "btn btn-danger font-13 fw-bold", 
+                                data: { turbo_confirm: "⚠️ ¿Estás totalmente seguro? Esto eliminará TODAS las plantillas actuales y las regenerará desde los archivos base. Esta acción no se puede deshacer." } do %>
+                        <i class="fas fa-sync-alt me-2"></i> Reconstruir Plantillas Base
+                    <% end %>
+                <% end %>
                 <button type="button" class="btn btn-primary shadow-sm px-3 rounded-pill" data-bs-toggle="modal" data-bs-target="#newTemplateModal">
                     <i class="ri-add-line me-1"></i> Nueva Plantilla
                 </button>

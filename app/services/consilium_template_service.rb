@@ -7,20 +7,20 @@ class ConsiliumTemplateService
     if year.present?
       # Construimos el nombre dinámico del módulo (Ej: ProjectTemplates::Y2022)
       service_namespace = "ProjectTemplates::Y#{year}"
-      
+
       service_name = case membership_type
-                     when '1', 'gold' then "GoldService"
-                     when '2', 'platinum' then "PlatinumService"
-                     else "BasicaService"
-                     end
+      when "1", "gold" then "GoldService"
+      when "2", "platinum" then "PlatinumService"
+      else "BasicaService"
+      end
 
       begin
         # Convierte el string "ProjectTemplates::Y2022::GoldService" en una Clase real
         full_service_class = "#{service_namespace}::#{service_name}".constantize
-        
+
         Rails.logger.info "🌟 Ejecutando Plantilla Histórica: #{full_service_class}"
         full_service_class.generate(project, user)
-        
+
       rescue NameError
         # Si por alguna razón eligieron un año que aún no tiene archivo creado, no rompemos la app
         Rails.logger.error "❌ Faltan archivos para #{year}. Cayendo a plantilla estándar."
@@ -36,22 +36,23 @@ class ConsiliumTemplateService
   def self.append_stage_activities(stage, membership_type, user)
     # Selecciona la matriz base dependiendo de la membresía del cliente
     matrix = case membership_type.to_s.downcase
-             when '1', 'gold' then TemplateGoldService.activities_matrix
-             when '2', 'platinum' then TemplatePlatinumService.activities_matrix
-             else TemplateBasicaService.activities_matrix
-             end
+    when "1", "gold" then TemplateGoldService.activities_matrix
+    when "2", "platinum" then TemplatePlatinumService.activities_matrix
+    else TemplateBasicaService.activities_matrix
+    end
 
     # Filtra solo las actividades de la etapa solicitada
     actividades_filtradas = matrix.select { |row| row[0].to_s == stage.template_stage_number.to_s }
-    
-    actividades_filtradas.each do |row|
-      area_principal = row[5].to_s.split(',').first.to_s.strip
+
+    # CAMBIO: Usamos each_with_index
+    actividades_filtradas.each_with_index do |row, index|
+      area_principal = row[5].to_s.split(",").first.to_s.strip
       tar_l, tar_s, tar_a = row[6].to_f, row[7].to_f, row[8].to_f
       hrs_l, hrs_s, hrs_a = row[9].to_f, row[10].to_f, row[11].to_f
       costo_calc = (tar_l * hrs_l) + (tar_s * hrs_s) + (tar_a * hrs_a)
 
       stage.activities.create!(
-        activity_number: row[2], # Posición/Semana original
+        activity_number: row[2],
         name: row[3],
         month: row[1],
         week: row[2],
@@ -62,8 +63,9 @@ class ConsiliumTemplateService
         leader_hours: hrs_l, senior_hours: hrs_s, analyst_hours: hrs_a,
         user_id: user.id,
         responsible_id: user.id,
-        status: 'pending',
-        completed: false
+        status: "pending",
+        completed: false,
+        position: index # <-- NUEVO: Guardamos el índice
       )
     end
 
@@ -74,14 +76,14 @@ class ConsiliumTemplateService
 
   # Método auxiliar para cargar las plantillas originales (fechas actuales)
   def self.fallback_to_default(project, user, membership_type)
-    if membership_type == '1' || membership_type == 'gold'
+    if membership_type == "1" || membership_type == "gold"
       Rails.logger.info "🌟 Enrutando a Membresía GOLD (Estándar de Hoy)"
       TemplateGoldService.generate(project, user)
-      
-    elsif membership_type == '2' || membership_type == 'platinum'
+
+    elsif membership_type == "2" || membership_type == "platinum"
       Rails.logger.info "💎 Enrutando a Membresía PLATINUM (Estándar de Hoy)"
       TemplatePlatinumService.generate(project, user)
-      
+
     else
       Rails.logger.info "🔹 Enrutando a Membresía BÁSICA (Estándar de Hoy)"
       TemplateBasicaService.generate(project, user)

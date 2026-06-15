@@ -53,7 +53,7 @@ class ActivityTemplatesController < ApplicationController
     params.require(:activity_template).permit(
       :name, :month, :week, :area, :document_ref,
       :leader_hours, :senior_hours, :analyst_hours,
-      :leader_rate, :senior_rate, :analyst_rate
+      :leader_rate, :senior_rate, :analyst_rate, :created_at
     )
   end
 end

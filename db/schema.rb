@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_24_163203) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_13_003024) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -72,6 +72,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_24_163203) do
     t.datetime "admin_approved_at"
     t.datetime "evidence_uploaded_at"
     t.integer "activity_number"
+    t.integer "position"
     t.index ["area"], name: "index_activities_on_area"
     t.index ["responsible_id"], name: "index_activities_on_responsible_id"
     t.index ["stage_id"], name: "index_activities_on_stage_id"
@@ -104,6 +105,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_24_163203) do
     t.decimal "analyst_hours", precision: 10, scale: 2
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "position"
+    t.integer "activity_number"
+    t.decimal "activity_cost", precision: 10, scale: 2
+    t.bigint "user_id"
+    t.bigint "responsible_id"
+    t.string "status"
+    t.boolean "completed"
     t.index ["stage_template_id"], name: "index_activity_templates_on_stage_template_id"
   end
 

@@ -47,7 +47,7 @@ class AiActivitySimulatorService
       #{team_context}
 
       Instrucciones:
-      1. Genera entre 10 y 15 interacciones cronológicas simulando una conversación sobre el avance de la actividad.
+      1. Genera entre 3 y 5 interacciones cronológicas simulando una conversación sobre el avance de la actividad.
       2. Usa un tono corporativo, profesional y natural (español de negocios de México).
       3. Alterna los roles. Por ejemplo: el 'Consultor' pide estatus, el 'Responsable' responde con avances, otro 'Miembro' comenta que subió un archivo, el 'Consultor' aprueba, etc.
       4. IMPORTANTE: En tu respuesta JSON, debes incluir el "user_id" numérico exacto de la lista de participantes proporcionada.

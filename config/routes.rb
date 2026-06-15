@@ -135,6 +135,9 @@ Rails.application.routes.draw do
   # 6. PLANTILLAS DE METODOLOGÍAS (ADMIN)
   # =========================================================================
   resources :project_templates do
+    collection do
+      post :rebuild_all
+    end
     post :clone, on: :member
     resources :stage_templates, shallow: true, only: [ :create, :update, :destroy ] do
       resources :activity_templates, shallow: true, only: [ :create, :update, :destroy ]
