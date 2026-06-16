@@ -1,9 +1,9 @@
 class UsersController < ApplicationController
-  before_action :authenticate_user! 
-  before_action :set_user, only: [:show, :edit, :update, :destroy, :resend_invitation, :impersonate]
-  
+  before_action :authenticate_user!
+  before_action :set_user, only: [ :show, :edit, :update, :destroy, :resend_invitation, :impersonate ]
+
   # Usamos el filtro global definido en ApplicationController
-  before_action :authorize_admin!, except: [:stop_impersonating]
+  before_action :authorize_admin!, except: [ :stop_impersonating ]
 
   def index
     @users = User.includes(:client).all.order(created_at: :desc)
@@ -19,21 +19,21 @@ class UsersController < ApplicationController
     end
 
     if @user.update(user_params)
-      redirect_to users_path, notice: 'Usuario actualizado correctamente.'
+      redirect_to users_path, notice: "Usuario actualizado correctamente."
     else
       render :edit, status: :unprocessable_entity
     end
   end
 
   def resend_invitation
-    @user.invite! 
+    @user.invite!
     redirect_back fallback_location: users_path, notice: "Invitación reenviada con éxito a #{@user.email}"
   end
 
   def destroy
     client_id = @user.client_id
     @user.destroy
-    redirect_to client_path(client_id), notice: 'Usuario eliminado definitivamente.'
+    redirect_to client_path(client_id), notice: "Usuario eliminado definitivamente."
   end
 
   # =========================================================================
@@ -62,6 +62,6 @@ class UsersController < ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:first_name, :last_name, :email, :job_title, :role, :phone, :active, :avatar)
+    params.require(:user).permit(:first_name, :last_name, :email, :job_title, :role, :phone, :active, :client_id, :avatar)
   end
 end

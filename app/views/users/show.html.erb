@@ -4,8 +4,12 @@
             <div class="page-title-right">
                 <ol class="breadcrumb m-0">
                     <li class="breadcrumb-item"><%= link_to "Clientes", clients_path %></li>
-                    <li class="breadcrumb-item"><%= link_to @user.client.company_name, client_path(@user.client) %></li>
-                    <li class="breadcrumb-item active">Perfil de Usuario</li>
+                    <% if @user.client.present? %>
+                        <li class="breadcrumb-item"><%= link_to @user.client.company_name, client_path(@user.client) %></li>
+                    <% else %>
+                        <li class="breadcrumb-item">Staff Consilium</li>
+                    <% end %>
+                        <li class="breadcrumb-item active">Perfil de Usuario</li>
                 </ol>
             </div>
             <h4 class="page-title">Perfil de <%= @user.first_name %></h4>
@@ -58,7 +62,11 @@
                     </p>
 
                     <p class="text-muted mb-1 font-13"><strong>Empresa / Cliente :</strong> 
-                        <span class="ms-2"><%= @user.client.company_name %></span>
+                        <% if @user.client.present? %>
+                            <span class="ms-2"><%= @user.client.company_name %></span>
+                        <% else %>
+                            <span class="ms-2">Staff Consilium</span>
+                        <% end %>
                     </p>
                 </div>
 
