@@ -125,7 +125,8 @@ Rails.application.routes.draw do
           patch :update_status
           patch :toggle_user_approval
           patch :toggle_admin_approval
-          post :simulate_ai_logs # <--- RUTA DE IA AGREGADA AQUÍ
+          post :simulate_ai_logs
+          delete :destroy_log # <--- RUTA DE IA AGREGADA AQUÍ
         end
       end
     end

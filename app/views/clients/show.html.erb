@@ -73,57 +73,10 @@
                     <i class="ri-medal-line me-1"></i> <%= @client.membership&.upcase %>
                 </div>
 
-                <%# --- SECCIÓN: REDES Y WEB --- %>
-                <div class="d-flex flex-column align-items-center gap-2 mb-3">
-            
-                    <%# 1. ENLACE A PÁGINA WEB PRINCIPAL %>
-                    <% if @client.web_page.present? %>
-                        <% display_url = @client.web_page.gsub(/https?:\/\//, '').gsub(/www\./, '').split('/').first %>
-                        <%= link_to "https://#{@client.web_page.gsub(/https?:\/\//, '')}", target: "_blank", 
-                            class: "text-primary font-13 fw-bold text-decoration-none hover-primary mb-1", 
-                            title: "Visitar sitio web oficial" do %>
-                            <i class="ri-global-line me-1 align-middle"></i> <%= display_url %>
-                        <% end %>
-                    <% end %>
-
-                    <%# 2. DETECCIÓN Y SEPARACIÓN DE REDES SOCIALES %>
-                    <% if @client.social_network.present? %>
-                        <div class="d-flex flex-wrap justify-content-center gap-2">
-                            <% urls = @client.social_network.scan(/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}(?:\/\S*)?/) %>
-                            <% if urls.any? %>
-                                <% urls.each do |url| %>
-                                    <% 
-                                    clean_url = url.strip.gsub(/[,;]$/, '')
-                                    full_link = clean_url.start_with?('http') ? clean_url : "https://#{clean_url}"
-                                    icon_class = case clean_url.downcase
-                                        when /facebook/ then 'ri-facebook-box-fill text-primary'
-                                        when /instagram/ then 'ri-instagram-line text-danger'
-                                        when /linkedin/ then 'ri-linkedin-box-fill text-info'
-                                        when /twitter|x\.com/ then 'ri-twitter-x-fill text-dark'
-                                        when /youtube/ then 'ri-youtube-fill text-danger'
-                                        else 'ri-links-line text-secondary'
-                                    end
-                                    %>
-                                    <%= link_to full_link, target: "_blank", 
-                                        class: "badge bg-light text-dark border py-1 px-2 text-decoration-none shadow-sm hover-info d-flex align-items-center",
-                                        title: "Ver perfil" do %>
-                                        <i class="<%= icon_class %> me-1 font-14"></i> 
-                                        <span class="font-11 fw-medium"><%= clean_url.gsub(/https?:\/\//, '').gsub(/www\./, '').truncate(18) %></span>
-                                    <% end %>
-                                <% end %>
-                            <% else %>
-                                <span class="text-muted font-11"><i class="ri-links-line me-1"></i><%= @client.social_network.truncate(30) %></span>
-                            <% end %>
-                        </div>
-                    <% end %>
-
-                </div>
-                <%# ---------------------------------- %>
-
                 <div class="text-start border-top pt-3">
                     <h5 class="font-12 text-uppercase text-muted fw-bold mb-2">Datos Fiscales</h5>
                     <p class="text-muted font-13 mb-1"><strong>Régimen:</strong> <%= @client.tax_regime %></p>
-                    <p class="text-muted font-13 mb-1"><strong>Tipo:</strong> <%= @client.type_taxpayer %></p>
+  
                     <p class="text-muted font-13 mb-3"><strong>Giro:</strong> <%= @client.industry %></p>
                     
                     <h5 class="font-12 text-uppercase text-muted fw-bold mb-2">Ubicación Fiscal</h5>
@@ -136,41 +89,8 @@
             </div>
         </div>
 
-        <%# DIRECTORIO CLAVE %>
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h4 class="header-title mb-3"><i class="ri-contacts-book-2-line me-1 text-primary"></i> Directorio Clave</h4>
-                
-                <div class="bg-light p-2 rounded mb-3 border-start border-3 border-primary shadow-none">
-                    <h6 class="m-0 text-primary fw-bold font-13"><%= @client.sponsor_name %></h6>
-                    <small class="text-muted d-block"><%= @client.sponsor_position %> (Sponsor)</small>
-                    <div class="mt-1">
-                        <%= mail_to @client.sponsor_email, class: "btn btn-xs btn-white border shadow-none" do %><i class="ri-mail-line text-info"></i><% end %>
-                        <%= phone_to @client.sponsor_cel, class: "btn btn-xs btn-white border shadow-none" do %><i class="ri-phone-line text-success"></i><% end %>
-                    </div>
-                </div>
-
-                <div class="inbox-widget" data-simplebar style="max-height: 350px;">
-                    <% [
-                        {name: @client.legal_representative_name, pos: "Rep. Legal", email: @client.legal_representative_email, cel: @client.legal_representative_cel},
-                        {name: @client.operation_name, pos: "Operaciones", email: @client.operation_email, cel: @client.operation_cel},
-                        {name: @client.finance_accounting_name, pos: "Finanzas", email: @client.finance_accounting_email, cel: @client.finance_accounting_cel},
-                        {name: @client.rrhh_name, pos: "RH", email: @client.rrhh_email, cel: @client.rrhh_cel},
-                        {name: @client.comercial_name, pos: "Comercial", email: @client.comercial_email, cel: @client.comercial_cel}
-                    ].each do |contact| %>
-                        <% next if contact[:name].blank? %>
-                        <div class="inbox-item py-2 border-bottom border-light">
-                            <p class="inbox-item-author mb-0 font-13 fw-bold text-dark"><%= contact[:name] %></p>
-                            <p class="inbox-item-text mb-0 font-11 text-muted"><%= contact[:pos] %></p>
-                            <p class="inbox-item-date">
-                                <%= mail_to contact[:email], class: "text-info me-1" do %><i class="ri-mail-line"></i><% end %>
-                                <%= phone_to contact[:cel], class: "text-success" do %><i class="ri-whatsapp-line"></i><% end %>
-                            </p>
-                        </div>
-                    <% end %>
-                </div>
-            </div>
-        </div>
+       
+        
     </div>
 
     <%# --- COLUMNA DERECHA --- %>
@@ -190,29 +110,50 @@
                 <div class="card shadow-sm border-0 text-center">
                     <div class="card-body">
                         <i class="ri-group-line font-24 text-info"></i>
-                        <h3 class="my-1"><%= @client.total_employee %></h3>
-                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold">Empleados</p>
+                        <h3 class="my-1"><%= @client.type_taxpayer %></h3>
+                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold">Tipo Persona</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card shadow-sm border-0 text-center">
+            <div class="col-md-6">
+
+                <div class="card shadow-sm border-0">
                     <div class="card-body">
-                        <i class="ri-map-pin-line font-24 text-success"></i>
-                        <h3 class="my-1"><%= @client.total_location %></h3>
-                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold">Sucursales</p>
+                        <h4 class="header-title mb-3"><i class="ri-contacts-book-2-line me-1 text-primary"></i> Contacto Principal</h4>
+                        
+                        <div class="bg-light p-2 rounded mb-3 border-start border-3 border-primary shadow-none">
+                            <h6 class="m-0 text-primary fw-bold font-13"><%= @client.sponsor_name %></h6>
+                            <small class="text-muted d-block"><%= @client.sponsor_position %> (Sponsor)</small>
+                            <div class="mt-1">
+                                <%= mail_to @client.sponsor_email, class: "btn btn-xs btn-white border shadow-none" do %><i class="ri-mail-line text-info"></i><% end %>
+                                <%= phone_to @client.sponsor_cel, class: "btn btn-xs btn-white border shadow-none" do %><i class="ri-phone-line text-success"></i><% end %>
+                            </div>
+                        </div>
+
+                        <div class="inbox-widget" data-simplebar style="max-height: 350px;">
+                            <% [
+                                {name: @client.legal_representative_name, pos: "Rep. Legal", email: @client.legal_representative_email, cel: @client.legal_representative_cel},
+                                {name: @client.operation_name, pos: "Operaciones", email: @client.operation_email, cel: @client.operation_cel},
+                                {name: @client.finance_accounting_name, pos: "Finanzas", email: @client.finance_accounting_email, cel: @client.finance_accounting_cel},
+                                {name: @client.rrhh_name, pos: "RH", email: @client.rrhh_email, cel: @client.rrhh_cel},
+                                {name: @client.comercial_name, pos: "Comercial", email: @client.comercial_email, cel: @client.comercial_cel}
+                            ].each do |contact| %>
+                                <% next if contact[:name].blank? %>
+                                <div class="inbox-item py-2 border-bottom border-light">
+                                    <p class="inbox-item-author mb-0 font-13 fw-bold text-dark"><%= contact[:name] %></p>
+                                    <p class="inbox-item-text mb-0 font-11 text-muted"><%= contact[:pos] %></p>
+                                    <p class="inbox-item-date">
+                                        <%= mail_to contact[:email], class: "text-info me-1" do %><i class="ri-mail-line"></i><% end %>
+                                        <%= phone_to contact[:cel], class: "text-success" do %><i class="ri-whatsapp-line"></i><% end %>
+                                    </p>
+                                </div>
+                            <% end %>
+                        </div>
                     </div>
                 </div>
+                
             </div>
-            <div class="col-md-3">
-                <div class="card shadow-sm border-0 text-center">
-                    <div class="card-body">
-                        <i class="ri-service-line font-24 text-warning"></i>
-                        <h3 class="my-1 text-truncate px-1" style="font-size: 1.1rem;"><%= @client.product_service %></h3>
-                        <p class="text-muted mb-0 font-11 text-uppercase fw-bold">Productos</p>
-                    </div>
-                </div>
-            </div>
+            
         </div>
 
         <div class="card shadow-sm border-0">
@@ -225,7 +166,7 @@
                     </li>
                     <li class="nav-item">
                         <a href="#context" data-bs-toggle="tab" class="nav-link rounded-0">
-                            <i class="ri-compass-3-line me-1"></i> Contexto & Sistemas
+                            <i class="ri-compass-3-line me-1"></i> Usuarios
                         </a>
                     </li>
                     <li class="nav-item">
@@ -244,6 +185,9 @@
                                 <p class="text-muted font-12 mb-0">Gestión de consultoría y seguimiento financiero</p>
                             </div>
                             <% if current_user.role == 'admin' %>
+                                <button type="button" class="btn btn-xs btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
+                                    <i class="ri-user-add-line me-1"></i> Invitar Usuario
+                                </button>
                                 <%= link_to new_client_project_path(@client), class: "btn btn-sm btn-primary shadow-sm px-3" do %>
                                     <i class="ri-add-line me-1"></i> Nuevo Proyecto
                                 <% end %>
@@ -374,44 +318,8 @@
                         </div>
                     </div>
 
-                    <%# TAB: CONTEXTO Y SISTEMAS %>
+                    <%# TAB: USUARIOS %>
                     <div class="tab-pane" id="context">
-                        <div class="row">
-                            <div class="col-md-6 border-end">
-                                <h5 class="text-uppercase font-11 fw-bold text-muted mb-3"><i class="ri-error-warning-line me-1 text-danger"></i> Diagnóstico Inicial</h5>
-                                <div class="timeline-alt pb-0">
-                                    <div class="timeline-item">
-                                        <i class="ri-record-circle-line text-danger timeline-icon"></i>
-                                        <div class="timeline-item-info">
-                                            <h6 class="mt-0 mb-1 fw-bold">Problemática Principal</h6>
-                                            <p class="text-muted font-13"><%= @client.main_issue %></p>
-                                        </div>
-                                    </div>
-                                    <div class="timeline-item border-0">
-                                        <i class="ri-record-circle-line text-success timeline-icon"></i>
-                                        <div class="timeline-item-info">
-                                            <h6 class="mt-0 mb-1 fw-bold">Objetivo del Proyecto</h6>
-                                            <p class="text-muted font-13"><%= @client.project_objective %></p>
-                                            <small class="badge badge-outline-danger">Deadline: <%= @client.deadline %></small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <h5 class="text-uppercase font-11 fw-bold text-muted mb-3"><i class="ri-cpu-line me-1 text-info"></i> Infraestructura Tecnológica</h5>
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-borderless font-13 mb-0">
-                                        <tr><td class="fw-bold text-muted" style="width: 40%;">ERP / Admin:</td><td><%= @client.erp_system %></td></tr>
-                                        <tr><td class="fw-bold text-muted">Contabilidad:</td><td><%= @client.accounting_system %></td></tr>
-                                        <tr><td class="fw-bold text-muted">RH / Nómina:</td><td><%= @client.rrhh_system %></td></tr>
-                                        <tr><td class="fw-bold text-muted">CRM / Ventas:</td><td><%= @client.crm_system %></td></tr>
-                                        <tr><td class="fw-bold text-muted">Documentos:</td><td><%= @client.storage_system %></td></tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
                         <%# TABLA DE USUARIOS DEL SISTEMA %>
                         <div class="mt-4 pt-3 border-top">
                             <div class="d-flex justify-content-between align-items-center mb-2">

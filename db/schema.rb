@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_13_003024) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_16_154503) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -131,12 +131,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_13_003024) do
 
   create_table "clients", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "company_name", null: false
-    t.string "corporate_regime"
+    t.text "corporate_regime"
     t.string "trade_name"
     t.string "rfc"
     t.string "tax_regime"
     t.string "type_taxpayer"
-    t.string "industry"
+    t.text "industry"
     t.string "country"
     t.string "tax_street"
     t.string "tax_no_ext"
@@ -195,6 +195,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_13_003024) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "membership", default: 0
+    t.date "start_date"
+    t.string "status", default: "Activo"
   end
 
   create_table "conversation_participants", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|

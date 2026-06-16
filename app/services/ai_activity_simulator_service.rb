@@ -1,39 +1,44 @@
-# app/services/ai_activity_simulator_service.rb
 class AiActivitySimulatorService
   def initialize(activity, admin_user)
     @activity = activity
     @admin_user = admin_user
     @project = activity.stage.project
 
-    # 1. Recopilamos a todos los usuarios involucrados para darle opciones a la IA
+    # 1. Recopilamos a todos los usuarios involucrados
     @available_users = []
-
-    # Agregamos al Admin/Consultor
     @available_users << { id: @admin_user.id, name: @admin_user.full_name, role: "Consultor / Director" }
 
-    # Agregamos al Responsable de la actividad (si existe)
     if @activity.responsible.present?
       @available_users << { id: @activity.responsible.id, name: @activity.responsible.full_name, role: "Responsable de la Actividad" }
     end
 
-    # Agregamos al resto del equipo asignado al proyecto
     @project.users.each do |user|
       @available_users << { id: user.id, name: user.full_name, role: "Miembro del Equipo" }
     end
 
-    # Eliminamos duplicados por si el admin o responsable ya estaban en la lista del equipo
     @available_users.uniq! { |u| u[:id] }
   end
 
   def call
     return false unless valid_configuration?
 
-    client = OpenAI::Client.new(access_token: ENV.fetch("OPENAI_ACCESS_TOKEN"))
+    # 2. Limpiamos el panel antes de generar la nueva simulación
+    # Respetamos absolutamente cualquier log que tenga un archivo adjunto o que sea del sistema (emojis)
+    clear_previous_simulation
 
-    # Convertimos la lista de usuarios a texto para que la IA los conozca
+    client = OpenAI::Client.new(access_token: ENV.fetch("OPENAI_ACCESS_TOKEN"))
     team_context = @available_users.map { |u| "- ID: #{u[:id]} | Nombre: #{u[:name]} | Rol: #{u[:role]}" }.join("\n")
 
-    # Prompt con ingeniería avanzada para interacción multi-usuario
+    # 3. Revisamos si hay documentos para que la IA los incluya en la historia
+    document_context = if @activity.evidence.attached?
+      "ATENCIÓN: Ya existe un documento de evidencia final adjunto llamado '#{@activity.evidence.filename}'. La conversación debe girar en torno a la revisión, corrección o validación de este documento."
+    elsif @activity.activity_logs.any? { |log| log.attachments.attached? }
+      "ATENCIÓN: Hay archivos previos compartidos en el panel de comentarios. Haz que el equipo discuta sobre ellos."
+    else
+      "Aún no hay documentos subidos. La conversación debe ser sobre el trabajo en progreso, pidiendo estatus o solicitando que se suba la evidencia."
+    end
+
+    # 4. Prompt ajustado a la fecha de creación
     prompt = <<~PROMPT
       Actúas como el motor de simulación de un ERP corporativo en México.
       Genera un historial de seguimiento (comentarios) realista e interactivo para una actividad de proyecto.
@@ -42,24 +47,25 @@ class AiActivitySimulatorService
       - Proyecto: "#{@project.name}"
       - Etapa: "#{@activity.stage.name}"
       - Actividad: "#{@activity.name}"
+      - #{document_context}
 
-      Participantes disponibles en el proyecto (DEBES alternar entre ellos para crear una conversación realista):
+      Participantes disponibles:
       #{team_context}
 
       Instrucciones:
-      1. Genera entre 3 y 5 interacciones cronológicas simulando una conversación sobre el avance de la actividad.
+      1. Genera EXACTAMENTE entre 3 y 5 interacciones cronológicas.
       2. Usa un tono corporativo, profesional y natural (español de negocios de México).
-      3. Alterna los roles. Por ejemplo: el 'Consultor' pide estatus, el 'Responsable' responde con avances, otro 'Miembro' comenta que subió un archivo, el 'Consultor' aprueba, etc.
-      4. IMPORTANTE: En tu respuesta JSON, debes incluir el "user_id" numérico exacto de la lista de participantes proporcionada.
+      3. Alterna los roles para simular una conversación real (ej. alguien pide avance, otro responde que está revisando el documento, etc).
+      4. IMPORTANTE: En tu respuesta JSON, debes incluir el "user_id" numérico exacto de la lista de participantes.
+      5. TIEMPO: Usa "days_after_creation" para indicar cuántos días después de iniciada la actividad ocurrió el comentario. Deben ser valores ascendentes (ej. 0, 1, 3, 5).
 
       FORMATO DE SALIDA ESTRICTO (JSON):
       {
         "logs": [
           {
             "user_id": 1,
-            "author_name": "Nombre del participante",
             "content": "Mensaje de seguimiento...",
-            "simulated_days_ago": 3
+            "days_after_creation": 2
           }
         ]
       }
@@ -74,7 +80,7 @@ class AiActivitySimulatorService
             { role: "system", content: "Eres un asistente de datos que solo responde en JSON válido." },
             { role: "user", content: prompt }
           ],
-          temperature: 0.75 # Un poco más de creatividad para la conversación
+          temperature: 0.75
         }
       )
 
@@ -93,21 +99,37 @@ class AiActivitySimulatorService
     ENV["OPENAI_ACCESS_TOKEN"].present? && @activity.present?
   end
 
+  def clear_previous_simulation
+    @activity.activity_logs.find_each do |log|
+      # Eliminamos los logs "plásticos" de IA, pero blindamos los que el usuario haya hecho
+      is_system_or_official = log.comment.match?(/📁|✅|🛡️|↩️/)
+      has_files = log.attachments.attached?
+
+      log.destroy unless is_system_or_official || has_files
+    end
+  end
+
   def create_logs(logs_array)
-    # Ordenamos los logs cronológicamente del más antiguo al más reciente
-    # para que al guardarse en la DB mantengan el flujo lógico de la conversación.
-    sorted_logs = logs_array.sort_by { |log| log["simulated_days_ago"].to_i }.reverse
+    # Ordenamos asegurando que la conversación tenga sentido cronológico
+    sorted_logs = logs_array.sort_by { |log| log["days_after_creation"].to_i }
 
     ActiveRecord::Base.transaction do
       sorted_logs.each do |log_data|
-        # Simulamos que los comentarios ocurrieron en el pasado
-        created_time = log_data["simulated_days_ago"].to_i.days.ago
+        # Calculamos la fecha sumando días a la fecha base de la actividad
+        dias = log_data["days_after_creation"].to_i
+        calculated_date = @activity.created_at + dias.days
 
-        @activity.activity_logs.create!(
+        # Creamos el log
+        log = @activity.activity_logs.create!(
           user_id: log_data["user_id"],
-          comment: log_data["content"], # Utilizamos el atributo correcto (comment)
-          created_at: created_time,
-          updated_at: created_time
+          comment: log_data["content"],
+          status: "pending"
+        )
+
+        # Magia de update_columns para forzar la fecha y saltar callbacks de Rails
+        log.update_columns(
+          created_at: calculated_date,
+          updated_at: calculated_date
         )
       end
     end

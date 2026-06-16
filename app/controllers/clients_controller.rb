@@ -1,12 +1,12 @@
 class ClientsController < ApplicationController
   # Asegura que se use el layout del dashboard
   layout "application"
-  
+
   # Seguridad: Solo usuarios logueados pueden ver esto
   before_action :authenticate_user!
-  
+
   # Callback para encontrar el cliente en acciones específicas
-  before_action :set_client, only: [:show, :edit, :update, :destroy]
+  before_action :set_client, only: [ :show, :edit, :update, :destroy ]
 
   # GET /clients
   def index
@@ -17,12 +17,12 @@ class ClientsController < ApplicationController
   # GET /clients/1
   def show
     @client = Client.find(params[:id])
-    
+
     # 1. Preparamos la consulta base (optimizada con includes)
     base_query = @client.conversations.includes(:sender, :recipient, :messages).order(updated_at: :desc)
 
     # 2. Aplicamos el filtro de seguridad según el rol
-    if current_user.role == 'admin'
+    if current_user.role == "admin"
       # El Admin ve TODO (modo moderador)
       @conversations = base_query
     else
@@ -69,7 +69,7 @@ class ClientsController < ApplicationController
 
   def timeline
     @client = Client.find(params[:id])
-    
+
     # 1. Base: Buscamos solo en la tabla de Logs de este cliente
     @events = TimelineLog.where(client: @client)
 
@@ -84,7 +84,7 @@ class ClientsController < ApplicationController
     if params[:search_date].present?
       # Si el usuario eligió un día específico
       @events = @events.where(happened_at: params[:search_date].to_date.all_day)
-    
+
     elsif params[:query].blank?
       # CASO DEFAULT: Si no hay búsqueda de texto ni fecha, mostrar solo el MES seleccionado
       @selected_date = params[:month] ? Date.parse(params[:month]) : Date.today
@@ -96,7 +96,7 @@ class ClientsController < ApplicationController
     @events = @events.order(happened_at: :desc)
   end
 
-  
+
 
   private
 
@@ -109,92 +109,94 @@ class ClientsController < ApplicationController
     def client_params
       params.require(:client).permit(
         # --- Datos Generales ---
-        :company_name, 
-        :trade_name, 
-        :rfc, 
-        :corporate_regime, 
-        :tax_regime, 
+        :company_name,
+        :trade_name,
+        :rfc,
+        :corporate_regime,
+        :tax_regime,
         :type_taxpayer,
-        :industry, 
+        :industry,
         :country,
         :web_page,
         :social_network,
         :avatar,
         :contract,
         :membership,
+        :start_date,
+        :status,
 
         # --- Dirección Fiscal ---
-        :tax_street, 
-        :tax_no_ext, 
-        :tax_no_int, 
-        :tax_suburb, 
-        :tax_cp, 
-        :tax_city, 
+        :tax_street,
+        :tax_no_ext,
+        :tax_no_int,
+        :tax_suburb,
+        :tax_cp,
+        :tax_city,
         :tax_town_hall,
 
         # --- Dirección Operativa ---
-        :oper_street, 
-        :oper_no_ext, 
-        :oper_no_int, 
-        :oper_suburb, 
-        :oper_cp, 
-        :oper_city, 
+        :oper_street,
+        :oper_no_ext,
+        :oper_no_int,
+        :oper_suburb,
+        :oper_cp,
+        :oper_city,
         :oper_town_hall,
 
         # --- Datos Operativos ---
-        :operation_year, 
-        :total_employee, 
-        :total_location, 
+        :operation_year,
+        :total_employee,
+        :total_location,
         :product_service,
 
         # --- Contacto: Sponsor ---
-        :sponsor_name, 
-        :sponsor_position, 
-        :sponsor_cel, 
+        :sponsor_name,
+        :sponsor_position,
+        :sponsor_cel,
         :sponsor_email,
 
         # --- Contacto: Representante Legal ---
-        :legal_representative_name, 
-        :legal_representative_position, 
-        :legal_representative_cel, 
+        :legal_representative_name,
+        :legal_representative_position,
+        :legal_representative_cel,
         :legal_representative_email,
 
         # --- Contacto: Operaciones ---
-        :operation_name, 
-        :operation_position, 
-        :operation_cel, 
+        :operation_name,
+        :operation_position,
+        :operation_cel,
         :operation_email,
 
         # --- Contacto: Finanzas / Contabilidad ---
-        :finance_accounting_name, 
-        :finance_accounting_position, 
-        :finance_accounting_cel, 
+        :finance_accounting_name,
+        :finance_accounting_position,
+        :finance_accounting_cel,
         :finance_accounting_email,
 
         # --- Contacto: RRHH ---
-        :rrhh_name, 
-        :rrhh_position, 
-        :rrhh_cel, 
+        :rrhh_name,
+        :rrhh_position,
+        :rrhh_cel,
         :rrhh_email,
 
         # --- Contacto: Comercial ---
-        :comercial_name, 
-        :comercial_position, 
-        :comercial_cel, 
+        :comercial_name,
+        :comercial_position,
+        :comercial_cel,
         :comercial_email,
 
         # --- Sistemas Actuales ---
-        :erp_system, 
-        :accounting_system, 
-        :rrhh_system, 
-        :crm_system, 
+        :erp_system,
+        :accounting_system,
+        :rrhh_system,
+        :crm_system,
         :storage_system,
 
         # --- Objetivo del Proyecto / Problema ---
-        :main_issue, 
-        :project_objective, 
-        :deadline, 
-        :internal_responsible_name, 
+        :main_issue,
+        :project_objective,
+        :deadline,
+        :internal_responsible_name,
         :internal_responsible_contact
       )
     end

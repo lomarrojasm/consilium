@@ -29,9 +29,10 @@
             <thead class="table-light opacity-75">
                 <tr>
                     <th class="text-center" style="width: 50px;">Logo</th>
+                    <th class="text-center">Tipo Persona</th>
                     <th>Razón Social / Comercial</th>
                     <th class="text-center">RFC</th>
-                    <th>Industria</th>
+                    <th class="text-center">Estatus</th>
                     <th>Contacto Principal</th>
                     <th class="text-center">Contrato</th>
                     <th class="text-center">Timeline</th>
@@ -46,6 +47,9 @@
                         <% else %>
                             <%= image_tag "icono_consilium.jpg", class: "rounded-circle avatar-xs shadow-sm border" %>
                         <% end %>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-light text-primary border"><%= client.type_taxpayer %></span>
                     </td>
                     <td class="fw-bold">
                         <div class="d-flex align-items-center">
@@ -70,8 +74,8 @@
                     <td class="text-center">
                         <span class="badge bg-light text-primary border"><%= client.rfc %></span>
                     </td>
-                    <td>
-                       <span class="font-13"><%= client.industry %></span>
+                    <td class="text-center">
+                       <span class="font-13"><%= client.status %></span>
                     </td>
                     <td>
                         <div class="d-flex flex-column">

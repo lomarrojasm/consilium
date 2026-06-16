@@ -139,6 +139,13 @@
     </div>
 
     <div class="col-lg-4">
+        <div class="col-lg-12 text-end">
+            <% if current_user.role == 'admin' %>
+                <button type="button" class="btn btn-xs btn-outline-primary shadow-sm mb-2" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
+                    <i class="ri-user-add-line me-1"></i> Invitar Usuario
+                </button>
+            <% end %>
+        </div>
         <div class="card shadow-none border mb-2">
             <div class="card-body py-2">
                 <h5 class="text-uppercase mt-0 mb-2 font-11 fw-bold text-primary"><i class="ri-shield-user-line me-1"></i> Responsable del Proyecto</h5>
@@ -323,6 +330,7 @@
                                             <tr>
                                                 <th class="text-center px-1 px-md-2" style="width: 40px;" title="Estatus">Estado</th>
                                                 <th style="min-width: 180px;">Actividad (Panel)</th>
+                                                <th class="d-none d-lg-table-cell">Doc. Referencia</th>
                                                 <th class="d-none d-lg-table-cell">Área</th>
                                                 <th class="d-none d-md-table-cell">Responsable</th>
                                                 <th class="text-center px-1 px-md-2" title="Evidencia"><i class="ri-file-list-3-line font-16 text-primary"></i></th>
@@ -382,8 +390,8 @@
                                                                             <span class="input-group-text bg-light border-0 ps-1 pe-0 text-muted" style="font-size: 10px;">
                                                                                 <i class="ri-upload-cloud-line"></i>
                                                                             </span>
-                                                                            <%= f.datetime_local_field :evidence_uploaded_at, 
-                                                                                value: activity.evidence_uploaded_at.strftime('%Y-%m-%dT%H:%M'),
+                                                                            <%= f.date_field :evidence_uploaded_at, 
+                                                                                value: activity.evidence_uploaded_at ? activity.evidence_uploaded_at.strftime("%Y-%m-%d") : Date.current.to_s,
                                                                                 class: "form-control form-control-sm border-0 bg-light text-muted font-10 shadow-none",
                                                                                 onchange: "this.form.submit()",
                                                                                 style: "padding-left: 5px; cursor: pointer;" %>
@@ -396,6 +404,10 @@
                                                                 <% end %>
                                                             </div>
                                                         <% end %>
+                                                    </td>
+
+                                                    <td class="d-none d-lg-table-cell">
+                                                        <span class="font-10 text-uppercase text-primary"><%= activity.document_ref %></span>
                                                     </td>
                                                     
                                                     <td class="d-none d-lg-table-cell">
@@ -456,7 +468,7 @@
                                                                     <input type="checkbox" 
                                                                         class="form-check-input shadow-none cursor-pointer <%= activity.user_approved ? 'bg-success border-success' : 'border-warning' %>" 
                                                                         <%= 'checked' if activity.user_approved %> 
-                                                                        onchange="this.form.submit()"
+                                                                        onchange="handleUserApproval(this, '<%= escape_javascript activity.name %>')"
                                                                         <%= 'disabled' if user_cb_disabled %>
                                                                         <%= "data-bs-toggle='tooltip' title='Poder Admin: Aprobación forzada habilitada sin evidencia'".html_safe if current_user.role == 'admin' && missing_evidence && !user_cb_disabled %>>
                                                                 </div>
@@ -472,7 +484,7 @@
                                                                     <input type="checkbox" 
                                                                         class="form-check-input shadow-none cursor-pointer <%= activity.admin_approved ? 'bg-success border-success' : 'border-warning' %>" 
                                                                         <%= 'checked' if activity.admin_approved %> 
-                                                                        onchange="confirmarDesaprobacionAdmin(this, '<%= j activity.name %>')"
+                                                                        onchange="handleAdminApproval(this, '<%= escape_javascript activity.name %>')"
                                                                         <%= 'disabled' unless current_user.role == 'admin' && activity.user_approved %>>
                                                                 </div>
                                                             <% end %>
@@ -505,9 +517,12 @@
                                                                             <i class="ri-edit-line me-1"></i> Editar
                                                                         <% end %>
                                                                         
-                                                                        <%= link_to client_project_activity_path(@client, @project, activity), 
-                                                                            data: { turbo_method: :delete, turbo_confirm: "¿Eliminar actividad?" }, class: "dropdown-item text-danger font-13" do %>
-                                                                            <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                                                        <%= button_to client_project_activity_path(@client, @project, activity), 
+                                                                                    method: :delete, 
+                                                                                    form_class: "m-0", 
+                                                                                    class: "dropdown-item text-danger font-13 w-100 text-start bg-transparent border-0", 
+                                                                                    onclick: "confirmDeleteActivity(event, this.form, '#{escape_javascript(activity.name)}');" do %>
+                                                                        <i class="ri-delete-bin-line me-1"></i> Eliminar
                                                                         <% end %>
                                                                     <% end %>
                                                                 <% end %>
@@ -671,6 +686,10 @@
     </div>
 </div>
 
+<%# ========================================== %>
+<%# MODAL DE EVIDENCIA                 %>
+<%# ========================================== %>
+
 <div class="modal fade" id="uploadEvidenceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content shadow-lg border-0">
@@ -690,12 +709,20 @@
         <div class="modal-body p-4">
           <p class="mb-1 text-muted font-12 uppercase fw-bold">Actividad:</p>
           <h5 id="modalActivityName" class="text-primary mt-0 mb-4"></h5>
+          
           <div class="alert alert-info border-0 font-13 mb-4">
             <i class="ri-information-line me-1"></i> Adjuntar la evidencia habilitará el proceso de aprobación para el cliente.
           </div>
+          
+          <%# --- NUEVO CAMPO DE FECHA --- %>
+          <div class="mb-3">
+            <label class="form-label font-13 fw-bold">Fecha de la Evidencia</label>
+            <%= f.date_field :evidence_date, class: "form-control shadow-none font-13", required: true, value: Date.current.to_s %>
+          </div>
+
           <div class="mb-3">
             <label class="form-label font-13 fw-bold">Archivo de Evidencia</label>
-            <%= f.file_field :evidence, class: "form-control", required: true %>
+            <%= f.file_field :evidence, class: "form-control shadow-none font-13", required: true %>
           </div>
         </div>
         <div class="modal-footer bg-light">
@@ -712,10 +739,60 @@
         <div class="modal-content shadow-lg border-0" id="modalActivityDetailContent">
             <div class="modal-body text-center p-5">
                 <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted fw-bold">Conectando con el Centro de Mando...</p>
+                <p class="mt-2 text-muted fw-bold">Generando...</p>
             </div>
         </div>
     </div>
+</div>
+
+
+<%# --- MODAL DE INVITACIÓN --- %>
+<div class="modal fade" id="inviteUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0 text-start">
+      <div class="modal-header bg-primary p-3 text-white">
+        <h5 class="modal-title"><i class="ri-user-add-line me-1"></i> Invitar Usuario a <%= @client.company_name %></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <%= form_for(User.new, url: user_invitation_path, html: { method: :post, class: "p-3" }) do |f| %>
+        <%= f.hidden_field :client_id, value: @client.id %>
+        <div class="modal-body p-0 text-start">
+          <div class="row g-2 mb-3">
+            <div class="col-md-6 text-start">
+              <label class="form-label font-13 fw-bold text-dark">Nombre</label>
+              <%= f.text_field :first_name, class: "form-control", placeholder: "Ej. Juan", required: true %>
+            </div>
+            <div class="col-md-6 text-start">
+              <label class="form-label font-13 fw-bold text-dark">Apellido</label>
+              <%= f.text_field :last_name, class: "form-control", placeholder: "Ej. Pérez", required: true %>
+            </div>
+          </div>
+          <div class="mb-3 text-start">
+            <label class="form-label font-13 fw-bold text-dark">Correo Electrónico</label>
+            <%= f.email_field :email, class: "form-control", placeholder: "usuario@dominio.com", required: true %>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6 text-start">
+              <label class="form-label font-13 fw-bold text-dark">Rol de Sistema</label>
+              <%= f.select :role, [['Usuario (Estándar)', 'user'], ['Administrador', 'admin']], {}, class: "form-select" %>
+            </div>
+            <div class="col-md-6 text-start">
+              <label class="form-label font-13 fw-bold text-dark">Empresa</label>
+              <input type="text" class="form-control bg-light" value="<%= @client.company_name %>" disabled>
+            </div>
+          </div>
+          <div class="mb-0 text-start">
+            <label class="form-label font-13 fw-bold text-dark">Puesto / Cargo</label>
+            <%= f.text_field :job_title, class: "form-control", placeholder: "Ej. Gerente Comercial" %>
+          </div>
+        </div>
+        <div class="modal-footer px-0 pb-0 pt-3">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <%= f.submit "Enviar Invitación", class: "btn btn-primary px-4 shadow-sm" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -922,6 +999,117 @@
 
                 document.body.appendChild(form);
                 form.submit();
+            }
+        });
+    }
+
+    function confirmDeleteActivity(event, form, activityName) {
+        // 1. Detenemos el envío automático del formulario
+        event.preventDefault();
+
+        // 2. Lanzamos el SweetAlert
+        Swal.fire({
+            title: '¿Eliminar actividad?',
+            text: `Estás a punto de eliminar "${activityName}". Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545', // Rojo de Bootstrap para acciones destructivas
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="ri-delete-bin-line"></i> Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // 3. Si confirma, disparamos el envío. 
+                // Usamos requestSubmit() en lugar de submit() para que Turbo lo intercepte correctamente.
+                form.requestSubmit();
+            }
+        });
+    }
+
+    // Maneja el toggle del Cliente
+    function handleUserApproval(checkbox, activityName) {
+        if (checkbox.checked) {
+            promptForApprovalDate(checkbox, activityName);
+        } else {
+            // Si desmarca, enviamos el formulario normal para revocar
+            checkbox.form.requestSubmit();
+        }
+    }
+
+    // Maneja el toggle del Admin (Consilium)
+    function handleAdminApproval(checkbox, activityName) {
+        if (checkbox.checked) {
+            promptForApprovalDate(checkbox, activityName);
+        } else {
+            // Si desmarca, preguntamos si está seguro de revocar (como lo tenías antes)
+            Swal.fire({
+                title: '¿Revocar validación?',
+                text: `Se quitará la validación final a "${activityName}".`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, revocar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    checkbox.form.requestSubmit();
+                } else {
+                    checkbox.checked = true; // Revertimos visualmente
+                }
+            });
+        }
+    }
+
+    // El Modal SweetAlert que pide la fecha
+    function promptForApprovalDate(checkbox, activityName) {
+        Swal.fire({
+            title: 'Confirmar Aprobación',
+            html: `
+                <div class="text-start mt-3">
+                    <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Fecha de la autorización</label>
+                    <select id="swal-days-after" class="form-select font-13 shadow-none border-success">
+                        <option value="0">Mismo día que la actividad</option>
+                        <option value="1">1 día después</option>
+                        <option value="2">2 días después</option>
+                        <option value="3">3 días después</option>
+                        <option value="5">5 días después</option>
+                        <option value="7">1 semana después</option>
+                        <option value="15">15 días después</option>
+                    </select>
+                </div>
+            `,
+            icon: 'success',
+            showCancelButton: true,
+            confirmButtonColor: '#0acf97',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="ri-check-line"></i> Autorizar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true,
+            preConfirm: () => {
+                return document.getElementById('swal-days-after').value;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                let form = checkbox.form;
+                
+                // Limpiamos si ya existía el input oculto por clics anteriores
+                let existingInput = form.querySelector('input[name="days_after"]');
+                if (existingInput) existingInput.remove();
+
+                // Creamos un input oculto con los días elegidos y lo inyectamos al formulario
+                let hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'days_after';
+                hiddenInput.value = result.value;
+                form.appendChild(hiddenInput);
+                
+                // Disparamos el envío a Rails
+                form.requestSubmit();
+            } else {
+                // Si le da a cancelar, regresamos el switch/checkbox a apagado
+                checkbox.checked = false;
             }
         });
     }

@@ -9,10 +9,10 @@ class ActivitiesController < ApplicationController
   ]
 
   before_action :authorize_lider_or_senior!, only: [
-    :new, :create, :update, :destroy, :toggle
+    :new, :create, :update, :destroy, :toggle, :destroy_log
   ]
 
-  before_action :check_stage_lock_on_activity!, only: [ :update_status, :toggle_user_approval, :upload_evidence ]
+  before_action :check_stage_lock_on_activity!, only: [ :update_status, :toggle_user_approval, :upload_evidence, :destroy_log ]
 
   def new
     @activity = @project.activities.build
@@ -71,6 +71,15 @@ class ActivitiesController < ApplicationController
     redirect_to client_project_path(@client, @project), notice: "Actividad eliminada."
   end
 
+  def destroy_log
+    # Buscamos solo el log específico porque @client, @project y @activity
+    # ya vienen cargados gracias a set_context
+    @log = @activity.activity_logs.find(params[:log_id])
+    @log.destroy
+
+    redirect_to client_project_path(@client, @project), notice: "Registro eliminado del historial."
+  end
+
   # ====================================================================
   # MAGIA 1: Checkbox rápido unificado
   # ====================================================================
@@ -96,25 +105,38 @@ class ActivitiesController < ApplicationController
   end
 
   def upload_evidence
-    if params[:activity] && params[:activity][:evidence].present?
+    # Verificamos que traiga el archivo y además la nueva fecha
+    if params[:activity] && params[:activity][:evidence].present? && params[:activity][:evidence_date].present?
+
+      # 1. Transformamos el texto de la fecha (ej: "2026-06-15") a un objeto de tiempo seguro
+      fecha_seleccionada = Time.zone.parse(params[:activity][:evidence_date])
+
       @activity.evidence.attach(params[:activity][:evidence])
 
+      # 2. Actualizamos la actividad aplicando la fecha seleccionada
       @activity.update(
         completed: true,
         user: current_user,
-        completed_day: @activity.created_at.day,
-        evidence_uploaded_at: @activity.created_at
+        completed_day: fecha_seleccionada.day,         # <- Usamos el día seleccionado
+        evidence_uploaded_at: fecha_seleccionada       # <- Usamos la fecha seleccionada
       )
 
-      @activity.activity_logs.create!(
+      # 3. Creamos el log en el historial
+      log = @activity.activity_logs.create!(
         user: current_user,
         status: "pending",
-        comment: "📁 Subió la evidencia formal de la actividad (Sellado con fecha de registro)."
+        comment: "📁 Subió la evidencia formal de la actividad."
       )
 
-      redirect_to client_project_path(@client, @project), notice: "Evidencia cargada y registrada con fecha base."
+      # 4. Magia de update_columns para que el registro del chat/historial asuma la misma fecha
+      log.update_columns(
+        created_at: fecha_seleccionada,
+        updated_at: fecha_seleccionada
+      )
+
+      redirect_to client_project_path(@client, @project), notice: "Evidencia cargada y registrada con la fecha seleccionada."
     else
-      redirect_to client_project_path(@client, @project), alert: "Debes adjuntar un archivo."
+      redirect_to client_project_path(@client, @project), alert: "Debes adjuntar un archivo y seleccionar una fecha."
     end
   end
 
@@ -142,17 +164,31 @@ class ActivitiesController < ApplicationController
     update_params = { status: new_status }
     update_params[:completed] = [ "approved", "completed" ].include?(new_status)
 
+    # 1. Mantenemos tu lógica ORIGINAL intacta para la evidencia
     if update_params[:completed] && @activity.evidence_uploaded_at.nil?
       update_params[:evidence_uploaded_at] = @activity.created_at
       update_params[:completed_day] = @activity.created_at.day
     end
 
     if @activity.update(update_params)
+      # 2. Creamos el registro del panel de actividad de manera normal
       log = @activity.activity_logs.create!(
         user: current_user,
         status: new_status.to_s,
         comment: comment
       )
+
+      # 3. Calculamos la nueva fecha basándonos en los días seleccionados en el select_tag
+      if params[:days_after].present?
+        dias_a_sumar = params[:days_after].to_i
+        nueva_fecha_log = @activity.created_at + dias_a_sumar.days
+
+        # 4. Inyectamos la nueva fecha ÚNICAMENTE al log (panel de actividad)
+        log.update_columns(
+          created_at: nueva_fecha_log,
+          updated_at: nueva_fecha_log
+        )
+      end
 
       log.attachments.attach(params[:attachments]) if params[:attachments].present?
 
@@ -167,7 +203,15 @@ class ActivitiesController < ApplicationController
   # ====================================================================
   def toggle_user_approval
     new_state = !@activity.user_approved
-    updates = { user_approved: new_state, user_approved_at: new_state ? Time.current : nil }
+
+    # 1. Determinamos la fecha: Si está aprobando y mandó días, los sumamos. Si no, usamos la fecha actual.
+    action_date = Time.current
+    if new_state && params[:days_after].present?
+      action_date = @activity.created_at + params[:days_after].to_i.days
+    end
+
+    # 2. Asignamos la fecha correcta al campo de aprobación
+    updates = { user_approved: new_state, user_approved_at: new_state ? action_date : nil }
 
     # Si el cliente retira su aprobación, se cae todo lo demás y se reabre la tarea
     if !new_state
@@ -179,8 +223,18 @@ class ActivitiesController < ApplicationController
 
     @activity.update(updates)
 
+    # 3. Creamos el log capturándolo en una variable
     action_text = new_state ? "✅ Aprobó formalmente" : "↩️ Revocó la aprobación de"
-    @activity.activity_logs.create!(user: current_user, status: (new_state ? "approved" : "pending"), comment: "#{action_text} la actividad como cliente.")
+    log = @activity.activity_logs.create!(
+      user: current_user,
+      status: (new_state ? "approved" : "pending"),
+      comment: "#{action_text} la actividad como cliente."
+    )
+
+    # 4. Magia de update_columns: Solo alteramos la fecha del log si se estaba aprobando
+    if new_state && params[:days_after].present?
+      log.update_columns(created_at: action_date, updated_at: action_date)
+    end
 
     redirect_back fallback_location: client_project_path(@client, @project), notice: "Aprobación de cliente actualizada."
   end
@@ -192,7 +246,14 @@ class ActivitiesController < ApplicationController
     if current_user.role == "admin"
       new_state = !@activity.admin_approved
 
-      updates = { admin_approved: new_state, admin_approved_at: new_state ? Time.current : nil }
+      # 1. Determinamos la fecha simulada
+      action_date = Time.current
+      if new_state && params[:days_after].present?
+        action_date = @activity.created_at + params[:days_after].to_i.days
+      end
+
+      # 2. Asignamos la fecha correcta al campo de aprobación
+      updates = { admin_approved: new_state, admin_approved_at: new_state ? action_date : nil }
 
       # Si el Admin retira el visto bueno, forzamos a que la actividad se marque como Incompleta
       if !new_state
@@ -205,8 +266,18 @@ class ActivitiesController < ApplicationController
 
       @activity.update(updates)
 
+      # 3. Creamos el log capturándolo en una variable
       action_text = new_state ? "🛡️ Otorgó" : "↩️ Retiró"
-      @activity.activity_logs.create!(user: current_user, status: (new_state ? "approved" : "pending"), comment: "#{action_text} el Visto Bueno definitivo (Admin).")
+      log = @activity.activity_logs.create!(
+        user: current_user,
+        status: (new_state ? "approved" : "pending"),
+        comment: "#{action_text} el Visto Bueno definitivo (Admin)."
+      )
+
+      # 4. Magia de update_columns: Solo alteramos la fecha del log si se estaba aprobando
+      if new_state && params[:days_after].present?
+        log.update_columns(created_at: action_date, updated_at: action_date)
+      end
 
       redirect_back fallback_location: client_project_path(@client, @project), notice: "Aprobación administrativa actualizada."
     else

@@ -26,9 +26,7 @@
                 <h5 class="m-0 font-14 fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">
                     <i class="ri-history-line me-1 text-primary"></i> Historial de Seguimiento
                 </h5>
-                <span class="badge bg-soft-primary text-primary font-11 rounded-pill px-2 py-1">
-                    Actualizado hace <%= time_ago_in_words(activity.updated_at) %>
-                </span>
+                
             </div>
             
             <div class="timeline-scroll-area pe-2" style="height: 550px; overflow-y: auto; overflow-x: hidden; padding-left: 15px;" data-simplebar>
@@ -50,7 +48,24 @@
                                 <div class="timeline-item-info border-start border-3 p-3 bg-light bg-opacity-50 rounded" style="border-color: <%= dot_color %> !important; margin-top: -5px;">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                         <h6 class="m-0 fw-bold text-dark font-13"><%= log.user.full_name %></h6>
-                                        <small class="text-muted font-10 uppercase"><%= log.created_at.strftime("%H:%M · %d/%m/%y") %></small>
+
+                                        <div class="d-flex align-items-center gap-2">
+                                            <small class="text-muted font-10 uppercase"><%= log.created_at.strftime("%d/%m/%y") %></small>
+                                            
+                                            <%# BOTÓN DE BORRAR (Solo visible para quien lo creó o admins) %>
+                                            <%= button_to destroy_log_client_project_activity_path(@client, @project, activity, log_id: log.id), 
+                                                        method: :delete, 
+                                                        form_class: "m-0 d-inline-flex", 
+                                                        class: "bg-transparent border-0 p-0 text-danger opacity-75 shadow-none",
+                                                        style: "transition: opacity 0.2s;",
+                                                        onmouseover: "this.style.opacity='1'",
+                                                        onmouseout: "this.style.opacity='0.75'",
+                                                        onclick: "return confirm('¿Eliminar este registro del historial?');",
+                                                        title: "Eliminar registro" do %>
+                                                <i class="ri-delete-bin-line font-14"></i>
+                                            <% end %>
+                                        </div>
+
                                     </div>
                                     <p class="text-secondary font-13 mb-0 lh-sm"><%= log.comment.gsub(/📁|✅|🛡️|↩️/, '').strip %></p>
                                     
@@ -110,7 +125,7 @@
                         <%= form_with url: toggle_user_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: false do %>
                             <div class="form-check form-switch m-0">
                                 <input type="checkbox" class="form-check-input cursor-pointer" style="width: 2.5em; height: 1.2em;"
-                                    <%= 'checked' if activity.user_approved %> onchange="this.form.submit()"
+                                    <%= 'checked' if activity.user_approved %> onchange="handleUserApproval(this, '<%= escape_javascript activity.name %>')"
                                     <%= 'disabled' if (is_locked || activity.admin_approved || !activity.evidence.attached?) && !is_admin %>>
                             </div>
                         <% end %>
@@ -131,7 +146,7 @@
                         <%= form_with url: toggle_admin_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: false do %>
                             <div class="form-check form-switch m-0">
                                 <input type="checkbox" class="form-check-input border-danger cursor-pointer shadow-none" style="width: 2.5em; height: 1.2em;"
-                                    <%= 'checked' if activity.admin_approved %> onchange="this.form.submit()"
+                                    <%= 'checked' if activity.admin_approved %> onchange="handleAdminApproval(this, '<%= escape_javascript activity.name %>')"
                                     <%= 'disabled' unless is_admin && activity.user_approved %>>
                             </div>
                         <% end %>
@@ -214,6 +229,18 @@
                             <div id="status-instructions" class="font-10 text-muted italic mt-1 lh-sm" style="min-height: 25px; transition: all 0.2s;">
                                 Pasa el mouse sobre un estatus para ver su función.
                             </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Fecha de la acción</label>
+                            <%= select_tag :days_after, options_for_select([
+                                ['Mismo día que la actividad', 0],
+                                ['1 día después', 1],
+                                ['2 días después', 2],
+                                ['3 días después', 3],
+                                ['5 días después', 5],
+                                ['1 semana después', 7],
+                                ['15 días después', 15]
+                            ], 0), class: "form-select font-13 shadow-none" %>
                         </div>
                         <%= f.submit "Guardar", class: "btn btn-primary w-100 btn-sm shadow fw-bold text-uppercase py-2" %>
                     <% end %>
