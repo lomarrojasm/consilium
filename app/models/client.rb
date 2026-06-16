@@ -1,6 +1,6 @@
 class Client < ApplicationRecord
   include TimelineRecordable # <--- Para Timeline
-  #Imagen de Ciente
+  # Imagen de Ciente
   has_one_attached :avatar
   has_one_attached :contract
 
@@ -18,24 +18,30 @@ class Client < ApplicationRecord
   enum :membership, { basica: 0, gold: 1, platinum: 2 }, default: :basica
 
   # VALIDACIONES
-  # Validamos solo lo esencial para no trabar el registro, 
+  # Validamos solo lo esencial para no trabar el registro,
   # pero el RFC debe ser único para evitar duplicados.
   validates :company_name, presence: true
   validates :rfc, presence: true, uniqueness: { case_sensitive: false }
-  
+
   # OPCIONAL: Normalizar datos antes de guardar
   before_save :upcase_rfc
+  before_destroy :force_clean_ghost_logs
 
   private
+
+  def force_clean_ghost_logs
+    # delete_all ejecuta una consulta SQL directa y fulminante
+    # garantizando que no quede nada antes de que MySQL evalúe la eliminación.
+    TimelineLog.where(client_id: self.id).delete_all
+  end
 
   def upcase_rfc
     self.rfc = rfc.upcase if rfc.present?
   end
 
   def correct_avatar_mime_type
-    if avatar.attached? && !avatar.content_type.in?(%w(image/jpeg image/png))
-      errors.add(:avatar, 'debe ser un archivo JPG o PNG')
+    if avatar.attached? && !avatar.content_type.in?(%w[image/jpeg image/png])
+      errors.add(:avatar, "debe ser un archivo JPG o PNG")
     end
   end
-  
 end
