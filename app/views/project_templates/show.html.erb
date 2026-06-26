@@ -84,7 +84,7 @@
                                         aria-expanded="false" aria-controls="collapse<%= stage.id %>">
                                     <div class="d-flex align-items-center">
                                         <span class="badge bg-soft-primary text-primary me-3 font-11 px-2 py-1 rounded-pill">Etapa <%= stage.position %></span>
-                                        <span class="font-14"><%= stage.name %></span>
+                                        <span class="font-14 pe-1"><%= stage.name %></span> - <span class="ps-1 text-primary font-10"> <%= stage.activity_templates.size %> actividades </span>
                                     </div>
                                     <i class="ri-arrow-down-s-line font-22 text-muted accordion-arrow ms-3"></i>
                                 </button>
@@ -110,7 +110,7 @@
                                 <table class="table table-sm table-centered table-hover table-nowrap mb-0 font-12">
                                     <thead class="table-light bg-opacity-50">
                                         <tr>
-                                            <th style="width: 8%;" class="ps-4 text-muted text-uppercase font-10 tracking-wider">Tiempos</th>
+                                            <th style="width: 8%;" class="ps-4 text-muted text-uppercase font-10 tracking-wider text-center">Tiempos</th>
                                             <th style="width: 25%;" class="text-muted text-uppercase font-10 tracking-wider">Actividad</th>
                                             <th style="width: 15%;" class="text-muted text-uppercase font-10 tracking-wider">Área Principal</th>
                                             <th style="width: 15%;" class="text-muted text-uppercase font-10 tracking-wider">Referencia</th>
@@ -123,8 +123,8 @@
                                         <% if stage.activity_templates.any? %>
                                             <% stage.activity_templates.each do |activity| %>
                                                 <tr>
-                                                    <td class="ps-4">
-                                                        <span class="badge badge-outline-secondary font-10">M<%= activity.month %> - S<%= activity.week %></span>
+                                                    <td class="ps-4 text-center">
+                                                        <span class="badge badge-outline-primary font-10"><%= activity.created_at.strftime("%d/%m/%Y") %></span><br><span class="badge badge-outline-info font-10">M<%= activity.month %> - S<%= activity.week %></span>
                                                     </td>
                                                     <td class="fw-bold text-dark text-wrap"><%= activity.name %></td>
                                                     <td><span class="badge bg-soft-info text-info font-10"><%= activity.area %></span></td>
@@ -246,7 +246,7 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Nombre de la Tarea</label>
-                                <%= f.text_field :name, class: "form-control font-13 fw-bold shadow-none", required: true %>
+                                <%= f.text_area :name, class: "form-control font-13 fw-bold shadow-none", required: true %>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Área Principal</label>
@@ -348,7 +348,7 @@
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Nombre de la Tarea</label>
-              <%= f.text_field "activity_template[name]", id: "modal_name", class: "form-control font-13 fw-bold shadow-none", required: true %>
+              <%= f.text_area "activity_template[name]", id: "modal_name", class: "form-control font-13 fw-bold shadow-none", rows: 6, required: true %>
             </div>
             <div class="col-md-3">
               <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Área Principal</label>

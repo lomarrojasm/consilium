@@ -1,4 +1,3 @@
-# app/controllers/project_templates_controller.rb
 class ProjectTemplatesController < ApplicationController
   before_action :authenticate_user!
   before_action :authorize_admin! # Asumo que solo los administradores pueden editar metodologías
@@ -29,20 +28,109 @@ class ProjectTemplatesController < ApplicationController
   end
 
   def create
-    # Si el usuario seleccionó una plantilla base para clonar
-    if params[:base_template_id].present?
-      base_template = ProjectTemplate.find(params[:base_template_id])
-
+    # 1. IMPORTAR DESDE EXCEL
+    if params[:excel_file].present?
       begin
         ProjectTemplate.transaction do
-          # 1. Copiamos la base
+          # Creamos la plantilla base
+          @project_template = ProjectTemplate.create!(
+            name: params[:project_template][:name],
+            description: params[:project_template][:description]
+          )
+
+          stages_definitions = [
+            "Etapa 1 - Alinear y Diagnosticar",
+            "Etapa 2 - Ordenar y Controlar",
+            "Etapa 3 - Estandarizar y Profesionalizar",
+            "Etapa 4 - Mejora Continua y Consolidación",
+            "Etapa 5 - Optimización y Escalamiento",
+            "Etapa 6 - Excelencia Operativa",
+            "Etapa 7 - Expansión Estratégica e Innovación",
+            "Etapa 8 - Institucionalización y Permanencia"
+          ]
+
+          stages_hash = {}
+          stages_definitions.each_with_index do |name, i|
+            stages_hash[i + 1] = @project_template.stage_templates.find_or_create_by!(position: i + 1, name: name)
+          end
+
+          file = params[:excel_file]
+          spreadsheet = Roo::Spreadsheet.open(file.tempfile.path, extension: :xlsx)
+          sheet = spreadsheet.sheet(0)
+
+          (2..sheet.last_row).each_with_index do |row_num, index|
+            row = sheet.row(row_num)
+
+            stage_num = row[0].to_i
+            mes       = row[1].to_i
+            semana    = row[2].to_i
+            nombre    = row[3].to_s.strip
+            doc_ref   = row[4].to_s.strip
+            areas_raw = row[5].to_s.strip
+            area_principal = areas_raw.split(",").first.to_s.strip
+
+            tar_l = row[6].to_f
+            tar_s = row[7].to_f
+            tar_a = row[8].to_f
+            hrs_l = row[9].to_f
+            hrs_s = row[10].to_f
+            hrs_a = row[11].to_f
+
+            # Recuperamos la fecha de la columna M
+            fecha_fija = row[12]
+
+            costo_calc = (tar_l * hrs_l) + (tar_s * hrs_s) + (tar_a * hrs_a)
+
+            target_stage = stages_hash[stage_num]
+
+            if target_stage
+              # Guardamos en variable para poder actualizarla después
+              actividad = target_stage.activity_templates.create!(
+                activity_number: semana,
+                name: nombre,
+                month: mes,
+                week: semana,
+                document_ref: doc_ref,
+                area: area_principal,
+                activity_cost: costo_calc,
+                leader_rate: tar_l,
+                senior_rate: tar_s,
+                analyst_rate: tar_a,
+                leader_hours: hrs_l,
+                senior_hours: hrs_s,
+                analyst_hours: hrs_a,
+                position: index
+              )
+
+              # --- FIX: Inyección de Fecha Forzada ---
+              if fecha_fija.present?
+                # Parseamos la fecha por seguridad para que la base de datos la acepte perfecto
+                fecha_parseada = Time.zone.parse(fecha_fija.to_s) rescue fecha_fija
+                actividad.update_columns(created_at: fecha_parseada, updated_at: fecha_parseada)
+              end
+            end
+          end
+        end
+        redirect_to @project_template, notice: "Plantilla creada e importada desde Excel exitosamente."
+      rescue StandardError => e
+        # ESTO FORZARÁ EL ERROR ROJO EN EL NAVEGADOR Y LA TERMINAL SI ALGO FALLA
+        puts "🔴" * 20
+        puts "ERROR AL IMPORTAR FILA DE EXCEL:"
+        puts e.message
+        puts "🔴" * 20
+        raise e
+      end
+
+    # 2. CLONAR DESDE PLANTILLA BASE EXISTENTE
+    elsif params[:base_template_id].present?
+      base_template = ProjectTemplate.find(params[:base_template_id])
+      begin
+        ProjectTemplate.transaction do
           @project_template = base_template.dup
-          # 2. Sobrescribimos el nombre y descripción con los que el usuario escribió en el modal
-          @project_template.name = project_template_params[:name]
-          @project_template.description = project_template_params[:description]
+          @project_template.name = params[:project_template][:name]
+          @project_template.description = params[:project_template][:description]
           @project_template.save!
 
-          # 3. Clonamos las etapas y sus tareas
           base_template.stage_templates.each do |original_stage|
             new_stage = original_stage.dup
             new_stage.project_template = @project_template
@@ -52,15 +140,21 @@ class ProjectTemplatesController < ApplicationController
               new_activity = original_activity.dup
               new_activity.stage_template = new_stage
               new_activity.save!
+
+              # Conservar fechas al clonar
+              new_activity.update_columns(
+                created_at: original_activity.created_at,
+                updated_at: original_activity.updated_at
+              )
             end
           end
         end
         redirect_to @project_template, notice: "Plantilla '#{@project_template.name}' creada exitosamente a partir de un clon."
       rescue StandardError => e
-        redirect_to project_templates_path, alert: "Hubo un error al clonar la metodología: #{e.message}"
+         redirect_to project_templates_path, alert: "Hubo un error al clonar: #{e.message}"
       end
 
-    # Si el usuario eligió "Lienzo en blanco"
+    # 3. LIENZO EN BLANCO
     else
       @project_template = ProjectTemplate.new(project_template_params)
       if @project_template.save

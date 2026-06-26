@@ -11,7 +11,7 @@
         <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
       </div>
 
-      <%= form_with(model: project_template, local: true, class: "p-3") do |f| %>
+      <%= form_with(model: project_template, local: true, multipart: true, class: "p-3") do |f| %>
         <div class="modal-body p-0 text-start">
           
           <div class="mb-3">
@@ -24,18 +24,33 @@
             <%= f.text_area :description, class: "form-control font-13 shadow-none", rows: 2, placeholder: "Describe el propósito de esta versión..." %>
           </div>
 
-          <%# --- SELECTOR DE CLONACIÓN (Solo para nuevas plantillas) --- %>
-          <% if project_template.new_record? && ProjectTemplate.any? %>
+          <%# --- SELECTOR DE CLONACIÓN / IMPORTACIÓN (Solo para nuevas plantillas) --- %>
+          <% if project_template.new_record? %>
             <div class="bg-light p-3 rounded-3 mt-4 border border-light">
               <label class="form-label font-12 fw-bold text-primary text-uppercase tracking-wider mb-2">
-                <i class="ri-file-copy-line me-1"></i> Origen de Datos (Opcional)
+                <i class="ri-settings-3-line me-1"></i> Origen de Datos
               </label>
-              <p class="text-muted font-11 mb-2">Puedes empezar desde cero o clonar las etapas y tareas de una metodología existente.</p>
+              <p class="text-muted font-11 mb-3">Elige <strong>solo una</strong> de las siguientes opciones. Si dejas ambas vacías, se creará un lienzo en blanco.</p>
+
+              <%# OPCIÓN 1: EXCEL %>
+              <div class="mb-3 p-2 border border-success border-opacity-25 rounded bg-white">
+                <label class="form-label fw-bold font-12 text-success"><i class="ri-file-excel-2-line me-1"></i> 1. Importar desde Excel</label>
+                <%# Usamos _tag porque :excel_file va directo al controlador en params[:excel_file], no a la base de datos %>
+                <%= file_field_tag :excel_file, class: "form-control form-control-sm font-12 shadow-none", accept: ".xlsx, .xls" %>
+                <div class="form-text font-10">El archivo debe contener las columnas en el orden exacto.</div>
+              </div>
               
-              <%= select_tag :base_template_id, 
-                    options_from_collection_for_select(ProjectTemplate.order(created_at: :desc), :id, :name), 
-                    include_blank: "Lienzo en blanco (Empezar desde cero)", 
-                    class: "form-select font-13 shadow-none border-primary border-opacity-25" %>
+              <%# OPCIÓN 2: CLONAR %>
+              <% if ProjectTemplate.any? %>
+                <div class="p-2 border border-primary border-opacity-25 rounded bg-white">
+                  <label class="form-label fw-bold font-12 text-primary"><i class="ri-file-copy-2-line me-1"></i> 2. Clonar Plantilla Existente</label>
+                  <%= select_tag :base_template_id, 
+                        options_from_collection_for_select(ProjectTemplate.order(created_at: :desc), :id, :name), 
+                        include_blank: "Selecciona una plantilla base...", 
+                        class: "form-select form-select-sm font-12 shadow-none" %>
+                  <div class="form-text font-10">Ignora esta opción si subiste un Excel.</div>
+                </div>
+              <% end %>
             </div>
           <% end %>
 

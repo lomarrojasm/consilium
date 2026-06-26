@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_16_154503) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_24_181643) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -40,7 +40,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_16_154503) do
   end
 
   create_table "activities", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
-    t.string "name"
+    t.text "name"
     t.boolean "completed"
     t.bigint "stage_id", null: false
     t.integer "month"
@@ -92,7 +92,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_16_154503) do
 
   create_table "activity_templates", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "stage_template_id", null: false
-    t.string "name"
+    t.text "name"
     t.string "document_ref"
     t.string "area"
     t.integer "month"

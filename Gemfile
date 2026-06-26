@@ -5,7 +5,7 @@ gem "rails", "~> 8.0.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use sqlite3 as the database for Active Record
-gem 'mysql2'
+gem "mysql2"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
@@ -37,7 +37,7 @@ gem "kamal", require: false
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 
-# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
+  # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
   gem "image_processing", "~> 1.2"
 
 group :development, :test do
@@ -62,26 +62,27 @@ group :test do
   gem "selenium-webdriver"
 end
 
-gem 'sass-rails', '~> 6.0'
+gem "sass-rails", "~> 6.0"
 
 
 # Gemas para la app
 
-gem 'devise'
-gem 'devise_invitable'
+gem "devise"
+gem "devise_invitable"
 gem "pretender"
 
-#Traducción
-gem 'rails-i18n'
+# Traducción
+gem "rails-i18n"
 
 gem "redis"
 
 gem "bootstrap", "~> 5.3.3"
 gem "grover", "~> 1.2"
-gem 'roo'
+gem "roo", "~> 2.10"
+gem "csv"
 gem "parser", "~> 3.3"
 gem "unparser", "~> 0.9.0"
 
 gem "ruby-openai", "~> 8.3"
 
-gem "dotenv-rails", "~> 3.2", :groups => [:development, :test]
+gem "dotenv-rails", "~> 3.2", groups: [ :development, :test ]
