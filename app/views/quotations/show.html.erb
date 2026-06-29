@@ -207,11 +207,11 @@
               <%= form_with(model: @quotation, url: upload_invoice_client_project_quotation_path(@client, @project, @quotation), local: true) do |f| %>
                 <div class="mb-2">
                   <label class="form-label font-11 fw-bold text-dark text-uppercase tracking-wider">Factura (PDF)</label>
-                  <%= f.file_field :invoice_pdf, class: "form-control form-control-sm", accept: 'application/pdf', required: true %>
+                  <%= f.file_field :invoice_pdf, class: "form-control form-control-sm", accept: 'application/pdf'%>
                 </div>
                 <div class="mb-3">
                   <label class="form-label font-11 fw-bold text-dark text-uppercase tracking-wider">Factura (XML)</label>
-                  <%= f.file_field :invoice_xml, class: "form-control form-control-sm", accept: 'text/xml,application/xml', required: true %>
+                  <%= f.file_field :invoice_xml, class: "form-control form-control-sm", accept: 'text/xml,application/xml'%>
                 </div>
                 <button type="submit" class="btn btn-success btn-sm w-100 fw-bold shadow">
                   <i class="ri-upload-cloud-2-line me-1"></i> Emitir y Enviar al Cliente
@@ -239,23 +239,51 @@
               <%= @quotation.pagado? ? 'Esta transacción ha sido pagada y cerrada exitosamente en el Módulo Financiero.' : 'Las actividades fueron facturadas y enviadas. En espera de pago.' %>
             </p>
 
-            <div class="bg-white p-3 rounded border shadow-sm mb-3 text-start">
-              <p class="font-11 text-muted text-uppercase fw-bold tracking-wider mb-3"><i class="ri-folder-2-line me-1"></i> Comprobantes Fiscales Emitidos:</p>
-              
-              <div class="d-flex flex-column gap-2">
-                <% if @quotation.invoice_pdf.attached? %>
-                  <%= link_to rails_blob_path(@quotation.invoice_pdf, disposition: "attachment"), class: "btn btn-outline-danger btn-sm w-100 rounded-pill fw-bold" do %>
-                    <i class="ri-file-pdf-line me-1"></i> Descargar PDF
-                  <% end %>
-                <% end %>
-                <% if @quotation.invoice_xml.attached? %>
-                  <%= link_to rails_blob_path(@quotation.invoice_xml, disposition: "attachment"), class: "btn btn-outline-secondary btn-sm w-100 rounded-pill fw-bold" do %>
-                    <i class="ri-code-s-slash-line me-1"></i> Descargar XML
-                  <% end %>
+            <%# --- LA NUEVA MAGIA: FORMULARIO RESCATE SI FALTAN ARCHIVOS --- %>
+            <% if !@quotation.invoice_pdf.attached? || !@quotation.invoice_xml.attached? %>
+              <div class="alert alert-warning text-start shadow-sm border border-warning p-3 mb-3">
+                <p class="font-11 text-dark text-uppercase fw-bold tracking-wider mb-2">
+                  <i class="ri-alert-line me-1 text-danger"></i> Archivos Pendientes
+                </p>
+                <p class="font-11 text-muted mb-3">El estado es facturado, pero faltan documentos. Súbelos para notificar al cliente.</p>
+                
+                <%= form_with(model: @quotation, url: upload_invoice_client_project_quotation_path(@client, @project, @quotation), local: true) do |f| %>
+                  <div class="mb-2">
+                    <label class="form-label font-10 fw-bold text-dark text-uppercase tracking-wider">Falta PDF</label>
+                    <%= f.file_field :invoice_pdf, class: "form-control form-control-sm", accept: 'application/pdf'%>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label font-10 fw-bold text-dark text-uppercase tracking-wider">Falta XML</label>
+                    <%= f.file_field :invoice_xml, class: "form-control form-control-sm", accept: 'text/xml,application/xml'%>
+                  </div>
+                  <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold shadow-sm">
+                    <i class="ri-upload-cloud-2-line me-1"></i> Subir y Enviar Correo
+                  </button>
                 <% end %>
               </div>
-            </div>
+            <% end %>
 
+            <%# --- BÓVEDA ORIGINAL: SOLO SE MUESTRA LO QUE SÍ ESTÁ ADJUNTO --- %>
+            <% if @quotation.invoice_pdf.attached? || @quotation.invoice_xml.attached? %>
+              <div class="bg-white p-3 rounded border shadow-sm mb-3 text-start">
+                <p class="font-11 text-muted text-uppercase fw-bold tracking-wider mb-3"><i class="ri-folder-2-line me-1"></i> Comprobantes Fiscales Emitidos:</p>
+                
+                <div class="d-flex flex-column gap-2">
+                  <% if @quotation.invoice_pdf.attached? %>
+                    <%= link_to rails_blob_path(@quotation.invoice_pdf, disposition: "attachment"), class: "btn btn-outline-danger btn-sm w-100 rounded-pill fw-bold" do %>
+                      <i class="ri-file-pdf-line me-1"></i> Descargar PDF
+                    <% end %>
+                  <% end %>
+                  <% if @quotation.invoice_xml.attached? %>
+                    <%= link_to rails_blob_path(@quotation.invoice_xml, disposition: "attachment"), class: "btn btn-outline-secondary btn-sm w-100 rounded-pill fw-bold" do %>
+                      <i class="ri-code-s-slash-line me-1"></i> Descargar XML
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+            <%# --- SECCIÓN DE PAGOS INTACTA --- %>
             <% if @quotation.pagado? %>
               <div class="bg-white p-3 rounded border shadow-sm mb-3 border-start border-primary border-4 text-start">
                 <p class="font-11 text-primary text-uppercase fw-bold tracking-wider mb-2"><i class="ri-bank-card-line me-1"></i> Ingresos Registrados:</p>

@@ -120,19 +120,20 @@ class QuotationsController < ApplicationController
     @quotation = Quotation.find(params[:id])
 
     if @quotation.update(invoice_params)
-      # 1. Cambiamos la cotización a Facturada
-      @quotation.update!(status: :facturado)
+      Quotation.transaction do
+        @quotation.update!(status: :facturado)
+        @quotation.financial_accruals.update_all(status: "invoiced")
+      end
 
-      # 2. Cambiamos todas las actividades relacionadas a "invoiced"
-      # OJO: Solo marcamos la actividad principal como facturada.
-      # Si una actividad está parcialmente cotizada, cambiará a Invoiced, lo cual es correcto
-      # porque la cobranza se hace por la totalidad de la tarea, solo en diferentes momentos.
-      @quotation.financial_accruals.update_all(status: "invoiced")
+      if invoice_params[:invoice_pdf].present? || invoice_params[:invoice_xml].present?
+        QuotationMailer.send_invoice(@quotation).deliver_later
+        mensaje = "¡Éxito! La factura ha sido guardada y enviada automáticamente al cliente."
+      else
+        mensaje = "Se actualizó el estado a facturado, pero no se enviaron archivos porque no adjuntaste ninguno."
+      end
 
-      # 3. Disparamos el correo con los adjuntos
-      QuotationMailer.send_invoice(@quotation).deliver_later
-
-      redirect_to client_project_quotation_path(@client, @project, @quotation), notice: "¡Éxito! La factura ha sido guardada y enviada automáticamente al cliente."
+      # Aquí usas tus variables del before_action de forma segura
+      redirect_to client_project_quotation_path(@client, @project, @quotation), notice: mensaje
     else
       redirect_to client_project_quotation_path(@client, @project, @quotation), alert: "Hubo un error al adjuntar los archivos."
     end
@@ -152,7 +153,7 @@ class QuotationsController < ApplicationController
   end
 
   def invoice_params
-    params.require(:quotation).permit(:invoice_pdf, :invoice_xml, :accepted_at)
+    params.fetch(:quotation, {}).permit(:invoice_pdf, :invoice_xml, :accepted_at)
   end
 
   def quotation_params
