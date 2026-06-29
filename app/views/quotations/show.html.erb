@@ -118,8 +118,29 @@
                 </div>
                 <div class="col-md-6 mb-2">
                   <span class="text-muted d-block font-10 text-uppercase tracking-wider">Sello de Tiempo México</span>
-                  <strong><%= @quotation.accepted_at.strftime("%d/%m/%Y %H:%M:%S") %></strong>
+                  
+                  <div class="d-flex align-items-center">
+                    <strong><%= @quotation.accepted_at&.strftime("%d/%m/%Y %H:%M:%S") %></strong>
+                    
+                    <%# Solo el admin ve el botoncito sutil de edición %>
+                    <% if current_user.role == "admin" %>
+                      <button class="btn btn-sm btn-link text-muted p-0 ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#editAcceptedAt" aria-expanded="false" title="Modificar sello de tiempo">
+                        <i class="ri-edit-line font-14"></i>
+                      </button>
+                    <% end %>
+                  </div>
+
+                  <%# Formulario oculto que se despliega al presionar el lápiz %>
+                  <% if current_user.role == "admin" %>
+                    <div class="collapse mt-2" id="editAcceptedAt">
+                      <%= form_with(model: @quotation, url: client_project_quotation_path(@quotation.project.client, @quotation.project, @quotation), local: true, class: "d-flex align-items-center gap-2") do |f| %>
+                        <%= f.datetime_field :accepted_at, class: "form-control form-control-sm shadow-none border-primary border-opacity-25", style: "max-width: 220px;" %>
+                        <button type="submit" class="btn btn-sm btn-primary rounded-1"><i class="ri-check-line"></i></button>
+                      <% end %>
+                    </div>
+                  <% end %>
                 </div>
+
                 <div class="col-12 mt-1 border-top pt-2">
                   <span class="text-muted d-block font-10 text-uppercase tracking-wider">Token de Transacción / Identificador Único</span>
                   <span class="text-primary"><%= @quotation.auth_code %></span>

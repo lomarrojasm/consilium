@@ -75,6 +75,16 @@ class QuotationsController < ApplicationController
     end
   end
 
+  def update
+    @quotation = Quotation.find(params[:id])
+
+    if @quotation.update(quotation_params)
+      redirect_to client_project_quotation_path(@quotation.project.client, @quotation.project, @quotation), notice: "Sello de tiempo actualizado correctamente."
+    else
+      redirect_to client_project_quotation_path(@quotation.project.client, @quotation.project, @quotation), alert: "No se pudo actualizar la fecha."
+    end
+  end
+
   def show
     @quotation = Quotation.find(params[:id])
   end
@@ -142,6 +152,11 @@ class QuotationsController < ApplicationController
   end
 
   def invoice_params
-    params.require(:quotation).permit(:invoice_pdf, :invoice_xml)
+    params.require(:quotation).permit(:invoice_pdf, :invoice_xml, :accepted_at)
+  end
+
+  def quotation_params
+    # Aquí le decimos a Rails: "Busca los datos de :quotation y permite que se guarde :accepted_at"
+    params.require(:quotation).permit(:accepted_at)
   end
 end

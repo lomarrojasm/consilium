@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_24_181643) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_29_201208) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -225,7 +225,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_24_181643) do
   create_table "financial_accruals", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "project_id", null: false
     t.string "stage_name"
-    t.string "concept_name"
+    t.text "concept_name"
     t.decimal "amount", precision: 10
     t.date "accrued_date"
     t.string "status", default: "pending"

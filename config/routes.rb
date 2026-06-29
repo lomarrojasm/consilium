@@ -92,7 +92,7 @@ Rails.application.routes.draw do
         post :accept, on: :member
       end
 
-      resources :quotations, only: [ :index, :new, :create, :show, :destroy ] do
+      resources :quotations, only: [ :index, :new, :create, :show, :update, :destroy ] do
         member do
           post :send_to_client
           patch :upload_invoice
