@@ -446,7 +446,7 @@
                                                             <% unless stage_locked || is_finalized %>
                                                                 <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
                                                                     <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary ms-1" 
-                                                                            onclick="openUploadModal('<%= activity.id %>', '<%= activity.name %>')" 
+                                                                            onclick="openUploadModal('<%= activity.id %>', '<%= j activity.name %>')" 
                                                                             data-bs-toggle="tooltip" title="Subir Evidencia Rápida">
                                                                         <i class="ri-upload-2-line font-18"></i>
                                                                     </button>
