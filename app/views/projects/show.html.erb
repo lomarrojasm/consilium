@@ -386,15 +386,19 @@
                                                             <div class="d-flex align-items-center mt-1">
                                                                 <% if current_user.role == 'admin' %>
                                                                     <%= form_with url: update_evidence_date_client_project_activity_path(@client, @project, activity), method: :patch, class: "d-flex align-items-center" do |f| %>
-                                                                        <div class="input-group input-group-sm" style="width: 160px;">
+                                                                        <div class="input-group input-group-sm shadow-sm rounded" style="width: 190px;">
                                                                             <span class="input-group-text bg-light border-0 ps-1 pe-0 text-muted" style="font-size: 10px;">
                                                                                 <i class="ri-upload-cloud-line"></i>
                                                                             </span>
                                                                             <%= f.date_field :evidence_uploaded_at, 
                                                                                 value: activity.evidence_uploaded_at ? activity.evidence_uploaded_at.strftime("%Y-%m-%d") : Date.current.to_s,
                                                                                 class: "form-control form-control-sm border-0 bg-light text-muted font-10 shadow-none",
-                                                                                onchange: "this.form.submit()",
                                                                                 style: "padding-left: 5px; cursor: pointer;" %>
+                                                                            
+                                                                            <!-- Botón de validación explícita -->
+                                                                            <button class="btn btn-sm btn-light border-0 text-primary px-2 hover-primary" type="submit" data-bs-toggle="tooltip" title="Guardar fecha">
+                                                                                <i class="ri-check-line font-16 fw-bold"></i>
+                                                                            </button>
                                                                         </div>
                                                                     <% end %>
                                                                 <% else %>

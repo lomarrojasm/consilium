@@ -144,15 +144,17 @@ class ActivitiesController < ApplicationController
     @activity = Activity.find(params[:id])
 
     if current_user.role == "admin"
-      if @activity.update(evidence_uploaded_at: params[:evidence_uploaded_at])
+      if params[:evidence_uploaded_at].present? && @activity.update(evidence_uploaded_at: params[:evidence_uploaded_at])
         new_date = params[:evidence_uploaded_at].to_date
-        @activity.update(completed_day: new_date.day)
-        redirect_back fallback_location: root_path, notice: "Fecha de evidencia actualizada correctamente."
+        @activity.update(completed_day: new_date.day) if new_date
+
+        # Redirigimos usando un "ancla" para que la página baje automáticamente a la fila
+        redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), notice: "Fecha de evidencia actualizada correctamente."
       else
-        redirect_back fallback_location: root_path, alert: "Error al actualizar la fecha."
+        redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), alert: "Error al actualizar la fecha. Asegúrate de proporcionar una fecha válida."
       end
     else
-      redirect_back fallback_location: root_path, alert: "No tienes permisos para modificar fechas de evidencia."
+      redirect_to client_project_path(@client, @project), alert: "No tienes permisos para modificar fechas de evidencia."
     end
   end
 
