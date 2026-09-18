@@ -79,7 +79,7 @@ module TimelineRecordable
         # Ya estamos protegidos del "create" por el blindaje de tiempo de arriba.
         if previous_changes.key?('completed') && previous_changes['completed'].last == true
             
-            nombre_archivo = self.evidence.attached? ? self.evidence.filename.to_s : "sin archivo"
+            nombre_archivo = self.evidences.attached? ? self.evidences.map { |e| e.filename.to_s }.join(", ") : "sin archivo"
             mensaje = "✅ Tarea completada: #{self.name} (Evidencia: #{nombre_archivo})"
             
             TimelineLog.create(

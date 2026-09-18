@@ -1,0 +1,74 @@
+<%# Celda de evidencias de una actividad. Locals: activity, stage_locked, is_finalized %>
+<%
+    files      = activity.evidences_attachments.to_a
+    editable   = !(stage_locked || is_finalized)
+    can_upload = editable && ['admin', 'lider', 'senior', 'analista'].include?(current_project_role)
+    can_delete = editable && ['admin', 'lider'].include?(current_project_role)
+%>
+<div class="d-flex align-items-center justify-content-center gap-1">
+    <% if files.empty? %>
+        <i class="ri-file-history-line font-18 text-muted opacity-50"></i>
+
+    <% elsif files.size == 1 && !can_delete %>
+        <%# Un solo archivo y sin permiso de borrar: descarga directa %>
+        <%= link_to rails_blob_path(files.first, disposition: "attachment"), class: "text-success", target: "_blank", rel: "noopener", data: { bs_toggle: "tooltip" }, title: "Descargar #{files.first.filename}" do %>
+            <i class="ri-file-check-line font-20"></i>
+        <% end %>
+
+    <% else %>
+        <div class="dropdown">
+            <button type="button" class="btn btn-link p-0 text-success text-decoration-none position-relative lh-1"
+                    data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false"
+                    aria-label="Ver evidencias (<%= files.size %>)">
+                <i class="ri-file-check-line font-20"></i>
+                <% if files.size > 1 %>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style="font-size: 9px; padding: 2px 5px;"><%= files.size %></span>
+                <% end %>
+            </button>
+
+            <ul class="dropdown-menu shadow border-0 p-1" style="min-width: 280px; max-width: 340px;">
+                <li><h6 class="dropdown-header font-11 text-uppercase text-muted pb-1">Evidencias (<%= files.size %>)</h6></li>
+
+                <% files.each do |attachment| %>
+                    <% blob = attachment.blob %>
+                    <% icon, color = evidence_file_icon(blob) %>
+                    <li class="d-flex align-items-center">
+                        <%= link_to rails_blob_path(attachment, disposition: "attachment"), class: "dropdown-item d-flex align-items-center rounded py-1", style: "min-width: 0; width: auto; flex: 1 1 auto;", target: "_blank", rel: "noopener" do %>
+                            <i class="<%= icon %> <%= color %> font-20 me-2 flex-shrink-0"></i>
+                            <div class="text-truncate" style="min-width: 0;">
+                                <div class="text-truncate font-12 fw-semibold" title="<%= blob.filename %>"><%= blob.filename %></div>
+                                <small class="text-muted font-10"><%= number_to_human_size(blob.byte_size) %> · <%= attachment.created_at.strftime("%d/%m/%y") %></small>
+                            </div>
+                        <% end %>
+
+                        <% if can_delete %>
+                            <button type="button" class="btn btn-link p-1 ms-1 me-1 text-muted flex-shrink-0 lh-1"
+                                    data-url="<%= destroy_evidence_client_project_activity_path(@client, @project, activity, attachment_id: attachment.id) %>"
+                                    data-filename="<%= blob.filename %>"
+                                    onclick="confirmDeleteEvidence(this)" aria-label="Eliminar <%= blob.filename %>">
+                                <i class="ri-delete-bin-line font-16"></i>
+                            </button>
+                        <% end %>
+                    </li>
+                <% end %>
+
+                <% if can_upload %>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li>
+                        <button type="button" class="dropdown-item rounded font-12 text-primary" onclick="openUploadModal('<%= activity.id %>', '<%= j activity.name %>')">
+                            <i class="ri-add-line me-1"></i>Agregar evidencia
+                        </button>
+                    </li>
+                <% end %>
+            </ul>
+        </div>
+    <% end %>
+
+    <% if can_upload %>
+        <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary ms-1"
+                onclick="openUploadModal('<%= activity.id %>', '<%= j activity.name %>')"
+                data-bs-toggle="tooltip" title="Subir Evidencia Rápida">
+            <i class="ri-upload-2-line font-18"></i>
+        </button>
+    <% end %>
+</div>

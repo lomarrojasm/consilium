@@ -5,14 +5,14 @@ class ActivitiesController < ApplicationController
   # --- SEGURIDAD AJUSTADA PARA EL FLUJO CLIENTE/SOPORTE ---
   before_action :authorize_project_member!, only: [
     :edit, :tracking, :toggle_user_approval, :toggle_admin_approval,
-    :upload_evidence, :update_status
+    :upload_evidence, :destroy_evidence, :update_status
   ]
 
   before_action :authorize_lider_or_senior!, only: [
     :new, :create, :update, :destroy, :toggle, :destroy_log
   ]
 
-  before_action :check_stage_lock_on_activity!, only: [ :update_status, :toggle_user_approval, :upload_evidence, :destroy_log ]
+  before_action :check_stage_lock_on_activity!, only: [ :update_status, :toggle_user_approval, :upload_evidence, :destroy_evidence, :destroy_log ]
 
   def new
     @activity = @project.activities.build
@@ -105,39 +105,61 @@ class ActivitiesController < ApplicationController
   end
 
   def upload_evidence
-    # Verificamos que traiga el archivo y además la nueva fecha
-    if params[:activity] && params[:activity][:evidence].present? && params[:activity][:evidence_date].present?
+    files = uploaded_evidence_files
+    fecha_seleccionada = parse_evidence_date(params.dig(:activity, :evidence_date))
 
-      # 1. Transformamos el texto de la fecha (ej: "2026-06-15") a un objeto de tiempo seguro
-      fecha_seleccionada = Time.zone.parse(params[:activity][:evidence_date])
+    if files.any? && fecha_seleccionada
+      # La fecha oficial de ejecución la fija la primera evidencia; las siguientes solo suman archivos.
+      first_evidence = !@activity.evidences.attached? || @activity.evidence_uploaded_at.nil?
 
-      @activity.evidence.attach(params[:activity][:evidence])
+      @activity.evidences.attach(files)
 
-      # 2. Actualizamos la actividad aplicando la fecha seleccionada
-      @activity.update(
-        completed: true,
-        user: current_user,
-        completed_day: fecha_seleccionada.day,         # <- Usamos el día seleccionado
-        evidence_uploaded_at: fecha_seleccionada       # <- Usamos la fecha seleccionada
-      )
+      attrs = { completed: true, user: current_user }
+      if first_evidence
+        attrs[:completed_day] = fecha_seleccionada.day
+        attrs[:evidence_uploaded_at] = fecha_seleccionada
+      end
+      @activity.update(attrs)
 
-      # 3. Creamos el log en el historial
-      log = @activity.activity_logs.create!(
-        user: current_user,
-        status: "pending",
-        comment: "📁 Subió la evidencia formal de la actividad."
-      )
+      # Registro en el historial, con la misma fecha seleccionada
+      names = files.map(&:original_filename)
+      comment = if names.one?
+        "📁 Subió la evidencia formal de la actividad: #{names.first}."
+      else
+        "📁 Subió #{names.size} archivos de evidencia: #{names.join(', ')}."
+      end
 
-      # 4. Magia de update_columns para que el registro del chat/historial asuma la misma fecha
-      log.update_columns(
-        created_at: fecha_seleccionada,
-        updated_at: fecha_seleccionada
-      )
+      log = @activity.activity_logs.create!(user: current_user, status: "pending", comment: comment)
+      log.update_columns(created_at: fecha_seleccionada, updated_at: fecha_seleccionada)
 
-      redirect_to client_project_path(@client, @project), notice: "Evidencia cargada y registrada con la fecha seleccionada."
+      notice = names.one? ? "Evidencia cargada y registrada con la fecha seleccionada." : "#{names.size} evidencias cargadas y registradas."
+      redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), notice: notice
     else
-      redirect_to client_project_path(@client, @project), alert: "Debes adjuntar un archivo y seleccionar una fecha."
+      redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), alert: "Debes adjuntar al menos un archivo y seleccionar una fecha válida."
     end
+  end
+
+  def destroy_evidence
+    row = "activity-row-#{@activity.id}"
+
+    unless %w[admin lider].include?(current_project_role)
+      redirect_to client_project_path(@client, @project, anchor: row), alert: "Solo un administrador o líder del proyecto puede eliminar evidencias." and return
+    end
+
+    if @activity.admin_approved && @activity.user_approved
+      redirect_to client_project_path(@client, @project, anchor: row), alert: "La actividad ya está finalizada; su evidencia no se puede eliminar." and return
+    end
+
+    # Se busca dentro de los adjuntos de ESTA actividad para no poder borrar archivos ajenos
+    attachment = @activity.evidences_attachments.find(params[:attachment_id])
+    filename = attachment.filename.to_s
+    attachment.purge
+
+    @activity.activity_logs.create!(user: current_user, status: "pending", comment: "🗑️ Eliminó la evidencia: #{filename}.")
+
+    redirect_to client_project_path(@client, @project, anchor: row), notice: "Evidencia eliminada."
+  rescue ActiveRecord::RecordNotFound
+    redirect_to client_project_path(@client, @project, anchor: row), alert: "La evidencia ya no existe."
   end
 
   def update_evidence_date
@@ -343,6 +365,16 @@ class ActivitiesController < ApplicationController
       redirect_to client_project_path(@client, @project),
                   alert: "Acción no permitida: La etapa está finalizada y bloqueada."
     end
+  end
+
+  def uploaded_evidence_files
+    Array.wrap(params.dig(:activity, :evidences)).select { |f| f.respond_to?(:original_filename) }
+  end
+
+  def parse_evidence_date(value)
+    Time.zone.parse(value.to_s) if value.present?
+  rescue ArgumentError
+    nil
   end
 
   def activity_params

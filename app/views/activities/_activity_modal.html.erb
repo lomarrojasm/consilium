@@ -100,14 +100,14 @@
             </h5>
 
             <%# CARD 1: EVIDENCIA %>
-            <div class="card shadow-none border mb-2 <%= activity.evidence.attached? ? 'border-success' : 'border-secondary border-opacity-25' %>">
+            <div class="card shadow-none border mb-2 <%= activity.evidence_attached? ? 'border-success' : 'border-secondary border-opacity-25' %>">
                 <div class="card-body p-2 d-flex align-items-center">
                     <div class="avatar-sm me-2">
-                        <span class="avatar-title rounded-circle <%= activity.evidence.attached? ? 'bg-success text-white' : 'bg-light text-muted' %> font-16">1</span>
+                        <span class="avatar-title rounded-circle <%= activity.evidence_attached? ? 'bg-success text-white' : 'bg-light text-muted' %> font-16">1</span>
                     </div>
                     <div class="flex-grow-1">
-                        <h6 class="m-0 font-13 fw-bold <%= activity.evidence.attached? ? 'text-success' : 'text-muted' %>">Evidencia Formal</h6>
-                        <small class="text-muted font-11"><%= activity.evidence.attached? ? "Cargada" : "Pendiente" %></small>
+                        <h6 class="m-0 font-13 fw-bold <%= activity.evidence_attached? ? 'text-success' : 'text-muted' %>">Evidencia Formal</h6>
+                        <small class="text-muted font-11"><%= activity.evidence_attached? ? (activity.evidences.size > 1 ? "Cargada (#{activity.evidences.size} archivos)" : "Cargada") : "Pendiente" %></small>
                     </div>
                 </div>
             </div>
@@ -126,7 +126,7 @@
                             <div class="form-check form-switch m-0">
                                 <input type="checkbox" class="form-check-input cursor-pointer" style="width: 2.5em; height: 1.2em;"
                                     <%= 'checked' if activity.user_approved %> onchange="handleUserApproval(this, '<%= escape_javascript activity.name %>')"
-                                    <%= 'disabled' if (is_locked || activity.admin_approved || !activity.evidence.attached?) && !is_admin %>>
+                                    <%= 'disabled' if (is_locked || activity.admin_approved || !activity.evidence_attached?) && !is_admin %>>
                             </div>
                         <% end %>
                     </div>

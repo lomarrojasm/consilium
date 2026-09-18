@@ -118,14 +118,16 @@
                         </div>
 
                         <%# EVIDENCIA DE TAREA %>
-                        <% if log.resource_type == 'Activity' && log.resource&.respond_to?(:evidence) && log.resource&.evidence&.attached? %>
-                          <div class="d-inline-flex align-items-center bg-soft-success p-1 rounded border border-success border-opacity-10 mb-2">
-                            <i class="ri-file-check-line text-success me-1 font-16"></i>
-                            <span class="font-11 text-dark me-2"><%= truncate(log.resource.evidence.filename.to_s, length: 25) %></span>
-                            <%= link_to rails_blob_path(log.resource.evidence, disposition: "attachment"), class: "btn btn-xs btn-success py-0 px-1", target: "_blank" do %>
-                              <i class="ri-download-2-line"></i>
-                            <% end %>
-                          </div>
+                        <% if log.resource_type == 'Activity' && log.resource&.respond_to?(:evidences) && log.resource&.evidences&.attached? %>
+                          <% log.resource.evidences.each do |evidence| %>
+                            <div class="d-inline-flex align-items-center bg-soft-success p-1 rounded border border-success border-opacity-10 mb-2 me-1">
+                              <i class="ri-file-check-line text-success me-1 font-16"></i>
+                              <span class="font-11 text-dark me-2"><%= truncate(evidence.filename.to_s, length: 25) %></span>
+                              <%= link_to rails_blob_path(evidence, disposition: "attachment"), class: "btn btn-xs btn-success py-0 px-1", target: "_blank" do %>
+                                <i class="ri-download-2-line"></i>
+                              <% end %>
+                            </div>
+                          <% end %>
                         <% end %>
 
                         <%# USUARIO RESPONSABLE %>

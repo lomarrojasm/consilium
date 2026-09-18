@@ -16,8 +16,12 @@ class Activity < ApplicationRecord
   delegate :project, to: :stage, allow_nil: true
 
 
-  # Habilitar adjunto
-  has_one_attached :evidence
+  # Evidencias formales de la actividad (puede haber más de un archivo)
+  has_many_attached :evidences
+
+  def evidence_attached?
+    evidences.attached?
+  end
 
   # Validaciones
   validates :name, presence: true

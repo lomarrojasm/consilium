@@ -30,8 +30,9 @@ class AiActivitySimulatorService
     team_context = @available_users.map { |u| "- ID: #{u[:id]} | Nombre: #{u[:name]} | Rol: #{u[:role]}" }.join("\n")
 
     # 3. Revisamos si hay documentos para que la IA los incluya en la historia
-    document_context = if @activity.evidence.attached?
-      "ATENCIÓN: Ya existe un documento de evidencia final adjunto llamado '#{@activity.evidence.filename}'. La conversación debe girar en torno a la revisión, corrección o validación de este documento."
+    document_context = if @activity.evidences.attached?
+      nombres = @activity.evidences.map { |e| "'#{e.filename}'" }.join(", ")
+      "ATENCIÓN: Ya existe evidencia final adjunta: #{nombres}. La conversación debe girar en torno a la revisión, corrección o validación de #{@activity.evidences.size > 1 ? 'estos documentos' : 'este documento'}."
     elsif @activity.activity_logs.any? { |log| log.attachments.attached? }
       "ATENCIÓN: Hay archivos previos compartidos en el panel de comentarios. Haz que el equipo discuta sobre ellos."
     else
@@ -102,7 +103,7 @@ class AiActivitySimulatorService
   def clear_previous_simulation
     @activity.activity_logs.find_each do |log|
       # Eliminamos los logs "plásticos" de IA, pero blindamos los que el usuario haya hecho
-      is_system_or_official = log.comment.match?(/📁|✅|🛡️|↩️/)
+      is_system_or_official = log.comment.match?(/📁|✅|🛡️|↩️|🗑️/)
       has_files = log.attachments.attached?
 
       log.destroy unless is_system_or_official || has_files

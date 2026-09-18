@@ -340,7 +340,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <% stage.activities.order(:position).each do |activity| %>
+                                            <% stage.activities.with_attached_evidences.order(:position).each do |activity| %>
                                                 <% is_finalized = activity.admin_approved && activity.user_approved %>
                                                 
                                                 <tr id="activity-row-<%= activity.id %>" class="<%= 'bg-light-subtle' if activity.status == 'rejected' %> <%= 'bg-success bg-opacity-10' if is_finalized %>">
@@ -352,7 +352,7 @@
                                                             </a>
                                                         <% elsif activity.user_approved %>
                                                             <i class="ri-user-star-fill font-20 text-primary" data-bs-toggle="tooltip" title="Aprobado por Cliente - Esperando Consilium"></i>
-                                                        <% elsif activity.evidence.attached? || activity.completed %>
+                                                        <% elsif activity.evidence_attached? || activity.completed %>
                                                             <i class="ri-file-shield-2-fill font-20 text-info" data-bs-toggle="tooltip" title="Evidencia Subida - Esperando V.B. Cliente"></i>
                                                         <% elsif activity.status == 'rejected' %>
                                                             <i class="ri-close-circle-fill font-20 text-danger" data-bs-toggle="tooltip" title="Rechazada / Con Problemas"></i>
@@ -438,25 +438,7 @@
                                                     </td>
                                                     
                                                     <td class="text-center px-1 px-md-2">
-                                                        <div class="d-flex align-items-center justify-content-center gap-1">
-                                                            <% if activity.evidence.attached? %>
-                                                                <%= link_to rails_blob_path(activity.evidence, disposition: "attachment"), class: "text-success", target: "_blank", data: { bs_toggle: "tooltip" }, title: "Descargar" do %>
-                                                                    <i class="ri-file-check-line font-20"></i>
-                                                                <% end %>
-                                                            <% else %>
-                                                                <i class="ri-file-history-line font-18 text-muted opacity-50"></i>
-                                                            <% end %>
-                                                            
-                                                            <% unless stage_locked || is_finalized %>
-                                                                <% if ['admin', 'lider', 'senior', 'analista'].include?(current_project_role) %>
-                                                                    <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary ms-1" 
-                                                                            onclick="openUploadModal('<%= activity.id %>', '<%= j activity.name %>')" 
-                                                                            data-bs-toggle="tooltip" title="Subir Evidencia Rápida">
-                                                                        <i class="ri-upload-2-line font-18"></i>
-                                                                    </button>
-                                                                <% end %>
-                                                            <% end %>
-                                                        </div>
+                                                        <%= render "activities/evidence_cell", activity: activity, stage_locked: stage_locked, is_finalized: is_finalized %>
                                                     </td>
 
                                                     <%# --- CHECKBOX: APROBACIÓN DEL CLIENTE --- %>
@@ -465,7 +447,7 @@
                                                             <%= form_with url: toggle_user_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: true do %>
                                                                 <div class="form-check m-0">
                                                                     <% 
-                                                                       missing_evidence = !activity.completed && !activity.evidence.attached?
+                                                                       missing_evidence = !activity.completed && !activity.evidence_attached?
                                                                        client_restricted = current_user.role != 'admin' && missing_evidence
                                                                        user_cb_disabled = stage_locked || activity.admin_approved || is_finalized || client_restricted
                                                                     %>
@@ -722,11 +704,13 @@
           <div class="mb-3">
             <label class="form-label font-13 fw-bold">Fecha de la Evidencia</label>
             <%= f.date_field :evidence_date, class: "form-control shadow-none font-13", required: true, value: Date.current.to_s %>
+            <small class="text-muted font-11">Si la actividad ya tenía evidencia, la fecha oficial de ejecución no cambia; esta fecha solo se usa en el historial.</small>
           </div>
 
           <div class="mb-3">
-            <label class="form-label font-13 fw-bold">Archivo de Evidencia</label>
-            <%= f.file_field :evidence, class: "form-control shadow-none font-13", required: true %>
+            <label class="form-label font-13 fw-bold">Archivos de Evidencia</label>
+            <%= f.file_field :evidences, multiple: true, class: "form-control shadow-none font-13", required: true %>
+            <small class="text-muted font-11">Puedes seleccionar varios archivos a la vez.</small>
           </div>
         </div>
         <div class="modal-footer bg-light">
@@ -830,6 +814,38 @@
                 form.submit();
             }
         })
+    }
+
+    function confirmDeleteEvidence(button) {
+        Swal.fire({
+            title: '¿Eliminar evidencia?',
+            text: "Se eliminará permanentemente el archivo '" + button.dataset.filename + "'. Esta acción no se puede deshacer.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#fa5c7c',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = button.dataset.url;
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = '_method';
+                methodInput.value = 'delete';
+                form.appendChild(methodInput);
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'authenticity_token';
+                csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
     }
 
     function openUploadModal(activityId, activityName) {

@@ -121,6 +121,7 @@ Rails.application.routes.draw do
           get :tracking
           patch :toggle
           patch :upload_evidence
+          delete :destroy_evidence
           patch :update_evidence_date
           patch :update_status
           patch :toggle_user_approval
