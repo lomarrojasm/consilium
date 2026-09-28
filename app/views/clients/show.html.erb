@@ -70,25 +70,37 @@
                     [@client.instagram_url, "Instagram", "ri-instagram-line",       "#e4405f"],
                     [@client.x_url,         "X",         "ri-twitter-x-fill",       "#111111"],
                     [@client.youtube_url,   "YouTube",   "ri-youtube-fill",         "#ff0000"]
-                ].select { |url, *| url.present? } %>
-                <% if @client.web_page.present? %>
-                    <%= link_to @client.web_page, target: "_blank", rel: "noopener noreferrer", class: "d-inline-flex align-items-center text-decoration-none font-13 fw-semibold mb-2" do %>
-                        <i class="ri-global-line me-1"></i><%= URI.parse(@client.web_page).host.to_s.sub(/\Awww\./, "") rescue @client.web_page %><i class="ri-external-link-line ms-1 font-12 text-muted"></i>
-                    <% end %>
-                <% end %>
-                <% if social_links.any? %>
-                    <div class="d-flex justify-content-center gap-2 mb-3">
+                ] %>
+                <div class="mb-3">
+                    <div class="mb-2 text-truncate">
+                        <% if @client.web_page.present? %>
+                            <% web_host = (URI.parse(@client.web_page).host.to_s.sub(/\Awww\./, "") rescue @client.web_page) %>
+                            <%= link_to @client.web_page, target: "_blank", rel: "noopener noreferrer", title: @client.web_page, class: "text-decoration-none font-13 fw-semibold" do %>
+                                <i class="ri-global-line me-1"></i><%= web_host %> <i class="ri-external-link-line font-12 text-muted"></i>
+                            <% end %>
+                        <% else %>
+                            <span class="text-muted font-13"><i class="ri-global-line me-1"></i>Sin sitio web</span>
+                        <% end %>
+                    </div>
+                    <div class="d-flex justify-content-center flex-wrap gap-2">
                         <% social_links.each do |url, name, icon, color| %>
-                            <%= link_to url, target: "_blank", rel: "noopener noreferrer", title: name,
-                                data: { bs_toggle: "tooltip" },
-                                class: "d-inline-flex align-items-center justify-content-center rounded-circle border bg-white shadow-sm text-decoration-none",
-                                style: "width: 36px; height: 36px; color: #{color}; transition: transform .15s;",
-                                onmouseover: "this.style.transform='translateY(-2px)'", onmouseout: "this.style.transform=''" do %>
-                                <i class="<%= icon %> fs-5"></i>
+                            <% base = "d-inline-flex align-items-center justify-content-center rounded-circle border text-decoration-none" %>
+                            <% if url.present? %>
+                                <%= link_to url, target: "_blank", rel: "noopener noreferrer", title: name,
+                                    data: { bs_toggle: "tooltip" },
+                                    class: "#{base} bg-white shadow-sm",
+                                    style: "width: 36px; height: 36px; color: #{color};" do %>
+                                    <i class="<%= icon %> fs-5"></i>
+                                <% end %>
+                            <% else %>
+                                <span class="<%= base %> bg-light text-muted" title="<%= name %>: no registrado"
+                                      data-bs-toggle="tooltip" style="width: 36px; height: 36px; opacity: .45; cursor: default;">
+                                    <i class="<%= icon %> fs-5"></i>
+                                </span>
                             <% end %>
                         <% end %>
                     </div>
-                <% end %>
+                </div>
 
                 <p class="text-muted font-11 text-uppercase fw-bold mb-1">Membresía</p>
                 <% badge_class = case @client.membership
