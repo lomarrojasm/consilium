@@ -23,11 +23,25 @@ class Client < ApplicationRecord
   validates :company_name, presence: true
   validates :rfc, presence: true, uniqueness: { case_sensitive: false }
 
+  # PRESENCIA DIGITAL: sitio web y redes sociales (URLs http/https)
+  LINK_FIELDS = %i[web_page linkedin_url facebook_url instagram_url x_url youtube_url].freeze
+  before_validation :normalize_links
+  validates(*LINK_FIELDS, format: { with: %r{\Ahttps?://[^\s/$.?#][^\s]*\z}i, message: "no es una URL válida" }, allow_blank: true)
+
   # OPCIONAL: Normalizar datos antes de guardar
   before_save :upcase_rfc
   before_destroy :force_clean_ghost_logs
 
   private
+
+  # Agrega https:// cuando el usuario captura solo el dominio
+  def normalize_links
+    LINK_FIELDS.each do |field|
+      value = self[field].to_s.strip
+      value = "https://#{value}" if value.present? && value !~ %r{\Ahttps?://}i
+      self[field] = value.presence
+    end
+  end
 
   def force_clean_ghost_logs
     # delete_all ejecuta una consulta SQL directa y fulminante

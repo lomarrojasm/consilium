@@ -33,3 +33,6 @@ application.register("system-monitor", SystemMonitorController)
 
 import SystemWorkersController from "./system_workers_controller"
 application.register("system-workers", SystemWorkersController)
+
+import UrlFieldController from "./url_field_controller"
+application.register("url-field", UrlFieldController)

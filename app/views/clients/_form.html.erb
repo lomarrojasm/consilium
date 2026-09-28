@@ -154,6 +154,34 @@
               </div>
             </div>
           </div>
+          <%# --- PRESENCIA DIGITAL --- %>
+          <div class="p-3 border rounded bg-light bg-opacity-25 mb-3" data-controller="url-field">
+            <h6 class="mt-0 mb-3 font-13 text-primary text-uppercase fw-bold"><i class="ri-global-line me-1"></i> Presencia Digital</h6>
+            <div class="row g-3">
+              <% [
+                [:web_page,      "Sitio web", "ri-global-line",           "#4b5563", "https://www.empresa.com"],
+                [:linkedin_url,  "LinkedIn",  "ri-linkedin-box-fill",     "#0a66c2", "https://linkedin.com/company/..."],
+                [:facebook_url,  "Facebook",  "ri-facebook-circle-fill",  "#1877f2", "https://facebook.com/..."],
+                [:instagram_url, "Instagram", "ri-instagram-line",        "#e4405f", "https://instagram.com/..."],
+                [:x_url,         "X",         "ri-twitter-x-fill",        "#111111", "https://x.com/..."],
+                [:youtube_url,   "YouTube",   "ri-youtube-fill",          "#ff0000", "https://youtube.com/@..."]
+              ].each do |field, label, icon, color, placeholder| %>
+                <div class="<%= field == :web_page ? 'col-12' : 'col-md-6 col-lg-4' %>">
+                  <%= form.label field, label, class: "form-label font-12 fw-bold text-muted mb-1" %>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="<%= icon %> fs-5" style="color: <%= color %>;"></i></span>
+                    <%= form.url_field field, class: "form-control shadow-none #{'is-invalid' if client.errors[field].any?}",
+                        placeholder: placeholder, autocomplete: "off",
+                        data: { url_field_target: "input", action: "blur->url-field#normalize input->url-field#clear" } %>
+                    <% if client.errors[field].any? %>
+                      <div class="invalid-feedback"><%= client.errors[field].first %></div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+            <small class="text-muted d-block mt-2 font-11"><i class="ri-information-line"></i> Puedes pegar solo el dominio; se completará con https:// automáticamente.</small>
+          </div>
           <div class="row g-4 mb-3">
              <% [
                 ['ri-star-line text-warning', '1. Sponsor', 'sponsor']

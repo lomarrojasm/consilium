@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_18_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_28_121000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -190,13 +190,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_18_120000) do
     t.text "deadline"
     t.string "internal_responsible_name"
     t.string "internal_responsible_contact"
-    t.text "social_network"
     t.string "web_page"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "membership", default: 0
     t.date "start_date"
     t.string "status", default: "Activo"
+    t.string "linkedin_url"
+    t.string "facebook_url"
+    t.string "instagram_url"
+    t.string "x_url"
+    t.string "youtube_url"
   end
 
   create_table "conversation_participants", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
