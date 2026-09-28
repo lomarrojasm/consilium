@@ -33,6 +33,7 @@ export default class extends Controller {
   async fetchLogs() {
     try {
       const response = await fetch('/admin/system_logs.json')
+      if (response.redirected || response.status === 401) return window.location.reload()
       if (!response.ok) throw new Error("Error de red")
       const data = await response.json()
       

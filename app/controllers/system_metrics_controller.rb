@@ -2,6 +2,7 @@ require "net/http"
 
 class SystemMetricsController < ApplicationController
   # Protegemos esta ruta para que solo usuarios con sesión iniciada puedan verla
+  prepend_before_action :skip_session_tracking
   before_action :authenticate_user!
 
   def show

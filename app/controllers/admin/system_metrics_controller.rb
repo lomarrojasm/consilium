@@ -1,5 +1,6 @@
 module Admin
   class SystemMetricsController < ApplicationController
+    prepend_before_action :skip_session_tracking, only: [:chart_data, :logs, :worker_stats]
     before_action :authorize_admin!
     layout "application"
 

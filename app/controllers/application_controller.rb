@@ -13,6 +13,13 @@ class ApplicationController < ActionController::Base
 
   private
 
+  # Las peticiones automáticas (sondeo de monitoreo) no deben renovar el
+  # temporizador de inactividad de Devise (:timeoutable). Usar con
+  # prepend_before_action para que corra antes de authenticate_user!.
+  def skip_session_tracking
+    request.env["devise.skip_trackable"] = true
+  end
+
   # =========================================================================
   # SEGURIDAD GLOBAL: authorize_admin!
   # =========================================================================

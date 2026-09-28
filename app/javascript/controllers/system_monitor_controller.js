@@ -34,6 +34,7 @@ export default class extends Controller {
     try {
       // Conexión segura a través del "puente" de Rails para evitar el error de Mixed Content
       const response = await fetch(`/system_metrics?chart=${chartId}`)
+      if (response.redirected || response.status === 401) { window.location.reload(); return null }
       if (!response.ok) return null
       return await response.json()
     } catch (e) { 

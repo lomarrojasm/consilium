@@ -10,7 +10,7 @@ class User < ApplicationRecord
   # :trackable -> Guarda IP, hora de entrada y conteo de logins.
   # :registerable -> ELIMINADO (Nadie puede registrarse solo).
   devise :invitable, :database_authenticatable, :registerable, :recoverable,
-         :rememberable, :validatable, :trackable
+         :timeoutable, :validatable, :trackable
 
   has_one_attached :avatar
   has_many :messages, dependent: :destroy

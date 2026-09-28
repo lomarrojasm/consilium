@@ -15,6 +15,7 @@ export default class extends Controller {
   async updateStats() {
     try {
       const response = await fetch('/admin/system_worker_stats')
+      if (response.redirected || response.status === 401) return window.location.reload()
       if (!response.ok) throw new Error("Error en la respuesta del servidor")
       const data = await response.json()
 
