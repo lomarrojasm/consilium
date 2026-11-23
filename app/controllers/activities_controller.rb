@@ -4,15 +4,15 @@ class ActivitiesController < ApplicationController
 
   # --- SEGURIDAD AJUSTADA PARA EL FLUJO CLIENTE/SOPORTE ---
   before_action :authorize_project_member!, only: [
-    :edit, :tracking, :toggle_user_approval, :toggle_admin_approval,
+    :edit, :tracking, :toggle_user_approval, :toggle_admin_approval, :update_approval_date,
     :upload_evidence, :destroy_evidence, :update_status
   ]
 
   before_action :authorize_lider_or_senior!, only: [
-    :new, :create, :update, :destroy, :toggle, :destroy_log
+    :new, :create, :update, :destroy, :toggle, :destroy_log, :reorder
   ]
 
-  before_action :check_stage_lock_on_activity!, only: [ :update_status, :toggle_user_approval, :upload_evidence, :destroy_evidence, :destroy_log ]
+  before_action :check_stage_lock_on_activity!, only: [ :update_status, :toggle_user_approval, :update_approval_date, :upload_evidence, :destroy_evidence, :destroy_log ]
 
   def new
     @activity = @project.activities.build
@@ -34,6 +34,7 @@ class ActivitiesController < ApplicationController
 
     @activity = stage.activities.build(activity_params)
     @activity.user = current_user
+    @activity.position = (stage.activities.maximum(:position) || -1) + 1
 
     if @activity.save
       redirect_to client_project_path(@client, @project), notice: "Actividad creada con éxito."
@@ -56,7 +57,14 @@ class ActivitiesController < ApplicationController
       params[:activity].delete(:created_at)
     end
 
+    old_created_at = @activity.created_at
+
     if @activity.update(activity_params)
+      if @activity.saved_change_to_created_at?
+        @activity.shift_simulated_logs!(@activity.created_at - old_created_at)
+      end
+      @activity.resync_log_dates!
+
       total_cost = (@activity.leader_cost || 0) + (@activity.senior_cost || 0) + (@activity.analyst_cost || 0)
       @activity.update_column(:activity_cost, total_cost)
 
@@ -69,6 +77,57 @@ class ActivitiesController < ApplicationController
   def destroy
     @activity.destroy
     redirect_to client_project_path(@client, @project), notice: "Actividad eliminada."
+  end
+
+  # PATCH .../activities/reorder
+  # Params: activity_id (la movida), stage_id (etapa destino), ids[] (orden final en la etapa destino)
+  def reorder
+    moved  = @project.activities.find(params[:activity_id])
+    target = @project.stages.find(params[:stage_id])
+    source = moved.stage
+    ids    = Array(params[:ids]).map(&:to_i).uniq
+    changed_stage = source.id != target.id
+
+    if source.locked_for?(current_user) || target.locked_for?(current_user)
+      return render json: { error: "La etapa está finalizada y bloqueada." }, status: :forbidden
+    end
+
+    if moved.admin_approved && moved.user_approved
+      return render json: { error: "Una actividad finalizada no se puede mover." }, status: :forbidden
+    end
+
+    allowed = target.activities.pluck(:id) | [ moved.id ]
+    unless ids.include?(moved.id) && (ids - allowed).empty?
+      return render json: { error: "Orden inválido, recarga la página." }, status: :unprocessable_entity
+    end
+
+    Activity.transaction do
+      if changed_stage
+        sync_accrual_stage(moved, source, target)
+        moved.update_columns(stage_id: target.id, updated_at: Time.current)
+      end
+
+      # Posiciones consecutivas en la etapa destino (las no enviadas quedan al final)
+      rest = (allowed - ids).sort_by { |id| target.activities.find_by(id: id)&.position.to_i }
+      (ids + rest).each_with_index { |id, i| Activity.where(id: id).update_all(position: i) }
+
+      # Compactar etapa origen
+      if changed_stage
+        source.activities.reload.each_with_index { |a, i| a.update_columns(position: i) }
+      end
+
+      if changed_stage
+        TimelineLog.create(
+          client: @client, user: current_user, resource: moved, resource_name: moved.name,
+          action_type: "update", happened_at: Time.current,
+          details: "🔀 Actividad movida de «#{source.name}» a «#{target.name}»: #{moved.name}"
+        )
+      end
+    end
+
+    render json: { ok: true, changed_stage: changed_stage }
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: "Recurso no encontrado." }, status: :not_found
   end
 
   def destroy_log
@@ -155,6 +214,8 @@ class ActivitiesController < ApplicationController
     filename = attachment.filename.to_s
     attachment.purge
 
+    # El registro "📁 Subió…" de ese archivo deja de existir; el "🗑️ Eliminó…" queda como historial real.
+    @activity.reload.prune_stale_evidence_logs!
     @activity.activity_logs.create!(user: current_user, status: "pending", comment: "🗑️ Eliminó la evidencia: #{filename}.")
 
     redirect_to client_project_path(@client, @project, anchor: row), notice: "Evidencia eliminada."
@@ -169,6 +230,7 @@ class ActivitiesController < ApplicationController
       if params[:evidence_uploaded_at].present? && @activity.update(evidence_uploaded_at: params[:evidence_uploaded_at])
         new_date = params[:evidence_uploaded_at].to_date
         @activity.update(completed_day: new_date.day) if new_date
+        @activity.reload.resync_log_dates!   # el historial refleja la nueva fecha de evidencia
 
         # Redirigimos usando un "ancla" para que la página baje automáticamente a la fila
         redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), notice: "Fecha de evidencia actualizada correctamente."
@@ -226,41 +288,15 @@ class ActivitiesController < ApplicationController
   # MAGIA 2: Aprobación del Cliente unificada
   # ====================================================================
   def toggle_user_approval
+    state_before = stages_state
     new_state = !@activity.user_approved
 
-    # 1. Determinamos la fecha: Si está aprobando y mandó días, los sumamos. Si no, usamos la fecha actual.
-    action_date = Time.current
-    if new_state && params[:days_after].present?
-      action_date = @activity.created_at + params[:days_after].to_i.days
+    apply_user_approval(@activity, new_state, params[:days_after])
+
+    respond_to do |format|
+      format.json { render json: approval_payload(@activity, state_before) }
+      format.html { redirect_back fallback_location: client_project_path(@client, @project), notice: "Aprobación de cliente actualizada." }
     end
-
-    # 2. Asignamos la fecha correcta al campo de aprobación
-    updates = { user_approved: new_state, user_approved_at: new_state ? action_date : nil }
-
-    # Si el cliente retira su aprobación, se cae todo lo demás y se reabre la tarea
-    if !new_state
-      updates[:admin_approved] = false
-      updates[:admin_approved_at] = nil
-      updates[:completed] = false
-      updates[:status] = "pending"
-    end
-
-    @activity.update(updates)
-
-    # 3. Creamos el log capturándolo en una variable
-    action_text = new_state ? "✅ Aprobó formalmente" : "↩️ Revocó la aprobación de"
-    log = @activity.activity_logs.create!(
-      user: current_user,
-      status: (new_state ? "approved" : "pending"),
-      comment: "#{action_text} la actividad como cliente."
-    )
-
-    # 4. Magia de update_columns: Solo alteramos la fecha del log si se estaba aprobando
-    if new_state && params[:days_after].present?
-      log.update_columns(created_at: action_date, updated_at: action_date)
-    end
-
-    redirect_back fallback_location: client_project_path(@client, @project), notice: "Aprobación de cliente actualizada."
   end
 
   # ====================================================================
@@ -268,45 +304,75 @@ class ActivitiesController < ApplicationController
   # ====================================================================
   def toggle_admin_approval
     if current_user.role == "admin"
+      state_before = stages_state
       new_state = !@activity.admin_approved
 
-      # 1. Determinamos la fecha simulada
-      action_date = Time.current
-      if new_state && params[:days_after].present?
-        action_date = @activity.created_at + params[:days_after].to_i.days
+      apply_admin_approval(@activity, new_state, params[:days_after])
+
+      respond_to do |format|
+        format.json { render json: approval_payload(@activity, state_before) }
+        format.html { redirect_back fallback_location: client_project_path(@client, @project), notice: "Aprobación administrativa actualizada." }
       end
-
-      # 2. Asignamos la fecha correcta al campo de aprobación
-      updates = { admin_approved: new_state, admin_approved_at: new_state ? action_date : nil }
-
-      # Si el Admin retira el visto bueno, forzamos a que la actividad se marque como Incompleta
-      if !new_state
-        updates[:completed] = false
-        updates[:status] = "pending"
-      else
-        updates[:completed] = true
-        updates[:status] = "approved"
-      end
-
-      @activity.update(updates)
-
-      # 3. Creamos el log capturándolo en una variable
-      action_text = new_state ? "🛡️ Otorgó" : "↩️ Retiró"
-      log = @activity.activity_logs.create!(
-        user: current_user,
-        status: (new_state ? "approved" : "pending"),
-        comment: "#{action_text} el Visto Bueno definitivo (Admin)."
-      )
-
-      # 4. Magia de update_columns: Solo alteramos la fecha del log si se estaba aprobando
-      if new_state && params[:days_after].present?
-        log.update_columns(created_at: action_date, updated_at: action_date)
-      end
-
-      redirect_back fallback_location: client_project_path(@client, @project), notice: "Aprobación administrativa actualizada."
     else
-      redirect_back fallback_location: client_project_path(@client, @project), alert: "Acceso denegado: Acción exclusiva de la administración de Consilium."
+      deny!("Acceso denegado: Acción exclusiva de la administración de Consilium.", client_project_path(@client, @project))
     end
+  end
+
+  # PATCH .../activities/bulk_approve  (solo admin)
+  # Params: kind (user | admin), ids[]. Procesa solo las actividades elegibles y reporta el resto.
+  #   user  -> aprueba como cliente las que aún no lo están (fecha de hoy)
+  #   admin -> da el Visto Bueno a las que ya tienen aprobación de cliente y aún no la de admin
+  def bulk_approve
+    return deny!("Acción exclusiva de la administración de Consilium.", client_project_path(@client, @project)) unless current_user.role == "admin"
+
+    kind = params[:kind].to_s
+    return render(json: { ok: false, error: "Acción no válida." }, status: :unprocessable_entity) unless %w[user admin].include?(kind)
+
+    ids = Array(params[:ids]).map(&:to_i).uniq.first(500)
+    activities = @project.activities.where(id: ids).includes(:stage).to_a
+    state_before = stages_state
+    processed = []
+    skipped = 0
+
+    Activity.transaction do
+      activities.each do |act|
+        finalized = act.admin_approved && act.user_approved
+        eligible = !finalized && !act.stage.locked_for?(current_user) &&
+                   (kind == "user" ? !act.user_approved : (act.user_approved && !act.admin_approved))
+        if eligible
+          kind == "user" ? apply_user_approval(act, true, nil) : apply_admin_approval(act, true, nil)
+          processed << act
+        else
+          skipped += 1
+        end
+      end
+    end
+    skipped += (ids.size - activities.size)
+
+    render json: {
+      ok: true, processed: processed.size, skipped: skipped,
+      results: processed.map { |act| approval_payload(act, state_before) }
+    }
+  end
+
+  # Cambia la fecha de una aprobación ya otorgada (user | admin) sin revocarla.
+  def update_approval_date
+    kind = params[:kind].to_s
+    return deny!("Acción no válida.", client_project_path(@client, @project)) unless %w[user admin].include?(kind)
+    return deny!("Acceso denegado.", client_project_path(@client, @project)) if kind == "admin" && current_user.role != "admin"
+
+    unless @activity.public_send("#{kind}_approved")
+      return render json: { ok: false, error: "La actividad no tiene esa aprobación." }, status: :unprocessable_entity
+    end
+
+    new_date = @activity.created_at + params[:days_after].to_i.days
+    @activity.update_columns("#{kind}_approved_at": new_date)
+
+    marker = kind == "admin" ? "Visto Bueno definitivo" : "como cliente"
+    @activity.activity_logs.where(status: "approved").where("comment LIKE ?", "%#{marker}%")
+             .order(:created_at).last&.update_columns(created_at: new_date, updated_at: new_date)
+
+    render json: { ok: true, date: new_date.strftime("%d/%m/%Y") }
   end
 
   def simulate_ai_logs
@@ -351,20 +417,121 @@ class ActivitiesController < ApplicationController
   end
 
   def authorize_project_member!
-    redirect_to client_path(@client), alert: "No tienes permiso." unless true_user.role == "admin" || @project.users.include?(current_user)
+    return if true_user.role == "admin" || @project.users.include?(current_user)
+    deny!("No tienes permiso.", client_path(@client))
   end
 
   def authorize_lider_or_senior!
     role = current_project_role
-    redirect_to client_project_path(@client, @project), alert: "No tienes permisos de edición." unless true_user.role == "admin" || [ "lider", "senior" ].include?(role)
+    return if true_user.role == "admin" || [ "lider", "senior" ].include?(role)
+    deny!("No tienes permisos de edición.", client_project_path(@client, @project))
   end
 
   def check_stage_lock_on_activity!
     activity = @project.activities.find(params[:id])
     if activity.stage.locked_for?(current_user)
-      redirect_to client_project_path(@client, @project),
-                  alert: "Acción no permitida: La etapa está finalizada y bloqueada."
+      deny!("Acción no permitida: La etapa está finalizada y bloqueada.", client_project_path(@client, @project))
     end
+  end
+
+  # --- Lógica de aprobación compartida (acción individual y aprobación en bloque) ---
+  def apply_user_approval(activity, new_state, days_after)
+    # Fecha: hoy, o (si viene days_after) creación de la actividad + N días
+    action_date = Time.current
+    action_date = activity.created_at + days_after.to_i.days if new_state && days_after.present?
+
+    updates = { user_approved: new_state, user_approved_at: new_state ? action_date : nil }
+
+    # Si el cliente retira su aprobación, se cae todo lo demás y se reabre la tarea
+    if !new_state
+      updates[:admin_approved] = false
+      updates[:admin_approved_at] = nil
+      updates[:completed] = false
+      updates[:status] = "pending"
+    end
+
+    activity.update(updates)
+
+    action_text = new_state ? "✅ Aprobó formalmente" : "↩️ Revocó la aprobación de"
+    log = activity.activity_logs.create!(
+      user: current_user,
+      status: (new_state ? "approved" : "pending"),
+      comment: "#{action_text} la actividad como cliente."
+    )
+
+    # Solo alteramos la fecha del log si se estaba aprobando con fecha distinta a hoy
+    log.update_columns(created_at: action_date, updated_at: action_date) if new_state && days_after.present?
+  end
+
+  def apply_admin_approval(activity, new_state, days_after)
+    action_date = Time.current
+    action_date = activity.created_at + days_after.to_i.days if new_state && days_after.present?
+
+    updates = { admin_approved: new_state, admin_approved_at: new_state ? action_date : nil }
+
+    # Si el Admin retira el visto bueno, la actividad vuelve a incompleta
+    if new_state
+      updates[:completed] = true
+      updates[:status] = "approved"
+    else
+      updates[:completed] = false
+      updates[:status] = "pending"
+    end
+
+    activity.update(updates)
+
+    action_text = new_state ? "🛡️ Otorgó" : "↩️ Retiró"
+    log = activity.activity_logs.create!(
+      user: current_user,
+      status: (new_state ? "approved" : "pending"),
+      comment: "#{action_text} el Visto Bueno definitivo (Admin)."
+    )
+
+    log.update_columns(created_at: action_date, updated_at: action_date) if new_state && days_after.present?
+  end
+
+  # Respuesta de rechazo: JSON para peticiones fetch, redirect para formularios normales.
+  def deny!(message, redirect_path)
+    if request.format.json?
+      render json: { ok: false, error: message }, status: :forbidden
+    else
+      redirect_to redirect_path, alert: message
+    end
+  end
+
+  # Foto del estado de bloqueo/desbloqueo de todas las etapas, para saber si una
+  # aprobación obliga a refrescar la página completa (etapa terminada o siguiente desbloqueada).
+  def stages_state
+    @project.stages.reload.map { |st| [ st.id, @project.stage_unlocked?(st), st.locked_for?(current_user) ] }
+  end
+
+  # HTML nuevo de la fila y del resumen de la etapa para actualizar la tabla sin recargar.
+  def approval_payload(activity, state_before)
+    activity = @project.activities.find(activity.id)
+    stage = activity.stage
+    stage_locked = stage.locked_for?(current_user)
+    can_sort = !stage_locked && (current_user.role == "admin" || %w[lider senior].include?(current_project_role))
+
+    {
+      ok: true,
+      activity_id: activity.id,
+      stage_id: stage.id,
+      row_html: render_to_string(partial: "projects/activity_row", formats: [ :html ],
+                                 locals: { activity: activity, stage: stage, stage_locked: stage_locked, can_sort: can_sort }),
+      stats_html: render_to_string(partial: "projects/stage_stats", formats: [ :html ], locals: { stage: stage }),
+      reload: stages_state != state_before
+    }
+  end
+
+  # El devengo financiero se enlaza por texto (etapa + concepto); al cambiar de etapa
+  # se actualiza su stage_name para que no quede huérfano ni se ate a otro devengo.
+  def sync_accrual_stage(activity, source, target)
+    nombre = activity.name.to_s.strip.downcase
+    etapa  = source.name.to_s.strip.downcase
+    accrual = @project.financial_accruals.to_a.find do |f|
+      f.concept_name.to_s.strip.downcase == nombre && f.stage_name.to_s.strip.downcase == etapa
+    end
+    accrual&.update_columns(stage_name: target.name.presence || accrual.stage_name)
   end
 
   def uploaded_evidence_files

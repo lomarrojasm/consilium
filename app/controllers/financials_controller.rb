@@ -8,13 +8,30 @@ class FinancialsController < ApplicationController
   before_action :ensure_billing_authorized!
 
   def show
-    # El orden se mantiene por ID para que no salten de posición al actualizar
-    @accruals_by_stage = @project.financial_accruals.order(:id).group_by(&:stage_name)
+    @accruals_by_stage = ordered_accruals_by_stage
     @payments = @project.payments.order(payment_date: :desc)
   end
 
+  # Etapas en el orden del proyecto y devengos en el orden de sus actividades (position),
+  # para que reordenar/mover actividades se refleje también en Finanzas.
+  def ordered_accruals_by_stage
+    norm = ->(v) { v.to_s.strip.downcase }
+    stage_order = {}
+    act_order = {}
+    @project.stages.reorder(:position, :id).includes(:activities).each_with_index do |stage, si|
+      stage_order[norm.(stage.name)] ||= si
+      stage.activities.each { |a| act_order[[ norm.(stage.name), norm.(a.name) ]] ||= (a.position || 0) }
+    end
+
+    grouped = @project.financial_accruals.order(:id).group_by(&:stage_name)
+    grouped.transform_values! do |list|
+      list.sort_by { |f| [ act_order[[ norm.(f.stage_name), norm.(f.concept_name) ]] || Float::INFINITY, f.id ] }
+    end
+    grouped.sort_by { |name, list| [ stage_order[norm.(name)] || Float::INFINITY, list.map(&:id).min ] }.to_h
+  end
+
   def generate_template
-    stages = @project.stages.order(:id)
+    stages = @project.stages.reorder(:position, :id)
 
     if stages.empty?
       redirect_to client_project_financials_path(@client, @project), alert: "Atención: Primero debes generar el plan de trabajo operativo en el proyecto."
@@ -24,7 +41,7 @@ class FinancialsController < ApplicationController
     stages.each_with_index do |stage, index|
       stage_name = stage.name.presence || "Etapa #{index + 1}"
 
-      stage.activities.order(:activity_number, :id).each do |activity|
+      stage.activities.reorder(Arel.sql("position IS NULL, position ASC, id ASC")).each do |activity|
         accrual = @project.financial_accruals.find_or_initialize_by(
           stage_name: stage_name,
           concept_name: activity.name.to_s.strip

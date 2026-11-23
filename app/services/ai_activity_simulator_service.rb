@@ -25,6 +25,7 @@ class AiActivitySimulatorService
     # 2. Limpiamos el panel antes de generar la nueva simulación
     # Respetamos absolutamente cualquier log que tenga un archivo adjunto o que sea del sistema (emojis)
     clear_previous_simulation
+    @activity.prune_stale_evidence_logs!   # quita registros de evidencia que ya no existen
 
     client = OpenAI::Client.new(access_token: ENV.fetch("OPENAI_ACCESS_TOKEN"))
     team_context = @available_users.map { |u| "- ID: #{u[:id]} | Nombre: #{u[:name]} | Rol: #{u[:role]}" }.join("\n")
@@ -39,6 +40,15 @@ class AiActivitySimulatorService
       "Aún no hay documentos subidos. La conversación debe ser sobre el trabajo en progreso, pidiendo estatus o solicitando que se suba la evidencia."
     end
 
+    # Fechas vigentes de la actividad (la IA no debe inventar ni repetir otras)
+    fmt = ->(t) { t&.strftime("%d/%m/%Y") || "sin registrar" }
+    dates_context = <<~DATES.strip
+      - Fecha de creación de la actividad: #{fmt.call(@activity.created_at)}
+      - Fecha de evidencia: #{fmt.call(@activity.evidence_uploaded_at)}
+      - Aprobación del cliente: #{fmt.call(@activity.user_approved ? @activity.user_approved_at : nil)}
+      - Visto bueno de Consilium: #{fmt.call(@activity.admin_approved ? @activity.admin_approved_at : nil)}
+    DATES
+
     # 4. Prompt ajustado a la fecha de creación
     prompt = <<~PROMPT
       Actúas como el motor de simulación de un ERP corporativo en México.
@@ -50,6 +60,9 @@ class AiActivitySimulatorService
       - Actividad: "#{@activity.name}"
       - #{document_context}
 
+      Fechas vigentes del registro (solo como referencia para el orden de los hechos):
+      #{dates_context}
+
       Participantes disponibles:
       #{team_context}
 
@@ -58,6 +71,7 @@ class AiActivitySimulatorService
       2. Usa un tono corporativo, profesional y natural (español de negocios de México).
       3. Alterna los roles para simular una conversación real (ej. alguien pide avance, otro responde que está revisando el documento, etc).
       4. IMPORTANTE: En tu respuesta JSON, debes incluir el "user_id" numérico exacto de la lista de participantes.
+      6. PROHIBIDO escribir fechas, años, meses o días del calendario dentro de "content" (ej. "15/03/2026", "marzo", "2026"). Las fechas las muestra el sistema; si necesitas referirte al tiempo usa expresiones relativas ("ayer", "esta semana").
       5. TIEMPO: Usa "days_after_creation" para indicar cuántos días después de iniciada la actividad ocurrió el comentario. Deben ser valores ascendentes (ej. 0, 1, 3, 5).
 
       FORMATO DE SALIDA ESTRICTO (JSON):
@@ -96,6 +110,20 @@ class AiActivitySimulatorService
 
   private
 
+  MONTHS = "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre"
+
+  # Red de seguridad: si la IA escribe una fecha en el texto, se elimina para que no
+  # contradiga las fechas reales que muestra el sistema.
+  def strip_dates(text)
+    prep = "(?:(?:para|desde|hasta|a partir de)\\s+)?(?:(?:el|del|al|en|de)\\s+)?"
+    text.to_s
+        .gsub(/#{prep}\b\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{2,4}\b/i, "")
+        .gsub(/#{prep}\b\d{1,2}\s+de\s+(?:#{MONTHS})(?:\s+(?:de|del)\s+\d{4})?/i, "")
+        .gsub(/#{prep}\b(?:#{MONTHS})(?:\s+(?:de|del)\s+\d{4})?\b/i, "")
+        .gsub(/#{prep}\b(?:19|20)\d{2}\b/i, "")
+        .gsub(/\s+([,.;:])/, '\\1').gsub(/\s{2,}/, " ").strip
+  end
+
   def valid_configuration?
     ENV["OPENAI_ACCESS_TOKEN"].present? && @activity.present?
   end
@@ -123,7 +151,7 @@ class AiActivitySimulatorService
         # Creamos el log
         log = @activity.activity_logs.create!(
           user_id: log_data["user_id"],
-          comment: log_data["content"],
+          comment: strip_dates(log_data["content"]),
           status: "pending"
         )
 

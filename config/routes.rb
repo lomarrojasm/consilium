@@ -117,6 +117,10 @@ Rails.application.routes.draw do
 
       # 5.5 Actividades
       resources :activities, only: [ :new, :create, :edit, :update, :destroy ] do
+        collection do
+          patch :reorder
+          patch :bulk_approve
+        end
         member do
           get :tracking
           patch :toggle
@@ -126,6 +130,7 @@ Rails.application.routes.draw do
           patch :update_status
           patch :toggle_user_approval
           patch :toggle_admin_approval
+          patch :update_approval_date
           post :simulate_ai_logs
           delete :destroy_log # <--- RUTA DE IA AGREGADA AQUÍ
         end

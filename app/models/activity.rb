@@ -85,6 +85,82 @@ class Activity < ApplicationRecord
   end
 
 
+  # ===========================================================================
+  # Coherencia del historial (activity_logs) con los datos vigentes de la actividad
+  # ===========================================================================
+  SYSTEM_LOG_MARKERS = /📁|✅|🛡️|↩️|🗑️/
+
+  def evidence_logs
+    activity_logs.where("comment LIKE ?", "%📁%")
+  end
+
+  # Quita de los registros "📁 Subió…" los archivos que ya no existen como evidencia.
+  # Si un registro se queda sin archivos, se elimina. Devuelve la lista de cambios.
+  def prune_stale_evidence_logs!(dry_run: false)
+    current = evidences_attachments.map { |a| a.filename.to_s }
+    changes = []
+
+    evidence_logs.order(:created_at).each do |log|
+      # Solo registros con el formato automático: "…: archivo(s)."
+      match = log.comment.match(/\A📁 Subió (?:la evidencia formal de la actividad|(\d+) archivos de evidencia): (.+)\.\z/m)
+      next unless match
+
+      declared = (match[1] || 1).to_i
+      surviving = current.select { |name| match[2].include?(name) }
+      next if surviving.size >= declared
+
+      if surviving.empty?
+        changes << { action: :destroy, log_id: log.id, from: log.comment }
+        log.destroy unless dry_run
+      else
+        new_comment = if surviving.one?
+          "📁 Subió la evidencia formal de la actividad: #{surviving.first}."
+        else
+          "📁 Subió #{surviving.size} archivos de evidencia: #{surviving.join(', ')}."
+        end
+        changes << { action: :rewrite, log_id: log.id, from: log.comment, to: new_comment }
+        log.update_columns(comment: new_comment) unless dry_run
+      end
+    end
+
+    changes
+  end
+
+  # Alinea las fechas del historial con las fechas vigentes de la actividad:
+  # - el primer registro de evidencia -> evidence_uploaded_at
+  # - último registro de aprobación de cliente / admin -> user_approved_at / admin_approved_at
+  def resync_log_dates!(dry_run: false)
+    changes = []
+    align = lambda do |log, date, label|
+      next if log.nil? || date.nil? || log.created_at.to_date == date.to_date
+      changes << { log_id: log.id, label: label, from: log.created_at, to: date }
+      log.update_columns(created_at: date, updated_at: date) unless dry_run
+    end
+
+    align.call(evidence_logs.order(:created_at).first, evidence_uploaded_at, "evidencia") if evidence_uploaded_at
+
+    if user_approved && user_approved_at
+      align.call(activity_logs.where("comment LIKE ?", "%Aprobó formalmente%").order(:created_at).last, user_approved_at, "aprobación cliente")
+    end
+    if admin_approved && admin_approved_at
+      align.call(activity_logs.where("comment LIKE ?", "%Otorgó el Visto Bueno%").order(:created_at).last, admin_approved_at, "visto bueno admin")
+    end
+
+    changes
+  end
+
+  # Desplaza los comentarios simulados/libres (sin emoji de sistema ni adjuntos) cuando
+  # cambia la fecha de creación de la actividad, para conservar su separación en días.
+  def shift_simulated_logs!(delta_seconds)
+    return if delta_seconds.to_i.zero?
+    activity_logs.find_each do |log|
+      next if log.comment.to_s.match?(SYSTEM_LOG_MARKERS) || log.attachments.attached?
+      shifted = log.created_at + delta_seconds
+      log.update_columns(created_at: shifted, updated_at: shifted)
+    end
+  end
+
+
   private
 
   # Verifica si realmente cambió el estatus o la casilla de completado

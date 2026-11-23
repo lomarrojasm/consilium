@@ -264,34 +264,7 @@
                                     <% end %>
                                 </h6>
 
-                                <div class="ms-auto d-none d-lg-flex align-items-center" style="min-width: 400px;">
-                                    <div class="d-flex align-items-center flex-grow-1 me-4">
-                                        <div class="progress w-100 me-2" style="height: 8px; background-color: #f1f3fa; border-radius: 12px;">
-                                            <div class="progress-bar bg-success" role="progressbar" 
-                                                style="width: <%= stage.progress_percentage %>%; border-radius: 12px; transition: width 0.6s ease;">
-                                            </div>
-                                        </div>
-                                        <span class="font-10 fw-bold text-success"><%= stage.progress_percentage.to_i %>%</span>
-                                    </div>
-
-                                    <% 
-                                        total_tasks = stage.activities.count 
-                                        pending_tasks = stage.activities.where(completed: false).count
-                                    %>
-                                    <div class="d-flex align-items-center border-start ps-3" style="border-color: #f1f3fa !important;">
-                                        <div class="text-end me-3">
-                                            <span class="text-muted d-block font-8 fw-bold text-uppercase tracking-wider mb-0" style="line-height: 1;">Total</span>
-                                            <span class="font-10 fw-bold text-dark"><%= total_tasks %></span>
-                                        </div>
-                                        
-                                        <div class="text-end" style="min-width: 55px;">
-                                            <span class="text-muted d-block font-8 fw-bold text-uppercase tracking-wider mb-0" style="line-height: 1;">Pendientes</span>
-                                            <span class="font-10 fw-bold <%= pending_tasks > 0 ? 'text-danger' : 'text-success' %>">
-                                                <%= pending_tasks %>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                                <%= render "projects/stage_stats", stage: stage %>
                             </a>
                             
                             <% if current_user.role == 'admin' %>
@@ -324,6 +297,23 @@
 
                         <div id="stage-<%= stage.id %>" class="collapse <%= 'show' if index == 0 || (is_unlocked && stage.progress_percentage < 100 && stage.progress_percentage > 0) %>">
                             <div class="card-body p-0">
+                                <% if current_user.role == 'admin' && !stage_locked %>
+                                    <div class="bulk-bar d-flex flex-wrap align-items-center gap-2 px-3 py-2 border-bottom bg-light" data-stage-id="<%= stage.id %>">
+                                        <div class="form-check m-0">
+                                            <input type="checkbox" class="form-check-input bulk-select-all" id="bulk-all-<%= stage.id %>" data-stage-id="<%= stage.id %>">
+                                            <label class="form-check-label font-12 text-muted" for="bulk-all-<%= stage.id %>">Seleccionar todas</label>
+                                        </div>
+                                        <span class="font-12 text-muted bulk-count ms-1" data-stage-id="<%= stage.id %>">0 seleccionadas</span>
+                                        <div class="ms-auto d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary bulk-btn" data-kind="user" data-stage-id="<%= stage.id %>" disabled>
+                                                <i class="ri-user-star-line me-1"></i>Aprobar como cliente
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-success bulk-btn" data-kind="admin" data-stage-id="<%= stage.id %>" disabled>
+                                                <i class="ri-shield-check-line me-1"></i>Visto bueno admin
+                                            </button>
+                                        </div>
+                                    </div>
+                                <% end %>
                                 <div class="table-responsive">
                                     <table class="table table-centered table-hover mb-0 align-middle" style="min-width: 600px;">
                                         <thead class="table-light text-muted font-11 uppercase">
@@ -339,184 +329,15 @@
                                                 <th class="text-end px-1 px-md-2"><i class="ri-more-2-fill font-16"></i></th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            <% stage.activities.with_attached_evidences.order(:position).each do |activity| %>
-                                                <% is_finalized = activity.admin_approved && activity.user_approved %>
-                                                
-                                                <tr id="activity-row-<%= activity.id %>" class="<%= 'bg-light-subtle' if activity.status == 'rejected' %> <%= 'bg-success bg-opacity-10' if is_finalized %>">
-                                                    
-                                                    <td class="text-center px-1 px-md-2">
-                                                        <% if is_finalized %>
-                                                            <a href="javascript:void(0);" onclick="verSeguimientoActividad('<%= activity.id %>')" class="text-success hover-primary" data-bs-toggle="tooltip" title="Finalizada y Devengada - Clic para visualizar">
-                                                                <i class="ri-eye-fill font-22"></i>
-                                                            </a>
-                                                        <% elsif activity.user_approved %>
-                                                            <i class="ri-user-star-fill font-20 text-primary" data-bs-toggle="tooltip" title="Aprobado por Cliente - Esperando Consilium"></i>
-                                                        <% elsif activity.evidence_attached? || activity.completed %>
-                                                            <i class="ri-file-shield-2-fill font-20 text-info" data-bs-toggle="tooltip" title="Evidencia Subida - Esperando V.B. Cliente"></i>
-                                                        <% elsif activity.status == 'rejected' %>
-                                                            <i class="ri-close-circle-fill font-20 text-danger" data-bs-toggle="tooltip" title="Rechazada / Con Problemas"></i>
-                                                        <% else %>
-                                                            <i class="ri-time-line font-20 text-warning" data-bs-toggle="tooltip" title="En Proceso"></i>
-                                                        <% end %>
-                                                    </td>
-                                                    
-                                                    <td style="white-space: normal;">
-                                                        <div class="font-10 text-muted mb-1">
-                                                            <i class="ri-calendar-todo-line me-1"></i>Reg: <%= activity.created_at.strftime("%d/%m/%y") %>
-                                                        </div>
-
-                                                        <a href="javascript:void(0);" 
-                                                           onclick="verSeguimientoActividad('<%= activity.id %>')"
-                                                           class="<%= 'text-decoration-line-through text-muted italic' if is_finalized %> font-13 fw-bold text-body hover-primary d-block mb-1">
-                                                            <i class="ri-dashboard-line me-1 text-primary"></i> <%= activity.name %>
-                                                        </a>
-                                                        
-                                                        <div class="d-flex flex-wrap gap-1 d-lg-none mb-1">
-                                                            <% if is_methodology %>
-                                                                <span class="badge bg-light text-dark border font-10">M<%= activity.month %>-S<%= activity.week %></span>
-                                                            <% end %>
-                                                            <span class="badge bg-light text-secondary border font-10"><%= activity.area %></span>
-                                                            <% if activity.responsible.present? %>
-                                                                <span class="badge bg-soft-info text-info font-10 d-md-none"><i class="ri-user-line"></i> <%= activity.responsible.first_name %></span>
-                                                            <% end %>
-                                                        </div>
-
-                                                        <% if activity.evidence_uploaded_at %>
-                                                            <div class="d-flex align-items-center mt-1">
-                                                                <% if current_user.role == 'admin' %>
-                                                                    <%= form_with url: update_evidence_date_client_project_activity_path(@client, @project, activity), method: :patch, class: "d-flex align-items-center" do |f| %>
-                                                                        <div class="input-group input-group-sm shadow-sm rounded" style="width: 190px;">
-                                                                            <span class="input-group-text bg-light border-0 ps-1 pe-0 text-muted" style="font-size: 10px;">
-                                                                                <i class="ri-upload-cloud-line"></i>
-                                                                            </span>
-                                                                            <%= f.date_field :evidence_uploaded_at, 
-                                                                                value: activity.evidence_uploaded_at ? activity.evidence_uploaded_at.strftime("%Y-%m-%d") : Date.current.to_s,
-                                                                                class: "form-control form-control-sm border-0 bg-light text-muted font-10 shadow-none",
-                                                                                style: "padding-left: 5px; cursor: pointer;" %>
-                                                                            
-                                                                            <!-- Botón de validación explícita -->
-                                                                            <button class="btn btn-sm btn-light border-0 text-primary px-2 hover-primary" type="submit" data-bs-toggle="tooltip" title="Guardar fecha">
-                                                                                <i class="ri-check-line font-16 fw-bold"></i>
-                                                                            </button>
-                                                                        </div>
-                                                                    <% end %>
-                                                                <% else %>
-                                                                    <div class="font-10 text-muted">
-                                                                        <i class="ri-upload-cloud-line me-1"></i>Evid: <%= activity.evidence_uploaded_at.strftime("%d/%m/%y") %>
-                                                                    </div>
-                                                                <% end %>
-                                                            </div>
-                                                        <% end %>
-                                                    </td>
-
-                                                    <td class="d-none d-lg-table-cell">
-                                                        <span class="font-10 text-uppercase text-primary"><%= activity.document_ref %></span>
-                                                    </td>
-                                                    
-                                                    <td class="d-none d-lg-table-cell">
-                                                        <span class="font-10 text-uppercase text-secondary"><%= activity.area %></span>
-                                                    </td>
-                                                    
-                                                    <td class="d-none d-md-table-cell">
-                                                        <% if activity.responsible.present? %>
-                                                            <div class="d-flex align-items-center">
-                                                                <% if activity.responsible.avatar.attached? %>
-                                                                    <%= image_tag url_for(activity.responsible.avatar), class: "rounded-circle me-2", style: "width: 24px; height: 24px; object-fit: cover;" %>
-                                                                <% else %>
-                                                                    <div class="avatar-xs me-2" style="width: 24px; height: 24px;">
-                                                                        <span class="avatar-title rounded-circle bg-soft-info text-info font-10 fw-bold">
-                                                                            <%= activity.responsible.first_name[0] %><%= activity.responsible.last_name[0] %>
-                                                                        </span>
-                                                                    </div>
-                                                                <% end %>
-                                                                <span class="font-12"><%= activity.responsible.first_name %></span>
-                                                            </div>
-                                                        <% else %>
-                                                            <span class="text-muted font-11 italic">No asignado</span>
-                                                        <% end %>
-                                                    </td>
-                                                    
-                                                    <td class="text-center px-1 px-md-2">
-                                                        <%= render "activities/evidence_cell", activity: activity, stage_locked: stage_locked, is_finalized: is_finalized %>
-                                                    </td>
-
-                                                    <%# --- CHECKBOX: APROBACIÓN DEL CLIENTE --- %>
-                                                    <td class="text-center px-1 px-md-2">
-                                                        <div class="d-flex flex-column align-items-center">
-                                                            <%= form_with url: toggle_user_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: true do %>
-                                                                <div class="form-check m-0">
-                                                                    <% 
-                                                                       missing_evidence = !activity.completed && !activity.evidence_attached?
-                                                                       client_restricted = current_user.role != 'admin' && missing_evidence
-                                                                       user_cb_disabled = stage_locked || activity.admin_approved || is_finalized || client_restricted
-                                                                    %>
-                                                                    <input type="checkbox" 
-                                                                        class="form-check-input shadow-none cursor-pointer <%= activity.user_approved ? 'bg-success border-success' : 'border-warning' %>" 
-                                                                        <%= 'checked' if activity.user_approved %> 
-                                                                        onchange="handleUserApproval(this, '<%= escape_javascript activity.name %>')"
-                                                                        <%= 'disabled' if user_cb_disabled %>
-                                                                        <%= "data-bs-toggle='tooltip' title='Poder Admin: Aprobación forzada habilitada sin evidencia'".html_safe if current_user.role == 'admin' && missing_evidence && !user_cb_disabled %>>
-                                                                </div>
-                                                            <% end %>
-                                                        </div>
-                                                    </td>
-
-                                                    <%# --- CHECKBOX: APROBACIÓN DE CONSILIUM (ADMIN) --- %>
-                                                    <td class="text-center px-1 px-md-2">
-                                                        <div class="d-flex flex-column align-items-center">
-                                                            <%= form_with url: toggle_admin_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: true do %>
-                                                                <div class="form-check m-0">
-                                                                    <input type="checkbox" 
-                                                                        class="form-check-input shadow-none cursor-pointer <%= activity.admin_approved ? 'bg-success border-success' : 'border-warning' %>" 
-                                                                        <%= 'checked' if activity.admin_approved %> 
-                                                                        onchange="handleAdminApproval(this, '<%= escape_javascript activity.name %>')"
-                                                                        <%= 'disabled' unless current_user.role == 'admin' && activity.user_approved %>>
-                                                                </div>
-                                                            <% end %>
-                                                        </div>
-                                                    </td>
-
-                                                    <td class="text-end px-1 px-md-2">
-                                                        <div class="dropdown">
-                                                            <a href="#" class="text-muted dropdown-toggle arrow-none" data-bs-toggle="dropdown"><i class="ri-more-fill font-18"></i></a>
-                                                            <div class="dropdown-menu dropdown-menu-end shadow border-0">
-                                                                
-                                                                <a href="javascript:void(0);" onclick="verSeguimientoActividad('<%= activity.id %>')" class="dropdown-item font-13 fw-bold text-primary">
-                                                                    <i class="ri-eye-line me-1"></i> Abrir Panel
-                                                                </a>
-                                                                
-                                                                <% if current_user.role == 'admin' %>
-                                                                    <%# ========================================== %>
-                                                                    <%# BOTÓN DE IA INYECTADO AQUÍ                 %>
-                                                                    <%# ========================================== %>
-                                                                    <a href="javascript:void(0);" 
-                                                                    onclick="simularConIA('<%= simulate_ai_logs_client_project_activity_path(@client, @project, activity) %>', '<%= j activity.name %>')" 
-                                                                    class="dropdown-item font-13 fw-bold"
-                                                                    style="color: #6a0dad;">
-                                                                    <i class="ri-sparkling-fill text-warning me-1"></i> Simular IA (Seguimiento)
-                                                                    </a>
-
-                                                                    <% unless stage_locked || is_finalized %>
-                                                                        <div class="dropdown-divider"></div>
-                                                                        <%= link_to edit_client_project_activity_path(@client, @project, activity), class: "dropdown-item font-13" do %>
-                                                                            <i class="ri-edit-line me-1"></i> Editar
-                                                                        <% end %>
-                                                                        
-                                                                        <%= button_to client_project_activity_path(@client, @project, activity), 
-                                                                                    method: :delete, 
-                                                                                    form_class: "m-0", 
-                                                                                    class: "dropdown-item text-danger font-13 w-100 text-start bg-transparent border-0", 
-                                                                                    onclick: "confirmDeleteActivity(event, this.form, '#{escape_javascript(activity.name)}');" do %>
-                                                                        <i class="ri-delete-bin-line me-1"></i> Eliminar
-                                                                        <% end %>
-                                                                    <% end %>
-                                                                <% end %>
-
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
+                                        <% can_sort = !stage_locked && (current_user.role == 'admin' || %w[lider senior].include?(current_project_role)) %>
+                                        <tbody <% if can_sort %>data-controller="sortable"
+                                               data-sortable-url-value="<%= reorder_client_project_activities_path(@client, @project) %>"
+                                               data-sortable-stage-id-value="<%= stage.id %>"<% end %>>
+                                            <% if can_sort && stage.activities.empty? %>
+                                                <tr class="sortable-empty"><td colspan="9" class="text-center text-muted font-12 py-3">Arrastra una actividad aquí</td></tr>
+                                            <% end %>
+                                            <% stage.activities.with_attached_evidences.order(Arel.sql("position IS NULL, position ASC, id ASC")).each do |activity| %>
+                                                <%= render "projects/activity_row", activity: activity, stage: stage, stage_locked: stage_locked, can_sort: can_sort %>
                                             <% end %>
                                         </tbody>
                                     </table>
@@ -1047,22 +868,67 @@
         });
     }
 
-    // Maneja el toggle del Cliente
-    function handleUserApproval(checkbox, activityName) {
-        if (checkbox.checked) {
-            promptForApprovalDate(checkbox, activityName);
-        } else {
-            // Si desmarca, enviamos el formulario normal para revocar
-            checkbox.form.requestSubmit();
+    // ===== Aprobaciones sin recargar la página =====
+    function CSRF_TOKEN() { return document.querySelector('meta[name=csrf-token]').content; }
+
+    function approvalToast(icon, title) {
+        Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title, showConfirmButton: false, timer: 1800 });
+    }
+
+    // Envía la aprobación por fetch y actualiza solo la fila (y el resumen de su etapa).
+    async function sendApproval(checkbox, daysAfter) {
+        const url = checkbox.form.action;
+        const wasChecked = checkbox.checked;
+        const body = new URLSearchParams();
+        if (daysAfter !== undefined && daysAfter !== null) body.append('days_after', daysAfter);
+        checkbox.disabled = true;
+        checkbox.classList.add('opacity-50');
+
+        try {
+            const res = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'X-CSRF-Token': CSRF_TOKEN(), 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar la aprobación.');
+            if (data.reload) { window.location.reload(); return; }
+            applyApprovalUpdate(data);
+            approvalToast('success', wasChecked ? 'Aprobación registrada' : 'Aprobación retirada');
+        } catch (err) {
+            checkbox.checked = !wasChecked;      // revertimos visualmente
+            checkbox.disabled = false;
+            checkbox.classList.remove('opacity-50');
+            approvalToast('error', err.message);
         }
     }
 
-    // Maneja el toggle del Admin (Consilium)
+    function applyApprovalUpdate(data) {
+        const row = document.getElementById('activity-row-' + data.activity_id);
+        if (row) {
+            const tpl = document.createElement('template');
+            tpl.innerHTML = data.row_html.trim();
+            const newRow = tpl.content.firstElementChild;
+            row.replaceWith(newRow);
+            if (window.bootstrap) {
+                newRow.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+            }
+        }
+        const stats = document.getElementById('stage-stats-' + data.stage_id);
+        if (stats && data.stats_html) stats.outerHTML = data.stats_html.trim();
+        if (window.refreshBulkBar) window.refreshBulkBar(data.stage_id);
+    }
+
+    // Cliente: un clic aprueba con la fecha de hoy; desmarcar revoca.
+    function handleUserApproval(checkbox, activityName) {
+        sendApproval(checkbox, null);
+    }
+
+    // Admin: un clic aprueba con la fecha de hoy; revocar pide confirmación.
     function handleAdminApproval(checkbox, activityName) {
         if (checkbox.checked) {
-            promptForApprovalDate(checkbox, activityName);
+            sendApproval(checkbox, null);
         } else {
-            // Si desmarca, preguntamos si está seguro de revocar (como lo tenías antes)
             Swal.fire({
                 title: '¿Revocar validación?',
                 text: `Se quitará la validación final a "${activityName}".`,
@@ -1074,7 +940,7 @@
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    checkbox.form.requestSubmit();
+                    sendApproval(checkbox, null);
                 } else {
                     checkbox.checked = true; // Revertimos visualmente
                 }
@@ -1082,13 +948,12 @@
         }
     }
 
-    // El Modal SweetAlert que pide la fecha
-    function promptForApprovalDate(checkbox, activityName) {
+    // Menú de la fila: cambiar después la fecha de una aprobación ya otorgada.
+    function ajustarFechaAprobacion(url, kind, activityId) {
         Swal.fire({
-            title: 'Confirmar Aprobación',
+            title: 'Fecha de la aprobación',
             html: `
                 <div class="text-start mt-3">
-                    <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Fecha de la autorización</label>
                     <select id="swal-days-after" class="form-select font-13 shadow-none border-success">
                         <option value="0">Mismo día que la actividad</option>
                         <option value="1">1 día después</option>
@@ -1098,46 +963,136 @@
                         <option value="7">1 semana después</option>
                         <option value="15">15 días después</option>
                     </select>
-                </div>
-            `,
-            icon: 'success',
+                </div>`,
             showCancelButton: true,
             confirmButtonColor: '#0acf97',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="ri-check-line"></i> Autorizar',
+            confirmButtonText: 'Guardar',
             cancelButtonText: 'Cancelar',
             reverseButtons: true,
-            preConfirm: () => {
-                return document.getElementById('swal-days-after').value;
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                let form = checkbox.form;
-                
-                // Limpiamos si ya existía el input oculto por clics anteriores
-                let existingInput = form.querySelector('input[name="days_after"]');
-                if (existingInput) existingInput.remove();
-
-                // Creamos un input oculto con los días elegidos y lo inyectamos al formulario
-                let hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'days_after';
-                hiddenInput.value = result.value;
-                form.appendChild(hiddenInput);
-                
-                // Disparamos el envío a Rails
-                form.requestSubmit();
-            } else {
-                // Si le da a cancelar, regresamos el switch/checkbox a apagado
-                checkbox.checked = false;
+            preConfirm: () => document.getElementById('swal-days-after').value
+        }).then(async (result) => {
+            if (!result.isConfirmed) return;
+            const body = new URLSearchParams({ kind: kind, days_after: result.value });
+            try {
+                const res = await fetch(url, {
+                    method: 'PATCH',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN(), 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo cambiar la fecha.');
+                approvalToast('success', 'Fecha actualizada: ' + data.date);
+            } catch (err) {
+                approvalToast('error', err.message);
             }
         });
     }
 
-
-
-
 </script>
+
+<% if current_user.role == 'admin' %>
+<script>
+    // ===== Solo admin: aprobación en bloque + recordar etapas abiertas =====
+    (function () {
+        const BULK_URL = "<%= bulk_approve_client_project_activities_path(@client, @project) %>";
+        const STORE_KEY = "openStages:<%= @project.id %>";
+
+        // --- Recordar etapas abiertas (se aplica en cada carga) ---
+        function readOpen() { try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { return null; } }
+        function writeOpen(list) { try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); } catch (e) {} }
+        function currentOpen() {
+            return [...document.querySelectorAll('div.collapse[id^="stage-"]')]
+                .filter(el => el.classList.contains('show')).map(el => el.id);
+        }
+
+        const saved = readOpen();
+        if (Array.isArray(saved)) {
+            document.querySelectorAll('div.collapse[id^="stage-"]').forEach(el => {
+                const open = saved.includes(el.id);
+                el.classList.toggle('show', open);
+                const toggle = document.querySelector('[href="#' + el.id + '"]');
+                if (toggle) toggle.classList.toggle('collapsed', !open);
+            });
+        }
+
+        // Listeners delegados: se registran una sola vez aunque Turbo vuelva a evaluar el script
+        if (window.__adminBulkReady) return;
+        window.__adminBulkReady = true;
+
+        document.addEventListener('shown.bs.collapse', (e) => { if (/^stage-/.test(e.target.id)) writeOpen(currentOpen()); });
+        document.addEventListener('hidden.bs.collapse', (e) => { if (/^stage-/.test(e.target.id)) writeOpen(currentOpen()); });
+
+        // --- Selección y botones por etapa ---
+        function stageBody(stageId) { return document.getElementById('stage-' + stageId); }
+        function rowChecks(stageId) { const c = stageBody(stageId); return c ? [...c.querySelectorAll('.bulk-check')] : []; }
+
+        function refreshBar(stageId) {
+            const checks = rowChecks(stageId);
+            const selected = checks.filter(c => c.checked);
+            const count = document.querySelector('.bulk-count[data-stage-id="' + stageId + '"]');
+            if (count) count.textContent = selected.length + (selected.length === 1 ? ' seleccionada' : ' seleccionadas');
+            document.querySelectorAll('.bulk-btn[data-stage-id="' + stageId + '"]').forEach(b => b.disabled = selected.length === 0);
+            const all = document.getElementById('bulk-all-' + stageId);
+            if (all) all.checked = checks.length > 0 && selected.length === checks.length;
+        }
+
+        window.refreshBulkBar = refreshBar;
+
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('bulk-select-all')) {
+                const id = e.target.dataset.stageId;
+                rowChecks(id).forEach(c => c.checked = e.target.checked);
+                refreshBar(id);
+            } else if (e.target.classList.contains('bulk-check')) {
+                refreshBar(e.target.dataset.stageId);
+            }
+        });
+
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.bulk-btn');
+            if (!btn) return;
+            const stageId = btn.dataset.stageId;
+            const kind = btn.dataset.kind;
+            const ids = rowChecks(stageId).filter(c => c.checked).map(c => c.value);
+            if (!ids.length) return;
+
+            const label = kind === 'user' ? 'aprobar como cliente' : 'dar el Visto Bueno de admin a';
+            const confirm = await Swal.fire({
+                title: '¿Confirmar?',
+                text: 'Se va a ' + label + ' ' + ids.length + ' actividad(es) con la fecha de hoy. Las que no apliquen se omiten.',
+                icon: 'question', showCancelButton: true,
+                confirmButtonColor: '#0acf97', cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, continuar', cancelButtonText: 'Cancelar', reverseButtons: true
+            });
+            if (!confirm.isConfirmed) return;
+
+            const body = new URLSearchParams({ kind: kind });
+            ids.forEach(id => body.append('ids[]', id));
+            document.querySelectorAll('.bulk-btn[data-stage-id="' + stageId + '"]').forEach(b => b.disabled = true);
+
+            try {
+                const res = await fetch(BULK_URL, {
+                    method: 'PATCH',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN(), 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo completar la aprobación en bloque.');
+
+                if (data.results.some(r => r.reload)) { window.location.reload(); return; }
+                data.results.forEach(r => applyApprovalUpdate(r));
+                refreshBar(stageId);
+                approvalToast(data.processed ? 'success' : 'info',
+                    data.processed + ' procesada(s)' + (data.skipped ? ', ' + data.skipped + ' omitida(s)' : ''));
+            } catch (err) {
+                refreshBar(stageId);
+                approvalToast('error', err.message);
+            }
+        });
+    })();
+</script>
+<% end %>
 
 <style>
     .hover-primary:hover { color: #727cf5 !important; text-decoration: underline !important; }

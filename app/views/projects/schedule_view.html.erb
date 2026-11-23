@@ -218,7 +218,7 @@
             <% (1..12).each do |current_month| %>
               
               <%# Agrupamos por el mes PLANEADO de la actividad %>
-              <% month_activities = stage.activities.where(month: current_month).order(:week, :id) %>
+              <% month_activities = stage.activities.where(month: current_month).order(Arel.sql("position IS NULL, position ASC, week ASC, id ASC")) %>
 
               <% if month_activities.any? %>
                 

@@ -1,0 +1,29 @@
+<%# locals: stage %>
+<div id="stage-stats-<%= stage.id %>" class="ms-auto d-none d-lg-flex align-items-center" style="min-width: 400px;">
+                                    <div class="d-flex align-items-center flex-grow-1 me-4">
+                                        <div class="progress w-100 me-2" style="height: 8px; background-color: #f1f3fa; border-radius: 12px;">
+                                            <div class="progress-bar bg-success" role="progressbar" 
+                                                style="width: <%= stage.progress_percentage %>%; border-radius: 12px; transition: width 0.6s ease;">
+                                            </div>
+                                        </div>
+                                        <span class="font-10 fw-bold text-success"><%= stage.progress_percentage.to_i %>%</span>
+                                    </div>
+
+                                    <% 
+                                        total_tasks = stage.activities.count 
+                                        pending_tasks = stage.activities.where(completed: false).count
+                                    %>
+                                    <div class="d-flex align-items-center border-start ps-3" style="border-color: #f1f3fa !important;">
+                                        <div class="text-end me-3">
+                                            <span class="text-muted d-block font-8 fw-bold text-uppercase tracking-wider mb-0" style="line-height: 1;">Total</span>
+                                            <span class="font-10 fw-bold text-dark"><%= total_tasks %></span>
+                                        </div>
+                                        
+                                        <div class="text-end" style="min-width: 55px;">
+                                            <span class="text-muted d-block font-8 fw-bold text-uppercase tracking-wider mb-0" style="line-height: 1;">Pendientes</span>
+                                            <span class="font-10 fw-bold <%= pending_tasks > 0 ? 'text-danger' : 'text-success' %>">
+                                                <%= pending_tasks %>
+                                            </span>
+                                        </div>
+                                    </div>
+</div>

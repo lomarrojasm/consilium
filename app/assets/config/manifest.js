@@ -21,3 +21,5 @@
 //= link controllers/system_workers_controller.js
 //= link controllers/nested_form_controller.js
 //= link controllers/url_field_controller.js
+//= link sortablejs.js
+//= link controllers/sortable_controller.js

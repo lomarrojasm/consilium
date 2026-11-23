@@ -36,3 +36,6 @@ application.register("system-workers", SystemWorkersController)
 
 import UrlFieldController from "./url_field_controller"
 application.register("url-field", UrlFieldController)
+
+import SortableController from "./sortable_controller"
+application.register("sortable", SortableController)

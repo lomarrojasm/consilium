@@ -1,0 +1,192 @@
+<%# locals: activity, stage, stage_locked, can_sort %>
+<% is_methodology = (@project.project_type == "metodologia" || @project.project_type.blank?) %>
+                                                <% is_finalized = activity.admin_approved && activity.user_approved %>
+                                                
+                                                <tr id="activity-row-<%= activity.id %>" data-activity-id="<%= activity.id %>" class="<%= 'bg-light-subtle' if activity.status == 'rejected' %> <%= 'bg-success bg-opacity-10 is-finalized' if is_finalized %>">
+                                                    
+                                                    <td class="text-center px-1 px-md-2">
+                                                        <% if current_user.role == 'admin' && !stage_locked && !is_finalized %><input type="checkbox" class="form-check-input bulk-check me-1 align-middle" value="<%= activity.id %>" data-stage-id="<%= stage.id %>" title="Seleccionar para aprobar en bloque"><% end %>
+                                                        <% if can_sort && !is_finalized %><i class="ri-draggable drag-handle text-muted me-1" style="cursor: grab;" title="Arrastra para reordenar o mover de etapa"></i><% end %>
+                                                        <% if is_finalized %>
+                                                            <a href="javascript:void(0);" onclick="verSeguimientoActividad('<%= activity.id %>')" class="text-success hover-primary" data-bs-toggle="tooltip" title="Finalizada y Devengada - Clic para visualizar">
+                                                                <i class="ri-eye-fill font-22"></i>
+                                                            </a>
+                                                        <% elsif activity.user_approved %>
+                                                            <i class="ri-user-star-fill font-20 text-primary" data-bs-toggle="tooltip" title="Aprobado por Cliente - Esperando Consilium"></i>
+                                                        <% elsif activity.evidence_attached? || activity.completed %>
+                                                            <i class="ri-file-shield-2-fill font-20 text-info" data-bs-toggle="tooltip" title="Evidencia Subida - Esperando V.B. Cliente"></i>
+                                                        <% elsif activity.status == 'rejected' %>
+                                                            <i class="ri-close-circle-fill font-20 text-danger" data-bs-toggle="tooltip" title="Rechazada / Con Problemas"></i>
+                                                        <% else %>
+                                                            <i class="ri-time-line font-20 text-warning" data-bs-toggle="tooltip" title="En Proceso"></i>
+                                                        <% end %>
+                                                    </td>
+                                                    
+                                                    <td style="white-space: normal;">
+                                                        <div class="font-10 text-muted mb-1">
+                                                            <i class="ri-calendar-todo-line me-1"></i>Reg: <%= activity.created_at.strftime("%d/%m/%y") %>
+                                                        </div>
+
+                                                        <a href="javascript:void(0);" 
+                                                           onclick="verSeguimientoActividad('<%= activity.id %>')"
+                                                           class="<%= 'text-decoration-line-through text-muted italic' if is_finalized %> font-13 fw-bold text-body hover-primary d-block mb-1">
+                                                            <i class="ri-dashboard-line me-1 text-primary"></i> <%= activity.name %>
+                                                        </a>
+                                                        
+                                                        <div class="d-flex flex-wrap gap-1 d-lg-none mb-1">
+                                                            <% if is_methodology %>
+                                                                <span class="badge bg-light text-dark border font-10">M<%= activity.month %>-S<%= activity.week %></span>
+                                                            <% end %>
+                                                            <span class="badge bg-light text-secondary border font-10"><%= activity.area %></span>
+                                                            <% if activity.responsible.present? %>
+                                                                <span class="badge bg-soft-info text-info font-10 d-md-none"><i class="ri-user-line"></i> <%= activity.responsible.first_name %></span>
+                                                            <% end %>
+                                                        </div>
+
+                                                        <% if activity.evidence_uploaded_at %>
+                                                            <div class="d-flex align-items-center mt-1">
+                                                                <% if current_user.role == 'admin' %>
+                                                                    <%= form_with url: update_evidence_date_client_project_activity_path(@client, @project, activity), method: :patch, class: "d-flex align-items-center" do |f| %>
+                                                                        <div class="input-group input-group-sm shadow-sm rounded" style="width: 190px;">
+                                                                            <span class="input-group-text bg-light border-0 ps-1 pe-0 text-muted" style="font-size: 10px;">
+                                                                                <i class="ri-upload-cloud-line"></i>
+                                                                            </span>
+                                                                            <%= f.date_field :evidence_uploaded_at, 
+                                                                                value: activity.evidence_uploaded_at ? activity.evidence_uploaded_at.strftime("%Y-%m-%d") : Date.current.to_s,
+                                                                                class: "form-control form-control-sm border-0 bg-light text-muted font-10 shadow-none",
+                                                                                style: "padding-left: 5px; cursor: pointer;" %>
+                                                                            
+                                                                            <!-- Botón de validación explícita -->
+                                                                            <button class="btn btn-sm btn-light border-0 text-primary px-2 hover-primary" type="submit" data-bs-toggle="tooltip" title="Guardar fecha">
+                                                                                <i class="ri-check-line font-16 fw-bold"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    <% end %>
+                                                                <% else %>
+                                                                    <div class="font-10 text-muted">
+                                                                        <i class="ri-upload-cloud-line me-1"></i>Evid: <%= activity.evidence_uploaded_at.strftime("%d/%m/%y") %>
+                                                                    </div>
+                                                                <% end %>
+                                                            </div>
+                                                        <% end %>
+                                                    </td>
+
+                                                    <td class="d-none d-lg-table-cell">
+                                                        <span class="font-10 text-uppercase text-primary"><%= activity.document_ref %></span>
+                                                    </td>
+                                                    
+                                                    <td class="d-none d-lg-table-cell">
+                                                        <span class="font-10 text-uppercase text-secondary"><%= activity.area %></span>
+                                                    </td>
+                                                    
+                                                    <td class="d-none d-md-table-cell">
+                                                        <% if activity.responsible.present? %>
+                                                            <div class="d-flex align-items-center">
+                                                                <% if activity.responsible.avatar.attached? %>
+                                                                    <%= image_tag url_for(activity.responsible.avatar), class: "rounded-circle me-2", style: "width: 24px; height: 24px; object-fit: cover;" %>
+                                                                <% else %>
+                                                                    <div class="avatar-xs me-2" style="width: 24px; height: 24px;">
+                                                                        <span class="avatar-title rounded-circle bg-soft-info text-info font-10 fw-bold">
+                                                                            <%= activity.responsible.first_name[0] %><%= activity.responsible.last_name[0] %>
+                                                                        </span>
+                                                                    </div>
+                                                                <% end %>
+                                                                <span class="font-12"><%= activity.responsible.first_name %></span>
+                                                            </div>
+                                                        <% else %>
+                                                            <span class="text-muted font-11 italic">No asignado</span>
+                                                        <% end %>
+                                                    </td>
+                                                    
+                                                    <td class="text-center px-1 px-md-2">
+                                                        <%= render "activities/evidence_cell", activity: activity, stage_locked: stage_locked, is_finalized: is_finalized %>
+                                                    </td>
+
+                                                    <%# --- CHECKBOX: APROBACIÓN DEL CLIENTE --- %>
+                                                    <td class="text-center px-1 px-md-2">
+                                                        <div class="d-flex flex-column align-items-center">
+                                                            <%= form_with url: toggle_user_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: true do %>
+                                                                <div class="form-check m-0">
+                                                                    <% 
+                                                                       missing_evidence = !activity.completed && !activity.evidence_attached?
+                                                                       client_restricted = current_user.role != 'admin' && missing_evidence
+                                                                       user_cb_disabled = stage_locked || activity.admin_approved || is_finalized || client_restricted
+                                                                    %>
+                                                                    <input type="checkbox" 
+                                                                        class="form-check-input shadow-none cursor-pointer <%= activity.user_approved ? 'bg-success border-success' : 'border-warning' %>" 
+                                                                        <%= 'checked' if activity.user_approved %> 
+                                                                        onchange="handleUserApproval(this, '<%= escape_javascript activity.name %>')"
+                                                                        <%= 'disabled' if user_cb_disabled %>
+                                                                        <%= "data-bs-toggle='tooltip' title='Poder Admin: Aprobación forzada habilitada sin evidencia'".html_safe if current_user.role == 'admin' && missing_evidence && !user_cb_disabled %>>
+                                                                </div>
+                                                            <% end %>
+                                                        </div>
+                                                    </td>
+
+                                                    <%# --- CHECKBOX: APROBACIÓN DE CONSILIUM (ADMIN) --- %>
+                                                    <td class="text-center px-1 px-md-2">
+                                                        <div class="d-flex flex-column align-items-center">
+                                                            <%= form_with url: toggle_admin_approval_client_project_activity_path(@client, @project, activity), method: :patch, local: true do %>
+                                                                <div class="form-check m-0">
+                                                                    <input type="checkbox" 
+                                                                        class="form-check-input shadow-none cursor-pointer <%= activity.admin_approved ? 'bg-success border-success' : 'border-warning' %>" 
+                                                                        <%= 'checked' if activity.admin_approved %> 
+                                                                        onchange="handleAdminApproval(this, '<%= escape_javascript activity.name %>')"
+                                                                        <%= 'disabled' unless current_user.role == 'admin' && activity.user_approved %>>
+                                                                </div>
+                                                            <% end %>
+                                                        </div>
+                                                    </td>
+
+                                                    <td class="text-end px-1 px-md-2">
+                                                        <div class="dropdown">
+                                                            <a href="#" class="text-muted dropdown-toggle arrow-none" data-bs-toggle="dropdown"><i class="ri-more-fill font-18"></i></a>
+                                                            <div class="dropdown-menu dropdown-menu-end shadow border-0">
+                                                                
+                                                                <a href="javascript:void(0);" onclick="verSeguimientoActividad('<%= activity.id %>')" class="dropdown-item font-13 fw-bold text-primary">
+                                                                    <i class="ri-eye-line me-1"></i> Abrir Panel
+                                                                </a>
+                                                                <% unless stage_locked %>
+                                                                    <% if activity.user_approved %>
+                                                                        <a href="javascript:void(0);" onclick="ajustarFechaAprobacion('<%= update_approval_date_client_project_activity_path(@client, @project, activity) %>', 'user', '<%= activity.id %>')" class="dropdown-item font-13">
+                                                                            <i class="ri-calendar-event-line me-1"></i> Fecha aprobación cliente
+                                                                        </a>
+                                                                    <% end %>
+                                                                    <% if activity.admin_approved && current_user.role == 'admin' %>
+                                                                        <a href="javascript:void(0);" onclick="ajustarFechaAprobacion('<%= update_approval_date_client_project_activity_path(@client, @project, activity) %>', 'admin', '<%= activity.id %>')" class="dropdown-item font-13">
+                                                                            <i class="ri-calendar-check-line me-1"></i> Fecha aprobación admin
+                                                                        </a>
+                                                                    <% end %>
+                                                                <% end %>
+                                                                
+                                                                <% if current_user.role == 'admin' %>
+                                                                    <%# ========================================== %>
+                                                                    <%# BOTÓN DE IA INYECTADO AQUÍ                 %>
+                                                                    <%# ========================================== %>
+                                                                    <a href="javascript:void(0);" 
+                                                                    onclick="simularConIA('<%= simulate_ai_logs_client_project_activity_path(@client, @project, activity) %>', '<%= j activity.name %>')" 
+                                                                    class="dropdown-item font-13 fw-bold"
+                                                                    style="color: #6a0dad;">
+                                                                    <i class="ri-sparkling-fill text-warning me-1"></i> Simular IA (Seguimiento)
+                                                                    </a>
+
+                                                                    <% unless stage_locked || is_finalized %>
+                                                                        <div class="dropdown-divider"></div>
+                                                                        <%= link_to edit_client_project_activity_path(@client, @project, activity), class: "dropdown-item font-13" do %>
+                                                                            <i class="ri-edit-line me-1"></i> Editar
+                                                                        <% end %>
+                                                                        
+                                                                        <%= button_to client_project_activity_path(@client, @project, activity), 
+                                                                                    method: :delete, 
+                                                                                    form_class: "m-0", 
+                                                                                    class: "dropdown-item text-danger font-13 w-100 text-start bg-transparent border-0", 
+                                                                                    onclick: "confirmDeleteActivity(event, this.form, '#{escape_javascript(activity.name)}');" do %>
+                                                                        <i class="ri-delete-bin-line me-1"></i> Eliminar
+                                                                        <% end %>
+                                                                    <% end %>
+                                                                <% end %>
+
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
