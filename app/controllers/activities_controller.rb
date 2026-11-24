@@ -134,9 +134,13 @@ class ActivitiesController < ApplicationController
     # Buscamos solo el log específico porque @client, @project y @activity
     # ya vienen cargados gracias a set_context
     @log = @activity.activity_logs.find(params[:log_id])
+    state_before = stages_state
     @log.destroy
 
-    redirect_to client_project_path(@client, @project), notice: "Registro eliminado del historial."
+    respond_to do |format|
+      format.json { render json: approval_payload(@activity, state_before) }
+      format.html { redirect_to client_project_path(@client, @project), notice: "Registro eliminado del historial." }
+    end
   end
 
   # ====================================================================
@@ -164,8 +168,16 @@ class ActivitiesController < ApplicationController
   end
 
   def upload_evidence
+    state_before = stages_state
     files = uploaded_evidence_files
     fecha_seleccionada = parse_evidence_date(params.dig(:activity, :evidence_date))
+
+    # La fecha debe ser coherente con la de la actividad (hasta 10 días después); si no, se ajusta
+    date_adjusted = false
+    if files.any? && fecha_seleccionada && !@activity.evidence_date_coherent?(fecha_seleccionada)
+      fecha_seleccionada = @activity.coherent_evidence_date.in_time_zone
+      date_adjusted = true
+    end
 
     if files.any? && fecha_seleccionada
       # La fecha oficial de ejecución la fija la primera evidencia; las siguientes solo suman archivos.
@@ -191,10 +203,18 @@ class ActivitiesController < ApplicationController
       log = @activity.activity_logs.create!(user: current_user, status: "pending", comment: comment)
       log.update_columns(created_at: fecha_seleccionada, updated_at: fecha_seleccionada)
 
+      @activity.reload.fit_conversation_to_evidence! if first_evidence
+
       notice = names.one? ? "Evidencia cargada y registrada con la fecha seleccionada." : "#{names.size} evidencias cargadas y registradas."
-      redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), notice: notice
+      if date_adjusted
+        notice += " La fecha se ajustó al #{fecha_seleccionada.strftime('%d/%m/%Y')} para ser coherente con la fecha de la actividad (máximo #{Activity::EVIDENCE_WINDOW_DAYS} días después)."
+      end
+      respond_to do |format|
+        format.json { render json: approval_payload(@activity, state_before).merge(message: notice) }
+        format.html { redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), notice: notice }
+      end
     else
-      redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), alert: "Debes adjuntar al menos un archivo y seleccionar una fecha válida."
+      evidence_failure("Debes adjuntar al menos un archivo y seleccionar una fecha válida.", "activity-row-#{@activity.id}")
     end
   end
 
@@ -202,38 +222,48 @@ class ActivitiesController < ApplicationController
     row = "activity-row-#{@activity.id}"
 
     unless %w[admin lider].include?(current_project_role)
-      redirect_to client_project_path(@client, @project, anchor: row), alert: "Solo un administrador o líder del proyecto puede eliminar evidencias." and return
+      return evidence_failure("Solo un administrador o líder del proyecto puede eliminar evidencias.", row)
     end
 
     if @activity.admin_approved && @activity.user_approved
-      redirect_to client_project_path(@client, @project, anchor: row), alert: "La actividad ya está finalizada; su evidencia no se puede eliminar." and return
+      return evidence_failure("La actividad ya está finalizada; su evidencia no se puede eliminar.", row)
     end
 
     # Se busca dentro de los adjuntos de ESTA actividad para no poder borrar archivos ajenos
     attachment = @activity.evidences_attachments.find(params[:attachment_id])
     filename = attachment.filename.to_s
+    state_before = stages_state
     attachment.purge
 
     # El registro "📁 Subió…" de ese archivo deja de existir; el "🗑️ Eliminó…" queda como historial real.
     @activity.reload.prune_stale_evidence_logs!
     @activity.activity_logs.create!(user: current_user, status: "pending", comment: "🗑️ Eliminó la evidencia: #{filename}.")
 
-    redirect_to client_project_path(@client, @project, anchor: row), notice: "Evidencia eliminada."
+    respond_to do |format|
+      format.json { render json: approval_payload(@activity, state_before) }
+      format.html { redirect_to client_project_path(@client, @project, anchor: row), notice: "Evidencia eliminada." }
+    end
   rescue ActiveRecord::RecordNotFound
-    redirect_to client_project_path(@client, @project, anchor: row), alert: "La evidencia ya no existe."
+    evidence_failure("La evidencia ya no existe.", "activity-row-#{params[:id]}")
   end
 
   def update_evidence_date
     @activity = Activity.find(params[:id])
 
     if current_user.role == "admin"
-      if params[:evidence_uploaded_at].present? && @activity.update(evidence_uploaded_at: params[:evidence_uploaded_at])
-        new_date = params[:evidence_uploaded_at].to_date
+      requested = (params[:evidence_uploaded_at].to_date rescue nil)
+      adjusted = requested.present? && !@activity.evidence_date_coherent?(requested)
+      requested = @activity.coherent_evidence_date if adjusted
+
+      if requested.present? && @activity.update(evidence_uploaded_at: requested)
+        new_date = requested
         @activity.update(completed_day: new_date.day) if new_date
         @activity.reload.resync_log_dates!   # el historial refleja la nueva fecha de evidencia
+        @activity.fit_conversation_to_evidence!
+        flash_extra = adjusted ? " Se ajustó al #{new_date.strftime('%d/%m/%Y')} para ser coherente con la fecha de la actividad (máximo #{Activity::EVIDENCE_WINDOW_DAYS} días después)." : ""
 
         # Redirigimos usando un "ancla" para que la página baje automáticamente a la fila
-        redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), notice: "Fecha de evidencia actualizada correctamente."
+        redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), notice: "Fecha de evidencia actualizada correctamente.#{flash_extra}"
       else
         redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), alert: "Error al actualizar la fecha. Asegúrate de proporcionar una fecha válida."
       end
@@ -247,6 +277,11 @@ class ActivitiesController < ApplicationController
     new_status = params[:status]
     comment = params[:comment]
 
+    if request.format.json? && comment.to_s.strip.blank?
+      return render json: { ok: false, error: "Escribe un comentario de seguimiento." }, status: :unprocessable_entity
+    end
+
+    state_before = stages_state
     update_params = { status: new_status }
     update_params[:completed] = [ "approved", "completed" ].include?(new_status)
 
@@ -276,11 +311,18 @@ class ActivitiesController < ApplicationController
         )
       end
 
-      log.attachments.attach(params[:attachments]) if params[:attachments].present?
+      files = Array.wrap(params[:attachments]).select { |f| f.respond_to?(:original_filename) }
+      log.attachments.attach(files) if files.any?
 
-      redirect_to client_project_path(@client, @project), notice: "Seguimiento registrado y estatus actualizado."
+      respond_to do |format|
+        format.json { render json: approval_payload(@activity, state_before) }
+        format.html { redirect_to client_project_path(@client, @project), notice: "Seguimiento registrado y estatus actualizado." }
+      end
     else
-      redirect_to client_project_path(@client, @project), alert: "No se pudo actualizar el estatus de la actividad."
+      respond_to do |format|
+        format.json { render json: { ok: false, error: "No se pudo actualizar el estatus de la actividad." }, status: :unprocessable_entity }
+        format.html { redirect_to client_project_path(@client, @project), alert: "No se pudo actualizar el estatus de la actividad." }
+      end
     end
   end
 
@@ -353,6 +395,48 @@ class ActivitiesController < ApplicationController
       ok: true, processed: processed.size, skipped: skipped,
       results: processed.map { |act| approval_payload(act, state_before) }
     }
+  end
+
+  # PATCH .../activities/clear_conversations  (solo admin)
+  # Params: scope (activity | stage | project), target_id (de la actividad o la etapa), mode (conversation | files | full),
+  #         preview=1 -> solo cuenta lo que se borraría
+  def clear_conversations
+    return deny!("Acción exclusiva de la administración de Consilium.", client_project_path(@client, @project)) unless current_user.role == "admin"
+
+    mode = params[:mode].to_s
+    return render(json: { ok: false, error: "Modo no válido." }, status: :unprocessable_entity) unless Activity::CLEAR_MODES.include?(mode)
+
+    activities, label =
+      case params[:scope].to_s
+      when "activity" then act = @project.activities.find(params[:target_id]); [ [ act ], "la actividad «#{act.name.to_s.truncate(60)}»" ]
+      when "stage"    then st = @project.stages.find(params[:target_id]);      [ st.activities.to_a, "la etapa «#{st.name}»" ]
+      when "project"  then [ @project.activities.to_a, "todo el proyecto «#{@project.name}»" ]
+      else return render(json: { ok: false, error: "Alcance no válido." }, status: :unprocessable_entity)
+      end
+
+    per_activity = activities.map { |a| [ a, a.clearable_logs(mode) ] }.reject { |_, logs| logs.empty? }
+    total = per_activity.sum { |_, logs| logs.size }
+    summary = per_activity.first(15).map { |a, logs| { id: a.id, name: a.name.to_s.truncate(70), count: logs.size } }
+
+    if params[:preview].present?
+      return render json: { ok: true, preview: true, total: total, activities: per_activity.size, summary: summary, label: label }
+    end
+
+    ActivityLog.transaction do
+      per_activity.each { |_, logs| logs.each(&:destroy!) }
+
+      if total.positive?
+        TimelineLog.create(
+          client: @client, user: current_user, resource: @project, resource_name: @project.name,
+          action_type: "update", happened_at: Time.current,
+          details: "🧹 Se limpiaron #{total} registro(s) de seguimiento (#{mode}) de #{label}"
+        )
+      end
+    end
+
+    render json: { ok: true, total: total, activities: per_activity.size, label: label }
+  rescue ActiveRecord::RecordNotFound
+    render json: { ok: false, error: "Recurso no encontrado." }, status: :not_found
   end
 
   # Cambia la fecha de una aprobación ya otorgada (user | admin) sin revocarla.
@@ -490,6 +574,15 @@ class ActivitiesController < ApplicationController
     log.update_columns(created_at: action_date, updated_at: action_date) if new_state && days_after.present?
   end
 
+  # Error al eliminar evidencia: JSON para fetch, redirect para formularios normales
+  def evidence_failure(message, row)
+    if request.format.json?
+      render json: { ok: false, error: message }, status: :unprocessable_entity
+    else
+      redirect_to client_project_path(@client, @project, anchor: row), alert: message
+    end
+  end
+
   # Respuesta de rechazo: JSON para peticiones fetch, redirect para formularios normales.
   def deny!(message, redirect_path)
     if request.format.json?
@@ -520,7 +613,12 @@ class ActivitiesController < ApplicationController
                                  locals: { activity: activity, stage: stage, stage_locked: stage_locked, can_sort: can_sort }),
       stats_html: render_to_string(partial: "projects/stage_stats", formats: [ :html ], locals: { stage: stage }),
       reload: stages_state != state_before
-    }
+    }.tap do |payload|
+      # El panel (modal) solo se regenera cuando la petición viene de él
+      if params[:with_modal].present?
+        payload[:modal_html] = render_to_string(partial: "activities/activity_modal", formats: [ :html ], locals: { activity: activity })
+      end
+    end
   end
 
   # El devengo financiero se enlaza por texto (etapa + concepto); al cambiar de etapa

@@ -208,6 +208,12 @@
                     <i class="ri-chat-history-line me-1"></i> Bitácora (<%= @project.comments.count %>)
                 <% end %>
                 
+                <% if current_user.role == 'admin' %>
+                    <button type="button" class="btn btn-sm btn-outline-danger flex-grow-1 flex-sm-grow-0" onclick="limpiarConversaciones('project', '<%= @project.id %>')">
+                        <i class="ri-eraser-line me-1"></i> Limpiar conversaciones
+                    </button>
+                <% end %>
+
                 <% if current_user.role == 'admin' || ['lider', 'senior', 'analista'].include?(current_project_role) %>
                     <% has_unlocked_stages = @stages.any? { |stage| !stage.locked_for?(current_user) } %>
                     
@@ -282,11 +288,15 @@
                                                 <i class="ri-edit-line me-1 text-primary"></i> Editar Etapa
                                             <% end %>
                                             
+                                            <a href="javascript:void(0);" class="dropdown-item font-12" onclick="limpiarConversaciones('stage', '<%= stage.id %>')">
+                                                <i class="ri-eraser-line me-1 text-warning"></i> Limpiar conversaciones
+                                            </a>
+
                                             <div class="dropdown-divider"></div>
                                             <%= button_to client_project_stage_path(@client, @project, stage), 
                                                         method: :delete, 
                                                         class: "dropdown-item text-danger font-12", 
-                                                        form: { onsubmit: "return confirm('¿Borrar etapa?');" } do %>
+                                                        form: { onsubmit: "return confirmSwal(event, this, '¿Eliminar etapa?', 'Se eliminará la etapa junto con todas sus actividades. Esta acción no se puede deshacer.', 'Sí, eliminar');" } do %>
                                                 <i class="ri-delete-bin-line me-1"></i> Eliminar
                                             <% end %>
                                         <% end %>
@@ -406,7 +416,7 @@
                                                 <%= button_to delete_file_client_project_path(@client, @project, attachment_id: file.id), 
                                                     method: :delete, 
                                                     class: "dropdown-item text-danger font-12", 
-                                                    form: { onsubmit: "return confirm('¿Eliminar este archivo permanentemente?');" } do %>
+                                                    form: { onsubmit: "return confirmSwal(event, this, '¿Eliminar archivo?', 'El archivo se eliminará permanentemente. Esta acción no se puede deshacer.', 'Sí, eliminar');" } do %>
                                                     <i class="ri-delete-bin-line me-1"></i> Eliminar
                                                 <% end %>
                                             <% end %>
@@ -481,7 +491,7 @@
                                 </div>
                             </div>
                             <% if current_user.role == 'admin' %>
-                                <%= button_to client_project_project_member_path(@client, @project, membership), method: :delete, class: "btn btn-xs btn-outline-danger border-0", form: { onsubmit: "return confirm('¿Quitar del equipo?');" } do %>
+                                <%= button_to client_project_project_member_path(@client, @project, membership), method: :delete, class: "btn btn-xs btn-outline-danger border-0", form: { onsubmit: "return confirmSwal(event, this, '¿Quitar del equipo?', 'El usuario dejará de tener acceso a este proyecto.', 'Sí, quitar');" } do %>
                                     <i class="ri-close-line"></i>
                                 <% end %>
                             <% end %>
@@ -525,6 +535,7 @@
           <div class="mb-3">
             <label class="form-label font-13 fw-bold">Fecha de la Evidencia</label>
             <%= f.date_field :evidence_date, class: "form-control shadow-none font-13", required: true, value: Date.current.to_s %>
+            <small id="evidenceDateHint" class="text-muted font-11 d-block"></small>
             <small class="text-muted font-11">Si la actividad ya tenía evidencia, la fecha oficial de ejecución no cambia; esta fecha solo se usa en el historial.</small>
           </div>
 
@@ -648,33 +659,38 @@
             confirmButtonText: 'Sí, eliminar',
             cancelButtonText: 'Cancelar',
             reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = button.dataset.url;
-                const methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                methodInput.value = 'delete';
-                form.appendChild(methodInput);
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'authenticity_token';
-                csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
-                form.appendChild(csrfInput);
-                document.body.appendChild(form);
-                form.submit();
+        }).then(async (result) => {
+            if (!result.isConfirmed) return;
+
+            // Se elimina por fetch y se actualizan fila, resumen de etapa y (si está abierto) el panel, sin recargar
+            let url = button.dataset.url;
+            if (activityModalOpen()) url += (url.includes('?') ? '&' : '?') + 'with_modal=1';
+            try {
+                const res = await fetch(url, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN(), 'Accept': 'application/json' }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo eliminar la evidencia.');
+                if (applyPayload(data)) approvalToast('success', 'Evidencia eliminada');
+            } catch (err) {
+                approvalToast('error', err.message);
             }
         });
     }
 
-    function openUploadModal(activityId, activityName) {
+    function openUploadModal(activityId, activityName, defaultDate, minDate, maxDate) {
         document.getElementById('modalActivityName').textContent = activityName;
+        const dateInput = document.querySelector('#evidenceForm input[type="date"]');
+        if (dateInput && defaultDate) {
+            dateInput.min = minDate; dateInput.max = maxDate; dateInput.value = defaultDate;
+            const hint = document.getElementById('evidenceDateHint');
+            if (hint) hint.textContent = 'Rango permitido: del ' + minDate + ' al ' + maxDate + ' (hasta 10 días después de la fecha de la actividad).';
+        }
         let baseUrl = "<%= upload_evidence_client_project_activity_path(@client, @project, 'REPLACE_ID') %>";
         let finalUrl = baseUrl.replace('REPLACE_ID', activityId);
         document.getElementById('evidenceForm').action = finalUrl;
-        new bootstrap.Modal(document.getElementById('uploadEvidenceModal')).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('uploadEvidenceModal')).show();
     }
 
     function insertPresetText(text) {
@@ -704,16 +720,19 @@
     }
 
     function verSeguimientoActividad(activityId) {
+        window.__currentActivityId = activityId;
         const url = `/clients/<%= @client.id %>/projects/<%= @project.id %>/activities/${activityId}/tracking`; 
         const contentArea = document.getElementById('modalActivityDetailContent');
         const modalElement = document.getElementById('activityDetailModal');
-        const modal = new bootstrap.Modal(modalElement);
+        // Reutiliza la instancia existente: crear otra sobre un modal ya abierto duplicaba el fondo gris
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
 
-        fetch(url, { headers: { 'Accept': 'text/html' } })
+        return fetch(url, { headers: { 'Accept': 'text/html' } })
         .then(response => response.text())
         .then(html => {
             contentArea.innerHTML = html;
-            modal.show();
+            if (!modalElement.classList.contains('show')) modal.show();
+            scrollTimelineBottom();
         });
     }
 
@@ -807,7 +826,7 @@
     function simularConIA(url, activityName) {
         Swal.fire({
             title: '¿Simular seguimiento con IA?',
-            text: `Se generará una conversación de trabajo realista para "${activityName}".`,
+            text: `Se generará una conversación de trabajo realista para "${activityName}". Los comentarios que ya existan se conservan: la IA los toma en cuenta y continúa a partir de ellos. Para empezar de cero, usa primero "Limpiar conversación".`,
             icon: 'info',
             showCancelButton: true,
             confirmButtonColor: '#6a0dad',
@@ -844,6 +863,30 @@
         });
     }
 
+    // Confirmación genérica con SweetAlert para formularios de borrado (reemplaza confirm() nativo).
+    // Se usa en onsubmit: "return confirmSwal(event, this, 'Título', 'Texto', 'Botón')"
+    function confirmSwal(event, form, title, text, confirmText) {
+        if (form.dataset.confirmed === '1') return true;
+        event.preventDefault();
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: confirmText || 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.dataset.confirmed = '1';
+                form.requestSubmit();
+            }
+        });
+        return false;
+    }
+
     function confirmDeleteActivity(event, form, activityName) {
         // 1. Detenemos el envío automático del formulario
         event.preventDefault();
@@ -872,7 +915,7 @@
     function CSRF_TOKEN() { return document.querySelector('meta[name=csrf-token]').content; }
 
     function approvalToast(icon, title) {
-        Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title, showConfirmButton: false, timer: 1800 });
+        Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title, showConfirmButton: false, timer: Math.max(1800, String(title).length * 55) });
     }
 
     // Envía la aprobación por fetch y actualiza solo la fila (y el resumen de su etapa).
@@ -881,6 +924,7 @@
         const wasChecked = checkbox.checked;
         const body = new URLSearchParams();
         if (daysAfter !== undefined && daysAfter !== null) body.append('days_after', daysAfter);
+        if (checkbox.closest('#activityDetailModal')) body.append('with_modal', '1');
         checkbox.disabled = true;
         checkbox.classList.add('opacity-50');
 
@@ -892,8 +936,7 @@
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar la aprobación.');
-            if (data.reload) { window.location.reload(); return; }
-            applyApprovalUpdate(data);
+            if (!applyPayload(data)) return;
             approvalToast('success', wasChecked ? 'Aprobación registrada' : 'Aprobación retirada');
         } catch (err) {
             checkbox.checked = !wasChecked;      // revertimos visualmente
@@ -917,6 +960,214 @@
         const stats = document.getElementById('stage-stats-' + data.stage_id);
         if (stats && data.stats_html) stats.outerHTML = data.stats_html.trim();
         if (window.refreshBulkBar) window.refreshBulkBar(data.stage_id);
+    }
+
+    // ===== Panel de actividad (modal) sin recargas =====
+    function activityModalOpen() {
+        const m = document.getElementById('activityDetailModal');
+        return !!m && m.classList.contains('show');
+    }
+
+    function scrollTimelineBottom() {
+        setTimeout(() => {
+            const area = document.querySelector('#modalActivityDetailContent .timeline-scroll-area');
+            if (!area) return;
+            const inner = area.querySelector('.simplebar-content-wrapper') || area;
+            inner.scrollTop = inner.scrollHeight;
+        }, 150);
+    }
+
+    // Aplica la respuesta del servidor: fila, resumen de etapa y (si viene) el panel.
+    // Devuelve false si hubo que recargar la página completa.
+    function applyPayload(data) {
+        const modalOpen = activityModalOpen();
+        if (data.reload && !modalOpen) { window.location.reload(); return false; }
+        if (data.reload && modalOpen) window.__reloadOnModalClose = true;   // se recarga al cerrar el panel
+
+        applyApprovalUpdate(data);
+        if (data.modal_html) {
+            const content = document.getElementById('modalActivityDetailContent');
+            if (content) { content.innerHTML = data.modal_html; scrollTimelineBottom(); }
+        }
+        return true;
+    }
+
+    async function sendModalRequest(url, method, body, successMsg) {
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'X-CSRF-Token': CSRF_TOKEN(), 'Accept': 'application/json' },
+            body: body
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar el cambio.');
+        if (applyPayload(data)) approvalToast('success', successMsg);
+    }
+
+    // Listeners delegados (una sola vez aunque Turbo vuelva a evaluar el script)
+    if (!window.__modalAjaxReady) {
+        window.__modalAjaxReady = true;
+
+        document.addEventListener('submit', async (e) => {
+            const form = e.target;
+            if (!form.closest || !form.closest('#modalActivityDetailContent')) return;
+
+            // Registrar seguimiento
+            if (/\/update_status$/.test(form.action)) {
+                e.preventDefault();
+                const submit = form.querySelector('[type="submit"]');
+                const label = submit ? (submit.value || submit.textContent) : '';
+                if (submit) { submit.disabled = true; submit.value = 'Guardando...'; }
+                const fd = new FormData(form);
+                fd.append('with_modal', '1');
+                try {
+                    await sendModalRequest(form.action, 'PATCH', fd, 'Seguimiento registrado');
+                } catch (err) {
+                    if (submit) { submit.disabled = false; submit.value = label; }
+                    approvalToast('error', err.message);
+                }
+                return;
+            }
+
+            // Eliminar registro del historial
+            if (/\/destroy_log/.test(form.action)) {
+                e.preventDefault();
+                const ok = await Swal.fire({
+                    title: '¿Eliminar este registro?',
+                    text: 'Se quitará del historial de seguimiento y no se puede deshacer.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: true
+                });
+                if (!ok.isConfirmed) return;
+                const url = form.action + (form.action.includes('?') ? '&' : '?') + 'with_modal=1';
+                try {
+                    await sendModalRequest(url, 'DELETE', null, 'Registro eliminado');
+                } catch (err) {
+                    approvalToast('error', err.message);
+                }
+            }
+        });
+
+        // Subir evidencia sin recargar la página
+        document.addEventListener('submit', async (e) => {
+            const form = e.target;
+            if (form.id !== 'evidenceForm') return;
+            e.preventDefault();
+            if (form.dataset.sending === '1') return;
+
+            const submit = form.querySelector('[type="submit"]');
+            const label = submit ? (submit.value || submit.textContent) : '';
+            form.dataset.sending = '1';
+            if (submit) { submit.disabled = true; submit.value = 'Subiendo...'; }
+
+            const fd = new FormData(form);
+            if (activityModalOpen()) fd.append('with_modal', '1');
+            try {
+                const res = await fetch(form.action, {
+                    method: 'PATCH',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN(), 'Accept': 'application/json' },
+                    body: fd
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo subir la evidencia.');
+
+                const modalEl = document.getElementById('uploadEvidenceModal');
+                const inst = bootstrap.Modal.getInstance(modalEl);
+                if (inst) inst.hide();
+                form.reset();
+                if (applyPayload(data)) approvalToast('success', data.message || 'Evidencia cargada');
+            } catch (err) {
+                approvalToast('error', err.message);
+            } finally {
+                form.dataset.sending = '0';
+                if (submit) { submit.disabled = false; submit.value = label; }
+            }
+        });
+
+        document.addEventListener('hidden.bs.modal', (e) => {
+            if (e.target.id === 'activityDetailModal' && window.__reloadOnModalClose) {
+                window.__reloadOnModalClose = false;
+                window.location.reload();
+                return;
+            }
+            // Seguridad: si no queda ningún modal abierto, elimina fondos grises huérfanos y desbloquea el scroll
+            if (!document.querySelector('.modal.show')) {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }
+        });
+    }
+
+    // ===== Limpiar conversaciones (solo admin): actividad, etapa o proyecto =====
+    const CLEAR_URL = "<%= clear_conversations_client_project_activities_path(@client, @project) %>";
+
+    async function clearRequest(params) {
+        const body = new URLSearchParams(params);
+        const res = await fetch(CLEAR_URL, {
+            method: 'PATCH',
+            headers: { 'X-CSRF-Token': CSRF_TOKEN(), 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo completar la limpieza.');
+        return data;
+    }
+
+    async function limpiarConversaciones(scope, id) {
+        const scopeLabel = { activity: 'esta actividad', stage: 'esta etapa', project: 'todo el proyecto' }[scope];
+        const step1 = await Swal.fire({
+            title: 'Limpiar conversaciones',
+            html: `
+                <div class="text-start font-13">
+                    <p class="mb-2">Alcance: <b>${scopeLabel}</b>. ¿Qué quieres eliminar?</p>
+                    <div class="form-check mb-1"><input class="form-check-input" type="radio" name="clr-mode" id="clr-conv" value="conversation" checked>
+                        <label class="form-check-label" for="clr-conv"><b>Solo conversación</b><br><small class="text-muted">Comentarios sin archivos. Conserva evidencias, aprobaciones y registros con adjuntos.</small></label></div>
+                    <div class="form-check mb-1"><input class="form-check-input" type="radio" name="clr-mode" id="clr-files" value="files">
+                        <label class="form-check-label" for="clr-files"><b>Conversación + comentarios con archivos</b><br><small class="text-muted">También elimina los adjuntos de seguimiento.</small></label></div>
+                    <div class="form-check"><input class="form-check-input" type="radio" name="clr-mode" id="clr-full" value="full">
+                        <label class="form-check-label" for="clr-full"><b class="text-danger">Historial completo</b><br><small class="text-muted">Incluye registros de evidencia y aprobaciones. No cambia el estado real de la actividad.</small></label></div>
+                </div>`,
+            showCancelButton: true, confirmButtonText: 'Ver qué se borrará', cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#6c757d', reverseButtons: true,
+            preConfirm: () => document.querySelector('input[name="clr-mode"]:checked').value
+        });
+        if (!step1.isConfirmed) return;
+        const mode = step1.value;
+
+        let preview;
+        try {
+            preview = await clearRequest({ scope, target_id: id, mode, preview: 1 });
+        } catch (err) { approvalToast('error', err.message); return; }
+
+        if (preview.total === 0) { approvalToast('info', 'No hay registros para eliminar con ese criterio.'); return; }
+
+        const list = preview.summary.map(r => `<li>${r.name} <span class="text-muted">(${r.count})</span></li>`).join('');
+        const more = preview.activities > preview.summary.length ? `<li class="text-muted">…y ${preview.activities - preview.summary.length} actividad(es) más</li>` : '';
+        const isFull = mode === 'full';
+        const step2 = await Swal.fire({
+            title: '¿Eliminar ' + preview.total + ' registro(s)?',
+            icon: 'warning',
+            html: `<div class="text-start font-12">
+                      <p>Se eliminarán de ${preview.label}, en ${preview.activities} actividad(es). Esta acción no se puede deshacer.</p>
+                      <ul class="ps-3 mb-2" style="max-height:140px;overflow:auto">${list}${more}</ul>
+                      ${isFull ? '<p class="fw-bold text-danger mb-0">Se incluye el historial de evidencia y aprobaciones.</p>' : ''}
+                   </div>`,
+            showCancelButton: true, confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', reverseButtons: true
+        });
+        if (!step2.isConfirmed) return;
+
+        try {
+            const data = await clearRequest({ scope, target_id: id, mode });
+            approvalToast('success', data.total + ' registro(s) eliminados');
+            if (activityModalOpen() && window.__currentActivityId) verSeguimientoActividad(window.__currentActivityId);
+        } catch (err) { approvalToast('error', err.message); }
     }
 
     // Cliente: un clic aprueba con la fecha de hoy; desmarcar revoca.

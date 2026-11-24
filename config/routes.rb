@@ -120,6 +120,7 @@ Rails.application.routes.draw do
         collection do
           patch :reorder
           patch :bulk_approve
+          patch :clear_conversations
         end
         member do
           get :tracking

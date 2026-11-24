@@ -161,6 +161,103 @@ class Activity < ApplicationRecord
   end
 
 
+  # ===========================================================================
+  # Fecha de evidencia coherente con la fecha de la actividad
+  # ===========================================================================
+  EVIDENCE_WINDOW_DAYS = 10
+
+  # Rango válido: desde la fecha de la actividad hasta 10 días después
+  def evidence_date_window
+    start = created_at.to_date
+    start..(start + EVIDENCE_WINDOW_DAYS)
+  end
+
+  def evidence_date_coherent?(date)
+    date.present? && evidence_date_window.cover?(date.to_date)
+  end
+
+  # Valor sugerido sin consultas (para precargar el modal): el día siguiente a la actividad, sin pasar de hoy
+  def default_evidence_date
+    window = evidence_date_window
+    [ [ window.begin + 1, Date.current ].min, window.begin ].max
+  end
+
+  # Fecha coherente calculada con el historial: el día después del último comentario de la conversación
+  def coherent_evidence_date
+    window = evidence_date_window
+    last_chat = conversation_logs.map { |l| l.created_at.to_date }.max
+    candidate = (last_chat || window.begin) + 1
+    candidate = [ [ candidate, window.begin ].max, window.end ].min
+    candidate = Date.current if candidate > Date.current && Date.current >= window.begin
+    candidate
+  end
+
+  # Comentarios de conversación (simulados o escritos), sin registros de sistema ni adjuntos
+  def conversation_logs
+    activity_logs.reject { |l| l.comment.to_s.match?(SYSTEM_LOG_MARKERS) || l.attachments.attached? }
+  end
+
+  # Reacomoda la conversación entre la fecha de la actividad y la de evidencia
+  # (sin llamar a la IA): ningún comentario queda antes de la actividad ni después de la evidencia.
+  def fit_conversation_to_evidence!
+    return unless evidence_uploaded_at
+
+    base = created_at.to_date
+    limit = [ (evidence_uploaded_at.to_date - base).to_i, 0 ].max
+    logs = conversation_logs
+    return if logs.empty?
+
+    offsets = logs.map { |l| (l.created_at.to_date - base).to_i }
+    max = offsets.max
+
+    logs.each_with_index do |log, i|
+      day = [ offsets[i], 0 ].max
+      day = (day * limit.to_f / max).floor if max > limit && max.positive?
+      day = [ [ day, limit ].min, 0 ].max
+      next if day == offsets[i]
+
+      moved = log.created_at + (day - offsets[i]).days
+      log.update_columns(created_at: moved, updated_at: moved)
+    end
+  end
+
+  # Reparación: si la fecha de evidencia está fuera del rango, la lleva a una fecha coherente
+  def normalize_evidence_date!(dry_run: false)
+    return nil unless evidence_uploaded_at && !evidence_date_coherent?(evidence_uploaded_at)
+
+    new_date = coherent_evidence_date
+    change = { from: evidence_uploaded_at, to: new_date }
+    unless dry_run
+      update_columns(evidence_uploaded_at: new_date.in_time_zone, completed_day: new_date.day)
+      reload
+      resync_log_dates!
+      fit_conversation_to_evidence!
+    end
+    change
+  end
+
+  # ===========================================================================
+  # Limpieza de conversaciones
+  # ===========================================================================
+  CLEAR_MODES = %w[conversation files full].freeze
+
+  # Registros que se borrarían según el modo:
+  #   conversation -> comentarios sin emoji de sistema y sin adjuntos
+  #   files        -> además los comentarios con archivos adjuntos (sin tocar registros de sistema)
+  #   full         -> todo el historial (incluye evidencia y aprobaciones registradas)
+  def clearable_logs(mode)
+    activity_logs.includes(:user).select do |log|
+      system = log.comment.to_s.match?(SYSTEM_LOG_MARKERS)
+      files = log.attachments.attached?
+      case mode.to_s
+      when "conversation" then !system && !files
+      when "files" then !system
+      when "full" then true
+      else false
+      end
+    end
+  end
+
   private
 
   # Verifica si realmente cambió el estatus o la casilla de completado

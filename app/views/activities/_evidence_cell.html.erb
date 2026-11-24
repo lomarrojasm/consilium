@@ -55,7 +55,7 @@
                 <% if can_upload %>
                     <li><hr class="dropdown-divider my-1"></li>
                     <li>
-                        <button type="button" class="dropdown-item rounded font-12 text-primary" onclick="openUploadModal('<%= activity.id %>', '<%= j activity.name %>')">
+                        <button type="button" class="dropdown-item rounded font-12 text-primary" onclick="openUploadModal('<%= activity.id %>', '<%= j activity.name %>', '<%= activity.default_evidence_date %>', '<%= activity.evidence_date_window.begin %>', '<%= activity.evidence_date_window.end %>')">
                             <i class="ri-add-line me-1"></i>Agregar evidencia
                         </button>
                     </li>
@@ -66,7 +66,7 @@
 
     <% if can_upload %>
         <button type="button" class="btn btn-sm btn-link text-muted p-0 hover-primary ms-1"
-                onclick="openUploadModal('<%= activity.id %>', '<%= j activity.name %>')"
+                onclick="openUploadModal('<%= activity.id %>', '<%= j activity.name %>', '<%= activity.default_evidence_date %>', '<%= activity.evidence_date_window.begin %>', '<%= activity.evidence_date_window.end %>')"
                 data-bs-toggle="tooltip" title="Subir Evidencia Rápida">
             <i class="ri-upload-2-line font-18"></i>
         </button>

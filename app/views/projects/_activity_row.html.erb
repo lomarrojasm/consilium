@@ -53,6 +53,8 @@
                                                                             </span>
                                                                             <%= f.date_field :evidence_uploaded_at, 
                                                                                 value: activity.evidence_uploaded_at ? activity.evidence_uploaded_at.strftime("%Y-%m-%d") : Date.current.to_s,
+                                                                                min: activity.evidence_date_window.begin.to_s, max: activity.evidence_date_window.end.to_s,
+                                                                                title: "Rango permitido: hasta #{Activity::EVIDENCE_WINDOW_DAYS} días después de la fecha de la actividad",
                                                                                 class: "form-control form-control-sm border-0 bg-light text-muted font-10 shadow-none",
                                                                                 style: "padding-left: 5px; cursor: pointer;" %>
                                                                             

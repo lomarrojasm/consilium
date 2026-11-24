@@ -26,7 +26,11 @@
                 <h5 class="m-0 font-14 fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">
                     <i class="ri-history-line me-1 text-primary"></i> Historial de Seguimiento
                 </h5>
-                
+                <% if is_admin %>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 font-11" onclick="limpiarConversaciones('activity', '<%= activity.id %>')">
+                        <i class="ri-eraser-line me-1"></i> Limpiar conversación
+                    </button>
+                <% end %>
             </div>
             
             <div class="timeline-scroll-area pe-2" style="height: 550px; overflow-y: auto; overflow-x: hidden; padding-left: 15px;" data-simplebar>
@@ -60,7 +64,6 @@
                                                         style: "transition: opacity 0.2s;",
                                                         onmouseover: "this.style.opacity='1'",
                                                         onmouseout: "this.style.opacity='0.75'",
-                                                        onclick: "return confirm('¿Eliminar este registro del historial?');",
                                                         title: "Eliminar registro" do %>
                                                 <i class="ri-delete-bin-line font-14"></i>
                                             <% end %>

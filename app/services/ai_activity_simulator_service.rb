@@ -22,10 +22,11 @@ class AiActivitySimulatorService
   def call
     return false unless valid_configuration?
 
-    # 2. Limpiamos el panel antes de generar la nueva simulación
-    # Respetamos absolutamente cualquier log que tenga un archivo adjunto o que sea del sistema (emojis)
-    clear_previous_simulation
+    # 2. NO se borra la conversación existente (puede incluir comentarios escritos por personas):
+    # la IA la recibe como contexto y continúa a partir de ella. Para empezar de cero, primero
+    # se usa "Limpiar conversación".
     @activity.prune_stale_evidence_logs!   # quita registros de evidencia que ya no existen
+    @existing_chat = @activity.conversation_logs.sort_by(&:created_at)
 
     client = OpenAI::Client.new(access_token: ENV.fetch("OPENAI_ACCESS_TOKEN"))
     team_context = @available_users.map { |u| "- ID: #{u[:id]} | Nombre: #{u[:name]} | Rol: #{u[:role]}" }.join("\n")
@@ -49,6 +50,22 @@ class AiActivitySimulatorService
       - Visto bueno de Consilium: #{fmt.call(@activity.admin_approved ? @activity.admin_approved_at : nil)}
     DATES
 
+    # Conversación ya existente (de personas o de simulaciones previas)
+    base_day = @activity.created_at.to_date
+    existing_context = if @existing_chat.any?
+      lines = @existing_chat.map do |log|
+        day = (log.created_at.to_date - base_day).to_i
+        "- [día #{day}] #{log.user&.full_name || 'Usuario'}: #{log.comment.to_s.gsub(/\s+/, ' ').strip}"
+      end
+      <<~CHAT.strip
+        COMENTARIOS YA EXISTENTES (no los repitas, no los contradigas y no los modifiques; integra su información y continúa la conversación a partir de ellos, respondiendo o dando seguimiento a lo que dicen):
+        #{lines.join("\n")}
+      CHAT
+    else
+      "Aún no hay comentarios en el panel."
+    end
+    interactions = @existing_chat.any? ? "entre 2 y 4 interacciones NUEVAS" : "entre 3 y 5 interacciones"
+
     # 4. Prompt ajustado a la fecha de creación
     prompt = <<~PROMPT
       Actúas como el motor de simulación de un ERP corporativo en México.
@@ -63,16 +80,18 @@ class AiActivitySimulatorService
       Fechas vigentes del registro (solo como referencia para el orden de los hechos):
       #{dates_context}
 
+      #{existing_context}
+
       Participantes disponibles:
       #{team_context}
 
       Instrucciones:
-      1. Genera EXACTAMENTE entre 3 y 5 interacciones cronológicas.
+      1. Genera EXACTAMENTE #{interactions} cronológicas.
       2. Usa un tono corporativo, profesional y natural (español de negocios de México).
       3. Alterna los roles para simular una conversación real (ej. alguien pide avance, otro responde que está revisando el documento, etc).
       4. IMPORTANTE: En tu respuesta JSON, debes incluir el "user_id" numérico exacto de la lista de participantes.
       6. PROHIBIDO escribir fechas, años, meses o días del calendario dentro de "content" (ej. "15/03/2026", "marzo", "2026"). Las fechas las muestra el sistema; si necesitas referirte al tiempo usa expresiones relativas ("ayer", "esta semana").
-      5. TIEMPO: Usa "days_after_creation" para indicar cuántos días después de iniciada la actividad ocurrió el comentario. Deben ser valores ascendentes (ej. 0, 1, 3, 5).
+      5. TIEMPO: Usa "days_after_creation" para indicar cuántos días después de iniciada la actividad ocurrió el comentario. Deben ser valores enteros ascendentes entre 0 y #{max_conversation_days} (ej. 0, 1, 3, 5). Ningún comentario puede ocurrir después de la fecha de evidencia, si existe.#{@existing_chat.any? ? " Los comentarios nuevos deben ocurrir el mismo día o después del último comentario existente (día #{min_conversation_day})." : ""}
 
       FORMATO DE SALIDA ESTRICTO (JSON):
       {
@@ -124,18 +143,24 @@ class AiActivitySimulatorService
         .gsub(/\s+([,.;:])/, '\\1').gsub(/\s{2,}/, " ").strip
   end
 
-  def valid_configuration?
-    ENV["OPENAI_ACCESS_TOKEN"].present? && @activity.present?
+  # Día mínimo para comentarios nuevos: el del último comentario existente (si lo hay)
+  def min_conversation_day
+    return 0 if @existing_chat.blank?
+    last = (@existing_chat.map { |l| l.created_at.to_date }.max - @activity.created_at.to_date).to_i
+    [ [ last, 0 ].max, max_conversation_days ].min
   end
 
-  def clear_previous_simulation
-    @activity.activity_logs.find_each do |log|
-      # Eliminamos los logs "plásticos" de IA, pero blindamos los que el usuario haya hecho
-      is_system_or_official = log.comment.match?(/📁|✅|🛡️|↩️|🗑️/)
-      has_files = log.attachments.attached?
-
-      log.destroy unless is_system_or_official || has_files
+  # Tope de días de la conversación: hasta la fecha de evidencia (si existe) o la ventana de 10 días
+  def max_conversation_days
+    if @activity.evidence_uploaded_at
+      [ (@activity.evidence_uploaded_at.to_date - @activity.created_at.to_date).to_i, 0 ].max
+    else
+      Activity::EVIDENCE_WINDOW_DAYS
     end
+  end
+
+  def valid_configuration?
+    ENV["OPENAI_ACCESS_TOKEN"].present? && @activity.present?
   end
 
   def create_logs(logs_array)
@@ -145,7 +170,7 @@ class AiActivitySimulatorService
     ActiveRecord::Base.transaction do
       sorted_logs.each do |log_data|
         # Calculamos la fecha sumando días a la fecha base de la actividad
-        dias = log_data["days_after_creation"].to_i
+        dias = [ [ log_data["days_after_creation"].to_i, min_conversation_day ].max, max_conversation_days ].min
         calculated_date = @activity.created_at + dias.days
 
         # Creamos el log
