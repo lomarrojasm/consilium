@@ -5,6 +5,9 @@ class Activity < ApplicationRecord
   has_many :activity_logs, dependent: :destroy
   has_many_attached :evidence_files # Para subir archivos de ejemplo/detalles
 
+  # Fecha (dentro de la actividad) con la que se registra el cambio en la línea de tiempo del cliente
+  attr_accessor :timeline_at
+
   # Enumeramos los estados para facilitar la lógica
   enum :status, { pending: "pending", approved: "approved", rejected: "rejected", completed: "completed" }
 
@@ -47,41 +50,64 @@ class Activity < ApplicationRecord
 
   # Actualiza el módulo de facturación
   def sync_financial_accrual
-    # 1. Aseguramos que tenga proyecto
-    return unless self.stage && self.stage.project
-    project = self.stage.project
-
-    # 2. MATCH PERFECTO (Etapa + Actividad)
-    # Limpiamos los nombres para evitar errores de espacios o mayúsculas
-    nombre_etapa_real = self.stage.name.to_s.strip.downcase
-    nombre_actividad_real = self.name.to_s.strip.downcase
-
-    # Buscamos que coincida EXACTAMENTE la actividad dentro de su respectiva etapa
-    accrual = project.financial_accruals.to_a.find do |f|
-      (f.concept_name.to_s.strip.downcase == nombre_actividad_real) &&
-      (f.stage_name.to_s.strip.downcase == nombre_etapa_real)
-    end
-
-    # PLAN B (Seguridad): Si por alguna razón la etapa no tenía nombre y se guardó como "Etapa 3",
-    # buscamos solo por actividad, pero empezando desde el final (reverse) para atrapar las últimas etapas.
-    accrual ||= project.financial_accruals.to_a.reverse.find do |f|
-      f.concept_name.to_s.strip.downcase == nombre_actividad_real
-    end
-
+    accrual = find_accrual
     # Si definitivamente no existe, abortamos silenciosamente sin romper el sistema
     return unless accrual
 
-    # 3. Lógica de completado (Evalúa checkboxes y estatus de texto)
+    # Lógica de completado (Evalúa checkboxes y estatus de texto)
     estatus_ok = [ "approved", "aprobado", "completado", "terminado", "done", "listo p/v.b.", "listo" ]
     esta_terminada = (self.completed == true) || estatus_ok.include?(self.status.to_s.downcase)
 
-    # 4. ACTUALIZACIÓN DIRECTA EN FINANZAS
+    # ACTUALIZACIÓN DIRECTA EN FINANZAS
     if esta_terminada
-      fecha = accrual.accrued_date || Date.current
+      # La fecha sale de la actividad. Una fecha capturada a mano en finanzas se respeta.
+      previous = accrual_reference_date(
+        admin_at: attribute_before_last_save(:admin_approved_at),
+        evidence_at: attribute_before_last_save(:evidence_uploaded_at)
+      )
+      fecha = accrual.accrued_date
+      fecha = accrual_reference_date if fecha.nil? || fecha == previous
       accrual.update_columns(status: "accrued", accrued_date: fecha)
     else
       accrual.update_columns(status: "pending", accrued_date: nil)
     end
+  end
+
+  # Devengo enlazado por texto: primero etapa + actividad; si no, solo actividad (desde el final)
+  def find_accrual(strict: false)
+    return unless stage && stage.project
+
+    etapa  = stage.name.to_s.strip.downcase
+    nombre = name.to_s.strip.downcase
+    accruals = stage.project.financial_accruals.to_a
+
+    exact = accruals.find do |f|
+      f.concept_name.to_s.strip.downcase == nombre && f.stage_name.to_s.strip.downcase == etapa
+    end
+    return exact if exact || strict
+
+    accruals.reverse.find { |f| f.concept_name.to_s.strip.downcase == nombre }
+  end
+
+  # Fecha de devengo: Visto Bueno, si no la evidencia, si no el último movimiento válido de la actividad
+  def accrual_reference_date(admin_at: admin_approved_at, evidence_at: evidence_uploaded_at)
+    [ admin_at, evidence_at ].compact.find { |d| evidence_date_coherent?(d) }&.to_date || history_date
+  end
+
+  # Tras mover fechas sin callbacks: actualiza el devengo solo si su fecha era automática
+  def refresh_accrual_date!(automatic_dates)
+    accrual = find_accrual(strict: true)
+    return unless accrual && accrual.status == "accrued"
+
+    current = accrual.accrued_date
+    target = accrual_reference_date
+    return if current == target
+
+    automatic = current.nil? || automatic_dates.compact.map(&:to_date).include?(current)
+    return unless automatic
+
+    accrual.update_columns(accrued_date: target)
+    { label: "devengo", from: current, to: target }
   end
 
 
@@ -133,8 +159,9 @@ class Activity < ApplicationRecord
     changes = []
     align = lambda do |log, date, label|
       next if log.nil? || date.nil? || log.created_at.to_date == date.to_date
-      changes << { log_id: log.id, label: label, from: log.created_at, to: date }
-      log.update_columns(created_at: date, updated_at: date) unless dry_run
+      stamp = timestamp_for(date.to_date)
+      changes << { log_id: log.id, label: label, from: log.created_at, to: stamp }
+      log.update_columns(created_at: stamp, updated_at: stamp) unless dry_run
     end
 
     align.call(evidence_logs.order(:created_at).first, evidence_uploaded_at, "evidencia") if evidence_uploaded_at
@@ -149,15 +176,39 @@ class Activity < ApplicationRecord
     changes
   end
 
-  # Desplaza los comentarios simulados/libres (sin emoji de sistema ni adjuntos) cuando
-  # cambia la fecha de creación de la actividad, para conservar su separación en días.
-  def shift_simulated_logs!(delta_seconds)
-    return if delta_seconds.to_i.zero?
-    activity_logs.find_each do |log|
-      next if log.comment.to_s.match?(SYSTEM_LOG_MARKERS) || log.attachments.attached?
-      shifted = log.created_at + delta_seconds
-      log.update_columns(created_at: shifted, updated_at: shifted)
+  # Cuando cambia la fecha de la actividad, desplaza los mismos días todo lo que pertenecía a su ventana:
+  # historial, evidencia, aprobaciones, archivos, línea de tiempo y devengo.
+  def shift_history!(old_created_at)
+    days = (created_at.to_date - old_created_at.to_date).to_i
+    return if days.zero?
+
+    old_window = old_created_at.to_date..(old_created_at.to_date + EVIDENCE_WINDOW_DAYS)
+    inside = ->(date) { date.present? && old_window.cover?(date.to_date) }
+    old_reference = [ admin_approved_at, evidence_uploaded_at ].find { |d| inside.(d) }
+
+    dates = %i[evidence_uploaded_at user_approved_at admin_approved_at].filter_map do |attr|
+      value = self[attr]
+      [ attr, value + days.days ] if inside.(value)
+    end.to_h
+    dates[:completed_day] = dates[:evidence_uploaded_at].day if dates[:evidence_uploaded_at]
+    update_columns(dates) if dates.any?
+
+    (activity_logs.reload.to_a + evidences_attachments.reload.to_a).each do |record|
+      next unless inside.(record.created_at)
+      attrs = { created_at: record.created_at + days.days }
+      attrs[:updated_at] = attrs[:created_at] if record.has_attribute?(:updated_at)
+      record.update_columns(attrs)
     end
+
+    timeline_events.each do |event|
+      event.update_columns(happened_at: event.happened_at + days.days) if inside.(event.happened_at)
+    end
+
+    refresh_accrual_date!([ old_reference ])
+  end
+
+  def timeline_events
+    TimelineLog.where(resource_type: "Activity", resource_id: id)
   end
 
 
@@ -228,12 +279,145 @@ class Activity < ApplicationRecord
     new_date = coherent_evidence_date
     change = { from: evidence_uploaded_at, to: new_date }
     unless dry_run
-      update_columns(evidence_uploaded_at: new_date.in_time_zone, completed_day: new_date.day)
-      reload
+      update_columns(evidence_uploaded_at: timestamp_for(new_date), completed_day: new_date.day)
       resync_log_dates!
+      activity_logs.reload
       fit_conversation_to_evidence!
     end
     change
+  end
+
+  # ===========================================================================
+  # Regla única de fechas:
+  #   actividad <= conversación <= evidencia <= aprobación cliente <= Visto Bueno,
+  #   todo entre el día de la actividad y EVIDENCE_WINDOW_DAYS días después.
+  # ===========================================================================
+
+  # Último movimiento válido (dentro de la ventana); como mínimo, el día de la actividad
+  def history_date
+    dates = [ evidence_uploaded_at,
+              (user_approved_at if user_approved),
+              (admin_approved_at if admin_approved) ]
+    dates += activity_logs.pluck(:created_at)
+    dates.compact.map(&:to_date).select { |d| evidence_date_window.cover?(d) }.max || evidence_date_window.begin
+  end
+
+  # Fecha más temprana permitida para una aprobación (kind: :user | :admin)
+  def approval_floor(kind)
+    previous = [ evidence_date_coherent?(evidence_uploaded_at) ? evidence_uploaded_at.to_date : last_conversation_date ]
+    previous << user_approved_at.to_date if kind.to_sym == :admin && user_approved && evidence_date_coherent?(user_approved_at)
+    previous.compact.max || evidence_date_window.begin
+  end
+
+  # Aprobación automática: un día después del paso anterior, sin pasar de hoy ni de la ventana
+  def coherent_approval_date(kind)
+    floor = approval_floor(kind)
+    candidate = [ floor + 1, evidence_date_window.end ].min
+    candidate = [ Date.current, floor ].max if candidate > Date.current && Date.current >= evidence_date_window.begin
+    candidate
+  end
+
+  # Fecha pedida a mano (días después de la actividad), ajustada a la ventana y al orden.
+  # Devuelve [fecha, ajustada?]
+  def requested_date(days_after, floor:, ceiling: nil)
+    requested = evidence_date_window.begin + days_after.to_i
+    date = [ [ requested, floor ].max, evidence_date_window.end ].min
+    date = ceiling.to_date if ceiling && evidence_date_coherent?(ceiling) && ceiling.to_date >= floor && date > ceiling.to_date
+    [ date, date != requested ]
+  end
+
+  # Fecha y hora para un movimiento de ese día, siempre posterior a lo ya registrado ese día
+  def timestamp_for(date)
+    date = date.to_date
+    day = date.in_time_zone.all_day
+    taken = [ activity_logs.where(created_at: day).maximum(:created_at) ]
+    taken += [ evidence_uploaded_at, user_approved_at, admin_approved_at ].select { |t| t && day.cover?(t) }
+    last = taken.compact.max
+    return [ last.in_time_zone + 1.second, day.end ].min if last
+
+    noon = date.in_time_zone.change(hour: 12)
+    date == created_at.to_date ? [ noon, created_at ].max : noon
+  end
+
+  # Lleva a la regla cualquier fecha fuera de la ventana o fuera de orden.
+  # Devuelve la lista de cambios [{ label:, from:, to: }].
+  def normalize_dates!
+    activity_logs.reload
+    old_sources = [ evidence_uploaded_at, user_approved_at, admin_approved_at, updated_at ] +
+                  activity_logs.map(&:created_at) + timeline_events.pluck(:created_at)
+    changes = []
+
+    if (fix = normalize_evidence_date!)
+      changes << fix.merge(label: "evidencia")
+    end
+
+    previous = evidence_date_coherent?(evidence_uploaded_at) ? evidence_uploaded_at.to_date : nil
+    { user: "aprobación cliente", admin: "visto bueno admin" }.each do |kind, label|
+      next unless public_send("#{kind}_approved")
+
+      value = public_send("#{kind}_approved_at")
+      unless evidence_date_coherent?(value) && (previous.nil? || value.to_date >= previous)
+        stamp = timestamp_for(coherent_approval_date(kind))
+        changes << { label: label, from: value, to: stamp }
+        update_columns("#{kind}_approved_at": stamp)
+      end
+      previous = public_send("#{kind}_approved_at").to_date
+    end
+
+    changes.concat(resync_log_dates!)
+    changes.concat(normalize_log_dates!)
+    changes.concat(normalize_attachment_dates!)
+    changes.concat(normalize_timeline_dates!)
+    accrual_change = refresh_accrual_date!(old_sources)
+    changes << accrual_change if accrual_change
+    changes
+  end
+
+  # Registros del historial que siguen fuera de la ventana (conserva su orden relativo)
+  def normalize_log_dates!
+    window = evidence_date_window
+    floor = window.begin
+    activity_logs.reload.sort_by { |l| [ l.created_at, l.id ] }.filter_map do |log|
+      day = log.created_at.to_date
+      if window.cover?(day)
+        floor = [ floor, day ].max
+        next
+      end
+
+      target = day < window.begin ? window.begin : [ floor, history_date ].max
+      stamp = timestamp_for(target)
+      from = log.created_at
+      log.update_columns(created_at: stamp, updated_at: stamp)
+      { label: "historial ##{log.id}", from: from, to: stamp }
+    end
+  end
+
+  # Cada archivo de evidencia muestra una fecha de la actividad
+  def normalize_attachment_dates!
+    evidences_attachments.reload.filter_map do |attachment|
+      next if evidence_date_coherent?(attachment.created_at)
+
+      from = attachment.created_at
+      stamp = evidence_date_coherent?(evidence_uploaded_at) ? evidence_uploaded_at : timestamp_for(history_date)
+      attachment.update_columns(created_at: stamp)
+      { label: "archivo #{attachment.filename}", from: from, to: stamp }
+    end
+  end
+
+  # La línea de tiempo del cliente usa fechas de la actividad (created_at conserva el momento real)
+  def normalize_timeline_dates!
+    timeline_events.to_a.filter_map do |event|
+      next if evidence_date_coherent?(event.happened_at)
+
+      from = event.happened_at
+      stamp = event.action_type == "create" ? created_at : timestamp_for(history_date)
+      event.update_columns(happened_at: stamp)
+      { label: "línea de tiempo ##{event.id}", from: from, to: stamp }
+    end
+  end
+
+  def last_conversation_date
+    conversation_logs.map { |l| l.created_at.to_date }.select { |d| evidence_date_window.cover?(d) }.max
   end
 
   # ===========================================================================

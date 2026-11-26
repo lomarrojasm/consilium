@@ -152,11 +152,10 @@ class AiActivitySimulatorService
 
   # Tope de días de la conversación: hasta la fecha de evidencia (si existe) o la ventana de 10 días
   def max_conversation_days
-    if @activity.evidence_uploaded_at
-      [ (@activity.evidence_uploaded_at.to_date - @activity.created_at.to_date).to_i, 0 ].max
-    else
-      Activity::EVIDENCE_WINDOW_DAYS
-    end
+    limit = @activity.evidence_uploaded_at || (@activity.user_approved ? @activity.user_approved_at : nil)
+    return Activity::EVIDENCE_WINDOW_DAYS unless limit
+
+    (limit.to_date - @activity.created_at.to_date).to_i.clamp(0, Activity::EVIDENCE_WINDOW_DAYS)
   end
 
   def valid_configuration?

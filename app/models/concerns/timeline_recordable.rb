@@ -49,7 +49,8 @@ module TimelineRecordable
       user: actor,
       resource: self,
       action_type: 'create',
-      details: mensaje
+      details: mensaje,
+      happened_at: (created_at if is_a?(Activity)) # nil => ahora
     )
   rescue => e
     Rails.logger.error "⚠️ Timeline Create Error: #{e.message}"
@@ -87,7 +88,8 @@ module TimelineRecordable
               user: Current.user || self.try(:user), 
               resource: self,
               action_type: 'update',
-              details: mensaje
+              details: mensaje,
+              happened_at: activity_event_date
             )
             return 
         end
@@ -115,7 +117,8 @@ module TimelineRecordable
       user: Current.user || self.try(:user), 
       resource: self,
       action_type: 'update',
-      details: mensaje
+      details: mensaje,
+      happened_at: activity_event_date
     )
   rescue => e
     Rails.logger.error "⚠️ Error en Timeline Update: #{e.message}"
@@ -141,11 +144,17 @@ module TimelineRecordable
       resource_id: self.id,
       action_type: 'destroy',
       details: detalle,
-      happened_at: Time.current
+      happened_at: activity_event_date || Time.current
     )
   end
 
   # Helpers
+  # Las actividades se registran con su propia fecha; el resto de modelos usa la fecha real
+  def activity_event_date
+    return unless is_a?(Activity)
+    timeline_at || timestamp_for(history_date)
+  end
+
   def resolve_client
     return self if self.is_a?(Client)
     return self.client if self.respond_to?(:client)

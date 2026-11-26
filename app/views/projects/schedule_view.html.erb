@@ -267,7 +267,7 @@
                         
                         if is_completed_task
                           # Busca el día exacto de la evidencia. Si no hay, usa el día en que se guardó como completada.
-                          dia_real_ejecucion = activity.evidence_uploaded_at&.day || activity.completed_day || activity.updated_at.day
+                          dia_real_ejecucion = activity.evidence_uploaded_at&.day || activity.completed_day || activity.history_date.day
                           is_completed_day = (dia_real_ejecucion == day)
                         end
                       %>

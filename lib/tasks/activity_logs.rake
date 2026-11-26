@@ -10,28 +10,39 @@ namespace :activity_logs do
     total = Hash.new(0)
 
     scope.find_each do |activity|
-      evidence_fix = activity.normalize_evidence_date!(dry_run: !apply)   # fecha de evidencia fuera de rango
-      prunes = activity.prune_stale_evidence_logs!(dry_run: !apply)
-      syncs  = activity.resync_log_dates!(dry_run: !apply)
-      next if evidence_fix.nil? && prunes.empty? && syncs.empty?
-
-      puts "\nActividad ##{activity.id} (proyecto #{activity.stage.project_id}) — #{activity.name.to_s[0, 70]}"
-      if evidence_fix
-        total[:evidencia] += 1
-        puts "  - FECHA EVIDENCIA fuera de rango (actividad creada #{activity.created_at.to_date}): #{evidence_fix[:from].to_date} => #{evidence_fix[:to]}"
+      prunes = []
+      changes = []
+      # En simulación se ejecuta todo dentro de una transacción que se revierte
+      Activity.transaction(requires_new: true) do
+        prunes = activity.prune_stale_evidence_logs!
+        changes = activity.normalize_dates!
+        raise ActiveRecord::Rollback unless apply
       end
+
+      # Devengos con fecha fuera de rango que no se tocan porque parecen capturados a mano
+      accrual = activity.reload.find_accrual(strict: true)
+      manual = accrual&.accrued_date && !activity.evidence_date_coherent?(accrual.accrued_date) &&
+               changes.none? { |c| c[:label] == "devengo" }
+
+      next if prunes.empty? && changes.empty? && !manual
+
+      puts "\nActividad ##{activity.id} (proyecto #{activity.stage.project_id}, fecha #{activity.created_at.to_date}) — #{activity.name.to_s[0, 70]}"
       prunes.each do |c|
         total[c[:action]] += 1
         puts c[:action] == :destroy ? "  - ELIMINAR registro ##{c[:log_id]}: #{c[:from][0, 90]}" :
                                       "  - REESCRIBIR registro ##{c[:log_id]}: #{c[:from][0, 60]} => #{c[:to][0, 60]}"
       end
-      syncs.each do |c|
+      changes.each do |c|
         total[:fecha] += 1
-        puts "  - FECHA (#{c[:label]}) registro ##{c[:log_id]}: #{c[:from].to_date} => #{c[:to].to_date}"
+        puts "  - FECHA (#{c[:label]}): #{c[:from]&.to_date || 'sin fecha'} => #{c[:to].to_date}"
+      end
+      if manual
+        total[:revisar] += 1
+        puts "  - REVISAR A MANO: devengo con fecha #{accrual.accrued_date} (no se modifica)"
       end
     end
 
-    puts "\nResumen: eliminar=#{total[:destroy]} reescribir=#{total[:rewrite]} fechas=#{total[:fecha]} evidencias_fuera_de_rango=#{total[:evidencia]}"
+    puts "\nResumen: eliminar=#{total[:destroy]} reescribir=#{total[:rewrite]} fechas=#{total[:fecha]} devengos_por_revisar=#{total[:revisar]}"
     puts "Nada se modificó (dry run)." unless apply
   end
 

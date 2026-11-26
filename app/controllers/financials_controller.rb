@@ -54,7 +54,8 @@ class FinancialsController < ApplicationController
 
         if esta_terminada
           accrual.status = "accrued"
-          accrual.accrued_date = activity.updated_at || Date.current
+          # Fecha según la actividad; una fecha ya registrada se respeta
+          accrual.accrued_date ||= activity.accrual_reference_date
         else
           accrual.status = "pending"
         end

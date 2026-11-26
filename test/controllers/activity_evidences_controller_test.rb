@@ -17,7 +17,7 @@ class ActivityEvidencesControllerTest < ActionDispatch::IntegrationTest
     ProjectMember.create!(project: @project, user: @analyst, role: "analista")
 
     @stage = Stage.create!(project: @project, name: "Etapa 1")
-    @activity = Activity.create!(stage: @stage, user: @admin, name: "Actividad A")
+    @activity = Activity.create!(stage: @stage, user: @admin, name: "Actividad A", created_at: Time.zone.local(2026, 6, 14, 9))
     # Segunda actividad pendiente para que la etapa no quede al 100% (y bloqueada) al subir evidencia
     @other = Activity.create!(stage: @stage, user: @admin, name: "Actividad B")
   end

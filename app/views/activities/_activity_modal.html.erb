@@ -235,15 +235,11 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label font-12 fw-bold text-muted text-uppercase tracking-wider">Fecha de la acción</label>
-                            <%= select_tag :days_after, options_for_select([
-                                ['Mismo día que la actividad', 0],
-                                ['1 día después', 1],
-                                ['2 días después', 2],
-                                ['3 días después', 3],
-                                ['5 días después', 5],
-                                ['1 semana después', 7],
-                                ['15 días después', 15]
-                            ], 0), class: "form-select font-13 shadow-none" %>
+                            <%= select_tag :days_after, options_for_select(
+                                [['Automática (según el historial)', '']] +
+                                (0..Activity::EVIDENCE_WINDOW_DAYS).map { |d| [d.zero? ? 'Mismo día que la actividad' : "#{d} #{d == 1 ? 'día' : 'días'} después", d] },
+                                ''), class: "form-select font-13 shadow-none" %>
+                            <small class="text-muted font-10">Nunca queda antes del último registro del historial.</small>
                         </div>
                         <%= f.submit "Guardar", class: "btn btn-primary w-100 btn-sm shadow fw-bold text-uppercase py-2" %>
                     <% end %>

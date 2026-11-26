@@ -59,11 +59,20 @@ class ActivitiesController < ApplicationController
 
     old_created_at = @activity.created_at
 
-    if @activity.update(activity_params)
-      if @activity.saved_change_to_created_at?
-        @activity.shift_simulated_logs!(@activity.created_at - old_created_at)
+    attributes = activity_params
+    # El formulario envía solo el día: si no cambió se ignora; si cambió se conserva la hora original
+    if attributes[:created_at].present?
+      new_day = (Date.parse(attributes[:created_at].to_s) rescue nil)
+      if new_day.nil? || new_day == old_created_at.to_date
+        attributes.delete(:created_at)
+      else
+        attributes[:created_at] = old_created_at + (new_day - old_created_at.to_date).to_i.days
       end
-      @activity.resync_log_dates!
+    end
+
+    if @activity.update(attributes)
+      @activity.shift_history!(old_created_at) if @activity.saved_change_to_created_at?
+      @activity.normalize_dates!
 
       total_cost = (@activity.leader_cost || 0) + (@activity.senior_cost || 0) + (@activity.analyst_cost || 0)
       @activity.update_column(:activity_cost, total_cost)
@@ -119,7 +128,7 @@ class ActivitiesController < ApplicationController
       if changed_stage
         TimelineLog.create(
           client: @client, user: current_user, resource: moved, resource_name: moved.name,
-          action_type: "update", happened_at: Time.current,
+          action_type: "update", happened_at: moved.timestamp_for(moved.history_date),
           details: "🔀 Actividad movida de «#{source.name}» a «#{target.name}»: #{moved.name}"
         )
       end
@@ -155,6 +164,8 @@ class ActivitiesController < ApplicationController
       updates[:status] = "pending"
       updates[:admin_approved] = false
       updates[:user_approved] = false
+      updates[:admin_approved_at] = nil
+      updates[:user_approved_at] = nil
     else
       updates[:status] = "completed"
     end
@@ -181,14 +192,20 @@ class ActivitiesController < ApplicationController
 
     if files.any? && fecha_seleccionada
       # La fecha oficial de ejecución la fija la primera evidencia; las siguientes solo suman archivos.
-      first_evidence = !@activity.evidences.attached? || @activity.evidence_uploaded_at.nil?
+      # (una fecha oficial anterior fuera de rango se reemplaza por la nueva)
+      first_evidence = !@activity.evidences.attached? || !@activity.evidence_date_coherent?(@activity.evidence_uploaded_at)
+
+      stamp = @activity.timestamp_for(fecha_seleccionada)
+      @activity.timeline_at = stamp
+      previous_ids = @activity.evidences_attachments.pluck(:id)
 
       @activity.evidences.attach(files)
+      @activity.evidences_attachments.reload.where.not(id: previous_ids).update_all(created_at: stamp)
 
       attrs = { completed: true, user: current_user }
       if first_evidence
         attrs[:completed_day] = fecha_seleccionada.day
-        attrs[:evidence_uploaded_at] = fecha_seleccionada
+        attrs[:evidence_uploaded_at] = stamp
       end
       @activity.update(attrs)
 
@@ -201,9 +218,12 @@ class ActivitiesController < ApplicationController
       end
 
       log = @activity.activity_logs.create!(user: current_user, status: "pending", comment: comment)
-      log.update_columns(created_at: fecha_seleccionada, updated_at: fecha_seleccionada)
+      log.update_columns(created_at: stamp, updated_at: stamp)
 
-      @activity.reload.fit_conversation_to_evidence! if first_evidence
+      if first_evidence
+        @activity.reload.fit_conversation_to_evidence!
+        @activity.normalize_dates!   # aprobaciones previas no pueden quedar antes de la evidencia
+      end
 
       notice = names.one? ? "Evidencia cargada y registrada con la fecha seleccionada." : "#{names.size} evidencias cargadas y registradas."
       if date_adjusted
@@ -233,11 +253,14 @@ class ActivitiesController < ApplicationController
     attachment = @activity.evidences_attachments.find(params[:attachment_id])
     filename = attachment.filename.to_s
     state_before = stages_state
+    stamp = @activity.timestamp_for(@activity.history_date)
+    @activity.timeline_at = stamp
     attachment.purge
 
     # El registro "📁 Subió…" de ese archivo deja de existir; el "🗑️ Eliminó…" queda como historial real.
     @activity.reload.prune_stale_evidence_logs!
-    @activity.activity_logs.create!(user: current_user, status: "pending", comment: "🗑️ Eliminó la evidencia: #{filename}.")
+    log = @activity.activity_logs.create!(user: current_user, status: "pending", comment: "🗑️ Eliminó la evidencia: #{filename}.")
+    log.update_columns(created_at: stamp, updated_at: stamp)
 
     respond_to do |format|
       format.json { render json: approval_payload(@activity, state_before) }
@@ -255,12 +278,23 @@ class ActivitiesController < ApplicationController
       adjusted = requested.present? && !@activity.evidence_date_coherent?(requested)
       requested = @activity.coherent_evidence_date if adjusted
 
-      if requested.present? && @activity.update(evidence_uploaded_at: requested)
-        new_date = requested
-        @activity.update(completed_day: new_date.day) if new_date
+      old_date = @activity.evidence_uploaded_at&.to_date
+      stamp = requested && @activity.timestamp_for(requested)
+      @activity.timeline_at = stamp
+      old_reference = @activity.accrual_reference_date
+
+      if requested.present? && @activity.update(evidence_uploaded_at: stamp, completed_day: requested.to_date.day)
+        new_date = requested.to_date
+        # Los archivos que mostraban la fecha anterior pasan a la nueva
+        @activity.evidences_attachments.select { |a| a.created_at.to_date == old_date }.each { |a| a.update_columns(created_at: stamp) }
         @activity.reload.resync_log_dates!   # el historial refleja la nueva fecha de evidencia
+        @activity.activity_logs.reload
         @activity.fit_conversation_to_evidence!
+        pushed = @activity.normalize_dates!.any? { |c| c[:label].match?(/aprobación|visto/) }
+        @activity.refresh_accrual_date!([ old_reference ])
         flash_extra = adjusted ? " Se ajustó al #{new_date.strftime('%d/%m/%Y')} para ser coherente con la fecha de la actividad (máximo #{Activity::EVIDENCE_WINDOW_DAYS} días después)." : ""
+
+        flash_extra += " Las aprobaciones se movieron para no quedar antes de la evidencia." if pushed
 
         # Redirigimos usando un "ancla" para que la página baje automáticamente a la fila
         redirect_to client_project_path(@client, @project, anchor: "activity-row-#{@activity.id}"), notice: "Fecha de evidencia actualizada correctamente.#{flash_extra}"
@@ -285,38 +319,36 @@ class ActivitiesController < ApplicationController
     update_params = { status: new_status }
     update_params[:completed] = [ "approved", "completed" ].include?(new_status)
 
-    # 1. Mantenemos tu lógica ORIGINAL intacta para la evidencia
+    # Fecha del seguimiento: la elegida (o la del último movimiento), nunca antes de lo ya registrado
+    floor = @activity.history_date
+    date, adjusted = params[:days_after].present? ? @activity.requested_date(params[:days_after], floor: floor) : [ floor, false ]
+    stamp = @activity.timestamp_for(date)
+    @activity.timeline_at = stamp
+
+    # Sin evidencia previa, "completada" toma la fecha de este seguimiento como fecha de ejecución
     if update_params[:completed] && @activity.evidence_uploaded_at.nil?
-      update_params[:evidence_uploaded_at] = @activity.created_at
-      update_params[:completed_day] = @activity.created_at.day
+      update_params[:evidence_uploaded_at] = stamp
+      update_params[:completed_day] = stamp.day
     end
 
     if @activity.update(update_params)
-      # 2. Creamos el registro del panel de actividad de manera normal
+      # Creamos el registro del panel de actividad con la fecha de la actividad
       log = @activity.activity_logs.create!(
         user: current_user,
         status: new_status.to_s,
         comment: comment
       )
-
-      # 3. Calculamos la nueva fecha basándonos en los días seleccionados en el select_tag
-      if params[:days_after].present?
-        dias_a_sumar = params[:days_after].to_i
-        nueva_fecha_log = @activity.created_at + dias_a_sumar.days
-
-        # 4. Inyectamos la nueva fecha ÚNICAMENTE al log (panel de actividad)
-        log.update_columns(
-          created_at: nueva_fecha_log,
-          updated_at: nueva_fecha_log
-        )
-      end
+      log.update_columns(created_at: stamp, updated_at: stamp)
+      @activity.normalize_dates! if update_params[:evidence_uploaded_at]
 
       files = Array.wrap(params[:attachments]).select { |f| f.respond_to?(:original_filename) }
       log.attachments.attach(files) if files.any?
 
+      message = "Seguimiento registrado"
+      message += adjusted_message(date) if adjusted
       respond_to do |format|
-        format.json { render json: approval_payload(@activity, state_before) }
-        format.html { redirect_to client_project_path(@client, @project), notice: "Seguimiento registrado y estatus actualizado." }
+        format.json { render json: approval_payload(@activity, state_before).merge(message: message) }
+        format.html { redirect_to client_project_path(@client, @project), notice: "#{message}. Estatus actualizado." }
       end
     else
       respond_to do |format|
@@ -333,10 +365,10 @@ class ActivitiesController < ApplicationController
     state_before = stages_state
     new_state = !@activity.user_approved
 
-    apply_user_approval(@activity, new_state, params[:days_after])
+    message = apply_user_approval(@activity, new_state, params[:days_after])
 
     respond_to do |format|
-      format.json { render json: approval_payload(@activity, state_before) }
+      format.json { render json: approval_payload(@activity, state_before).merge(message: message) }
       format.html { redirect_back fallback_location: client_project_path(@client, @project), notice: "Aprobación de cliente actualizada." }
     end
   end
@@ -349,10 +381,10 @@ class ActivitiesController < ApplicationController
       state_before = stages_state
       new_state = !@activity.admin_approved
 
-      apply_admin_approval(@activity, new_state, params[:days_after])
+      message = apply_admin_approval(@activity, new_state, params[:days_after])
 
       respond_to do |format|
-        format.json { render json: approval_payload(@activity, state_before) }
+        format.json { render json: approval_payload(@activity, state_before).merge(message: message) }
         format.html { redirect_back fallback_location: client_project_path(@client, @project), notice: "Aprobación administrativa actualizada." }
       end
     else
@@ -362,7 +394,7 @@ class ActivitiesController < ApplicationController
 
   # PATCH .../activities/bulk_approve  (solo admin)
   # Params: kind (user | admin), ids[]. Procesa solo las actividades elegibles y reporta el resto.
-  #   user  -> aprueba como cliente las que aún no lo están (fecha de hoy)
+  #   user  -> aprueba como cliente las que aún no lo están (fecha según cada actividad)
   #   admin -> da el Visto Bueno a las que ya tienen aprobación de cliente y aún no la de admin
   def bulk_approve
     return deny!("Acción exclusiva de la administración de Consilium.", client_project_path(@client, @project)) unless current_user.role == "admin"
@@ -449,14 +481,23 @@ class ActivitiesController < ApplicationController
       return render json: { ok: false, error: "La actividad no tiene esa aprobación." }, status: :unprocessable_entity
     end
 
-    new_date = @activity.created_at + params[:days_after].to_i.days
-    @activity.update_columns("#{kind}_approved_at": new_date)
+    ceiling = @activity.admin_approved_at if kind == "user" && @activity.admin_approved
+    date, adjusted = @activity.requested_date(params[:days_after], floor: @activity.approval_floor(kind), ceiling: ceiling)
+    old_reference = @activity.accrual_reference_date
+    old_date = @activity.public_send("#{kind}_approved_at")
 
     marker = kind == "admin" ? "Visto Bueno definitivo" : "como cliente"
-    @activity.activity_logs.where(status: "approved").where("comment LIKE ?", "%#{marker}%")
-             .order(:created_at).last&.update_columns(created_at: new_date, updated_at: new_date)
+    log = @activity.activity_logs.where(status: "approved").where("comment LIKE ?", "%#{marker}%").order(:created_at).last
 
-    render json: { ok: true, date: new_date.strftime("%d/%m/%Y") }
+    Activity.transaction do
+      new_date = old_date&.to_date == date ? old_date : @activity.timestamp_for(date)
+      @activity.update_columns("#{kind}_approved_at": new_date)
+      log&.update_columns(created_at: new_date, updated_at: new_date)
+      @activity.normalize_dates!   # un Visto Bueno nunca queda antes de la aprobación del cliente
+      @activity.refresh_accrual_date!([ old_reference ])
+    end
+
+    render json: { ok: true, date: date.strftime("%d/%m/%Y"), message: (adjusted ? "Fecha ajustada" + adjusted_message(date) : nil) }
   end
 
   def simulate_ai_logs
@@ -519,12 +560,12 @@ class ActivitiesController < ApplicationController
   end
 
   # --- Lógica de aprobación compartida (acción individual y aprobación en bloque) ---
+  # Ambas devuelven un aviso si la fecha pedida tuvo que ajustarse.
   def apply_user_approval(activity, new_state, days_after)
-    # Fecha: hoy, o (si viene days_after) creación de la actividad + N días
-    action_date = Time.current
-    action_date = activity.created_at + days_after.to_i.days if new_state && days_after.present?
+    stamp, message = approval_stamp(activity, :user, new_state, days_after)
+    activity.timeline_at = stamp
 
-    updates = { user_approved: new_state, user_approved_at: new_state ? action_date : nil }
+    updates = { user_approved: new_state, user_approved_at: new_state ? stamp : nil }
 
     # Si el cliente retira su aprobación, se cae todo lo demás y se reabre la tarea
     if !new_state
@@ -542,16 +583,15 @@ class ActivitiesController < ApplicationController
       status: (new_state ? "approved" : "pending"),
       comment: "#{action_text} la actividad como cliente."
     )
-
-    # Solo alteramos la fecha del log si se estaba aprobando con fecha distinta a hoy
-    log.update_columns(created_at: action_date, updated_at: action_date) if new_state && days_after.present?
+    log.update_columns(created_at: stamp, updated_at: stamp)
+    message
   end
 
   def apply_admin_approval(activity, new_state, days_after)
-    action_date = Time.current
-    action_date = activity.created_at + days_after.to_i.days if new_state && days_after.present?
+    stamp, message = approval_stamp(activity, :admin, new_state, days_after)
+    activity.timeline_at = stamp
 
-    updates = { admin_approved: new_state, admin_approved_at: new_state ? action_date : nil }
+    updates = { admin_approved: new_state, admin_approved_at: new_state ? stamp : nil }
 
     # Si el Admin retira el visto bueno, la actividad vuelve a incompleta
     if new_state
@@ -570,8 +610,28 @@ class ActivitiesController < ApplicationController
       status: (new_state ? "approved" : "pending"),
       comment: "#{action_text} el Visto Bueno definitivo (Admin)."
     )
+    log.update_columns(created_at: stamp, updated_at: stamp)
+    message
+  end
 
-    log.update_columns(created_at: action_date, updated_at: action_date) if new_state && days_after.present?
+  # Fecha y hora de una aprobación o de su revocación, según la regla de la actividad
+  def approval_stamp(activity, kind, new_state, days_after)
+    adjusted = false
+    date =
+      if !new_state
+        activity.history_date
+      elsif days_after.present?
+        chosen, adjusted = activity.requested_date(days_after, floor: activity.approval_floor(kind))
+        chosen
+      else
+        activity.coherent_approval_date(kind)
+      end
+
+    [ activity.timestamp_for(date), (adjusted ? "Fecha ajustada" + adjusted_message(date) : nil) ]
+  end
+
+  def adjusted_message(date)
+    " al #{date.strftime('%d/%m/%Y')} para respetar el orden y la ventana de #{Activity::EVIDENCE_WINDOW_DAYS} días"
   end
 
   # Error al eliminar evidencia: JSON para fetch, redirect para formularios normales

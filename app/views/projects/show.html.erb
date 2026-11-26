@@ -937,7 +937,7 @@
             const data = await res.json().catch(() => ({}));
             if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar la aprobación.');
             if (!applyPayload(data)) return;
-            approvalToast('success', wasChecked ? 'Aprobación registrada' : 'Aprobación retirada');
+            approvalToast(data.message ? 'info' : 'success', data.message || (wasChecked ? 'Aprobación registrada' : 'Aprobación retirada'));
         } catch (err) {
             checkbox.checked = !wasChecked;      // revertimos visualmente
             checkbox.disabled = false;
@@ -1000,7 +1000,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar el cambio.');
-        if (applyPayload(data)) approvalToast('success', successMsg);
+        if (applyPayload(data)) approvalToast('success', data.message || successMsg);
     }
 
     // Listeners delegados (una sola vez aunque Turbo vuelva a evaluar el script)
@@ -1170,12 +1170,12 @@
         } catch (err) { approvalToast('error', err.message); }
     }
 
-    // Cliente: un clic aprueba con la fecha de hoy; desmarcar revoca.
+    // Cliente: un clic aprueba con la fecha que corresponde a la actividad; desmarcar revoca.
     function handleUserApproval(checkbox, activityName) {
         sendApproval(checkbox, null);
     }
 
-    // Admin: un clic aprueba con la fecha de hoy; revocar pide confirmación.
+    // Admin: un clic aprueba con la fecha que corresponde a la actividad; revocar pide confirmación.
     function handleAdminApproval(checkbox, activityName) {
         if (checkbox.checked) {
             sendApproval(checkbox, null);
@@ -1206,14 +1206,11 @@
             html: `
                 <div class="text-start mt-3">
                     <select id="swal-days-after" class="form-select font-13 shadow-none border-success">
-                        <option value="0">Mismo día que la actividad</option>
-                        <option value="1">1 día después</option>
-                        <option value="2">2 días después</option>
-                        <option value="3">3 días después</option>
-                        <option value="5">5 días después</option>
-                        <option value="7">1 semana después</option>
-                        <option value="15">15 días después</option>
+                        <% (0..Activity::EVIDENCE_WINDOW_DAYS).each do |d| %>
+                            <option value="<%= d %>"><%= d.zero? ? 'Mismo día que la actividad' : "#{d} #{d == 1 ? 'día' : 'días'} después" %></option>
+                        <% end %>
                     </select>
+                    <small class="text-muted font-11 d-block mt-1">Si la fecha rompe el orden (evidencia, cliente, Visto Bueno) se ajusta automáticamente.</small>
                 </div>`,
             showCancelButton: true,
             confirmButtonColor: '#0acf97',
@@ -1233,7 +1230,7 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo cambiar la fecha.');
-                approvalToast('success', 'Fecha actualizada: ' + data.date);
+                approvalToast(data.message ? 'info' : 'success', data.message || 'Fecha actualizada: ' + data.date);
             } catch (err) {
                 approvalToast('error', err.message);
             }
@@ -1311,7 +1308,7 @@
             const label = kind === 'user' ? 'aprobar como cliente' : 'dar el Visto Bueno de admin a';
             const confirm = await Swal.fire({
                 title: '¿Confirmar?',
-                text: 'Se va a ' + label + ' ' + ids.length + ' actividad(es) con la fecha de hoy. Las que no apliquen se omiten.',
+                text: 'Se va a ' + label + ' ' + ids.length + ' actividad(es), cada una con la fecha que le corresponde. Las que no apliquen se omiten.',
                 icon: 'question', showCancelButton: true,
                 confirmButtonColor: '#0acf97', cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Sí, continuar', cancelButtonText: 'Cancelar', reverseButtons: true
